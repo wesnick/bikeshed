@@ -86,10 +86,11 @@ async def chat(request: Request, message: str = Form(...)):
     
     # Create user message HTML
     context = {"message_type": "user", "message_content": message}
-    user_message_html = await request.app.state.templates.TemplateResponse(
+    user_message_html = await jinja.render_template(
+        request,
         "components/message.html.j2", 
-        {"request": request, **context}
-    ).body.decode('utf-8')
+        {"message_type": "user", "message_content": message}
+    )
     
     # Send user message to all connected clients
     for client_queue in CHAT_CONNECTIONS.values():
