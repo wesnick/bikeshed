@@ -4,18 +4,20 @@ from fastapi import FastAPI, Request, Form
 from fastapi.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
+from fasthx import Jinja
 
 app = FastAPI()
 
 # static asset mount
 app.mount("/build", StaticFiles(directory="build"), name="build")
 
-templates = Jinja2Templates(directory="templates")
+jinja = Jinja(Jinja2Templates(directory="templates"))
 
 
 @app.get("/")
-def read_root(request: Request):
-    return templates.TemplateResponse("index.html.j2", {"request": request})
+@jinja.page('index.html.j2')
+def index() -> None:
+    """This route serves the index.html template."""
 
 
 @app.post("/chat", response_class=HTMLResponse)
