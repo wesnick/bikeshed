@@ -30,6 +30,8 @@ $dark-sidebar-bg: #242424;
   $input-shadow: none
 );
 
+@use "sass:color";
+
 // Import section specific styles.
 @use "sections/dashboard";
 @use "components/navbar";
@@ -92,17 +94,17 @@ html {
       color: $dark-text;
       
       &:hover {
-        background-color: darken($dark-navbar-bg, 5%);
+        background-color: color.adjust($dark-navbar-bg, $lightness: -5%);
         color: $dark-text;
       }
     }
     
     .navbar-dropdown {
       background-color: $dark-navbar-bg;
-      border-top-color: darken($dark-navbar-bg, 10%);
+      border-top-color: color.adjust($dark-navbar-bg, $lightness: -10%);
       
       .navbar-item:hover {
-        background-color: darken($dark-navbar-bg, 5%);
+        background-color: color.adjust($dark-navbar-bg, $lightness: -5%);
       }
     }
     
@@ -111,7 +113,7 @@ html {
     }
     
     .navbar-divider {
-      background-color: darken($dark-navbar-bg, 10%);
+      background-color: color.adjust($dark-navbar-bg, $lightness: -10%);
     }
   }
 
@@ -137,7 +139,7 @@ html {
     color: $dark-text;
     
     &:hover {
-      background-color: darken($dark-sidebar-bg, 5%);
+      background-color: color.adjust($dark-sidebar-bg, $lightness: -5%);
     }
   }
   
