@@ -40,6 +40,28 @@ $dark-sidebar-bg: #242424;
 // Import the Google Font
 @import url("https://fonts.googleapis.com/css?family=Nunito:400,700");
 
+// Layout
+.main-layout {
+  height: 100vh;
+  overflow: hidden;
+}
+
+body {
+  overflow: hidden;
+}
+
+.section {
+  height: calc(100vh - 52px); /* 52px is navbar height */
+  overflow: hidden;
+  padding: 1.5rem;
+}
+
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 // Default light theme
 html {
   background-color: $light-background;

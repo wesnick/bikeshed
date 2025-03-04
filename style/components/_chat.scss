@@ -2,8 +2,9 @@
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 300px);
+  flex: 1;
   overflow: hidden;
+  margin-bottom: 1rem;
 }
 
 .chat-messages {
@@ -46,10 +47,10 @@
 
 // Chat input section
 .chat-input-container {
-  margin-top: 1rem;
   padding: 1rem;
   border-radius: 0.5rem;
   background-color: rgba(0, 0, 0, 0.03);
+  flex-shrink: 0;
   
   [data-theme="dark"] & {
     background-color: rgba(255, 255, 255, 0.05);
