@@ -56,12 +56,12 @@ async def chat(request: Request, message: str = Form(...)):
     # In a real app, you would process the message with an LLM here
     # For now, we'll just echo the message and add a simulated delay
     
-    # Use the message component template
-    user_message_html = await jinja.render_template(
-        request, 
+    # Create user message HTML with the message component
+    context = {"message_type": "user", "message_content": message}
+    user_message_html = await request.app.state.templates.TemplateResponse(
         "components/message.html.j2", 
-        {"message_type": "user", "message_content": message}
-    )
+        {"request": request, **context}
+    ).body.decode('utf-8')
     
     # Simulate processing delay (remove in production)
     time.sleep(1)
