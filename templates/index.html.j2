@@ -6,6 +6,7 @@
     <title>Flibberflow Dashboard</title>
     <link rel="stylesheet" href="/build/css/app.css">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
       /* Initial styles for collapsibility */
       .sidebar {
@@ -42,11 +43,18 @@
       <!-- Left Sidebar -->
       <div id="left-sidebar" class="column is-narrow sidebar">
         <div class="sidebar-toggle" onclick="toggleSidebar('left-sidebar')">
-          <span>&lt;</span>
+           <span class="icon is-medium">
+  <span class="fa-stack fa-sm">
+    <i class="fas fa-circle fa-stack-2x"></i>
+    <i class="fas fa-flag fa-stack-1x fa-inverse"></i>
+  </span>
+</span>
         </div>
         <div class="sidebar-content">
             <aside class="menu">
-              <p class="menu-label">Navigation</p>
+              <p class="menu-label">Navigation
+
+              </p>
               <ul class="menu-list">
                 <li><a href="#">Dashboard</a></li>
                 <li><a href="#">Chats</a></li>
