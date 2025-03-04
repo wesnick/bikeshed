@@ -3,5 +3,17 @@
 {% block title %}Flibberflow Dashboard{% endblock %}
 
 {% block content %}
-  {% include 'components/chat.html.j2' %}
+  <div hx-get="/components/chat" hx-trigger="load">
+    <div class="box chat-container skeleton-block">
+      <div class="skeleton-lines">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <div class="skeleton-lines">
+        <div></div>
+        <div></div>
+      </div>
+    </div>
+  </div>
 {% endblock %}

@@ -20,10 +20,30 @@ def index() -> None:
     """This route serves the index.html template."""
 
 
-@app.get("/chat-component")
+@app.get("/components/chat")
 @jinja.hx('components/chat.html.j2', no_data=True)
 def chat_component() -> None:
     """This route serves just the chat component for htmx requests."""
+
+@app.get("/components/left-sidebar")
+@jinja.hx('components/left_sidebar.html.j2', no_data=True)
+def left_sidebar_component() -> None:
+    """This route serves the left sidebar component for htmx requests."""
+
+@app.get("/components/right-drawer")
+@jinja.hx('components/right_drawer.html.j2', no_data=True)
+def right_drawer_component() -> None:
+    """This route serves the right drawer component for htmx requests."""
+
+@app.get("/components/navbar")
+@jinja.hx('components/navbar.html.j2', no_data=True)
+def navbar_component() -> None:
+    """This route serves the navbar component for htmx requests."""
+
+@app.get("/components/chat-form")
+@jinja.hx('components/chat_form.html.j2', no_data=True)
+def chat_form_component() -> None:
+    """This route serves the chat form component for htmx requests."""
 
 
 @app.post("/chat", response_class=HTMLResponse)
@@ -36,12 +56,12 @@ async def chat(request: Request, message: str = Form(...)):
     # In a real app, you would process the message with an LLM here
     # For now, we'll just echo the message and add a simulated delay
     
-    # Create user message HTML
-    user_message_html = f"""
-    <div class="message user-message">
-        <p>{message}</p>
-    </div>
-    """
+    # Use the message component template
+    user_message_html = await jinja.render_template(
+        request, 
+        "components/message.html.j2", 
+        {"message_type": "user", "message_content": message}
+    )
     
     # Simulate processing delay (remove in production)
     time.sleep(1)
@@ -50,12 +70,15 @@ async def chat(request: Request, message: str = Form(...)):
     # In a real implementation, this would be the LLM response
     assistant_message = f"You said: {message} (using model: {model}, strategy: {strategy})"
     
-    assistant_message_html = f"""
-    <div class="message assistant-message">
-        <p>{assistant_message}</p>
-    </div>
-    <script>stopTimer();</script>
-    """
+    # Use the message component template for assistant message
+    assistant_message_html = await jinja.render_template(
+        request, 
+        "components/message.html.j2", 
+        {"message_type": "assistant", "message_content": assistant_message}
+    )
+    
+    # Add script to stop timer
+    assistant_message_html += "<script>stopTimer();</script>"
     
     # Return both messages to be added to the chat
     return user_message_html + assistant_message_html

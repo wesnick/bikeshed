@@ -11,10 +11,25 @@
     {% block head %}{% endblock %}
   </head>
   <body>
-    {% include 'components/navbar.html.j2' %}
+    <div hx-get="/components/navbar" hx-trigger="load">
+      <nav class="navbar skeleton-block" role="navigation" aria-label="main navigation">
+        <div class="skeleton-lines">
+          <div></div>
+          <div></div>
+        </div>
+      </nav>
+    </div>
     
     <div class="columns is-gapless is-mobile main-layout">
-      {% include 'components/left_sidebar.html.j2' %}
+      <div hx-get="/components/left-sidebar" hx-trigger="load">
+        <div class="column is-narrow sidebar skeleton-block">
+          <div class="skeleton-lines">
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
+        </div>
+      </div>
 
       <!-- Main Content -->
       <div class="column main-content">
@@ -25,7 +40,14 @@
         </section>
       </div>
 
-      {% include 'components/right_drawer.html.j2' %}
+      <div hx-get="/components/right-drawer" hx-trigger="load">
+        <div class="column is-narrow sidebar right-drawer skeleton-block">
+          <div class="skeleton-lines">
+            <div></div>
+            <div></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     {% block scripts %}{% endblock %}
