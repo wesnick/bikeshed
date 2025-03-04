@@ -7,36 +7,6 @@
     <link rel="stylesheet" href="/build/css/app.css">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <style>
-      /* Initial styles for collapsibility */
-      .sidebar {
-        transition: width 0.3s ease;
-        overflow-x: hidden; /* Prevent horizontal scrollbar */
-      }
-      .sidebar.collapsed {
-        width: 40px !important; /* Keep a small handle visible */
-      }
-      .sidebar-content {
-          width: 250px;
-      }
-      .sidebar.collapsed .sidebar-content {
-        display: none; /* Hide content when collapsed */
-      }
-      .sidebar-toggle {
-        cursor: pointer;
-      }
-      .main-content {
-        transition: margin-left 0.3s ease, margin-right 0.3s ease;
-      }
-      .sidebar.collapsed ~ .main-content {
-        margin-left: 40px; /* Adjust main content margin when sidebar is collapsed */
-        margin-right: 40px;
-      }
-      .right-drawer.collapsed ~ .main-content {
-          margin-right: 40px;
-      }
-
-    </style>
   </head>
   <body>
     <div class="columns is-gapless is-mobile" style="height: 100vh;">

@@ -1,0 +1,28 @@
+/* Initial styles for collapsibility */
+.sidebar {
+  transition: width 0.3s ease;
+  overflow-x: hidden; /* Prevent horizontal scrollbar */
+}
+.sidebar.collapsed {
+  width: 40px !important; /* Keep a small handle visible */
+}
+.sidebar-content {
+    width: 250px;
+}
+.sidebar.collapsed .sidebar-content {
+  display: none; /* Hide content when collapsed */
+}
+.sidebar-toggle {
+  cursor: pointer;
+}
+.main-content {
+  transition: margin-left 0.3s ease, margin-right 0.3s ease;
+}
+.sidebar.collapsed ~ .main-content {
+  margin-left: 40px; /* Adjust main content margin when sidebar is collapsed */
+  margin-right: 40px;
+}
+.right-drawer.collapsed ~ .main-content {
+    margin-right: 40px;
+}
+
