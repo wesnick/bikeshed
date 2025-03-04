@@ -20,9 +20,15 @@ def index() -> None:
     """This route serves the index.html template."""
 
 
+@app.get("/chat-component")
+@jinja.hx('components/chat.html.j2', no_data=True)
+def chat_component() -> None:
+    """This route serves just the chat component for htmx requests."""
+
+
 @app.post("/chat", response_class=HTMLResponse)
 async def chat(request: Request, message: str = Form(...)):
-    # Get model and strategy from form data (optional)
+    # Get model and strategy from form data
     form_data = await request.form()
     model = form_data.get("model", "default-model")
     strategy = form_data.get("strategy", "default-strategy")
@@ -42,7 +48,7 @@ async def chat(request: Request, message: str = Form(...)):
     
     # For now, just echo the message back as the assistant
     # In a real implementation, this would be the LLM response
-    assistant_message = f"You said: {message}"
+    assistant_message = f"You said: {message} (using model: {model}, strategy: {strategy})"
     
     assistant_message_html = f"""
     <div class="message assistant-message">

@@ -1,0 +1,92 @@
+<h1 class="title">Chat Application</h1>
+<p class="subtitle">Central Console</p>
+<div class="box chat-container">
+  <div id="chat-messages" class="chat-messages">
+    <!-- Chat messages will appear here -->
+    <div class="welcome-message">
+      <p>Welcome to Flibberflow Chat! Start a conversation below.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Chat Input Section -->
+<div class="chat-input-container">
+  <div class="columns">
+    <div class="column is-3">
+      <div class="field">
+        <label class="label">Model</label>
+        <div class="control">
+          <div class="select is-fullwidth">
+            <select id="model-selector" name="model">
+              <option value="gpt-4">GPT-4</option>
+              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+              <option value="claude-3">Claude 3</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="column is-3">
+      <div class="field">
+        <label class="label">Strategy</label>
+        <div class="control">
+          <div class="select is-fullwidth">
+            <select id="strategy-selector" name="strategy">
+              <option value="default">Default</option>
+              <option value="creative">Creative</option>
+              <option value="precise">Precise</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="column is-6">
+      <div class="field utility-buttons">
+        <label class="label">Utilities</label>
+        <div class="buttons">
+          <button class="button is-small" title="Clear chat">
+            <span class="icon">
+              <i class="fas fa-trash-alt"></i>
+            </span>
+          </button>
+          <button class="button is-small" title="Save conversation">
+            <span class="icon">
+              <i class="fas fa-save"></i>
+            </span>
+          </button>
+          <button class="button is-small" title="Export as PDF">
+            <span class="icon">
+              <i class="fas fa-file-pdf"></i>
+            </span>
+          </button>
+          <button class="button is-small" title="Settings">
+            <span class="icon">
+              <i class="fas fa-cog"></i>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <form id="chat-form" hx-post="/chat" hx-target="#chat-messages" hx-swap="beforeend" hx-on::after-request="this.reset(); startTimer();">
+    <div class="field">
+      <div class="control">
+        <textarea id="chat-input" name="message" class="textarea" placeholder="Type your message here..." rows="3" required></textarea>
+      </div>
+    </div>
+    <div class="field is-grouped is-grouped-right">
+      <div class="control">
+        <button type="submit" class="button is-primary">
+          <span class="icon">
+            <i class="fas fa-paper-plane"></i>
+          </span>
+          <span>Send</span>
+        </button>
+      </div>
+      <div class="control timer-container">
+        <span id="response-timer" class="is-hidden">0.0s</span>
+      </div>
+    </div>
+  </form>
+</div>
