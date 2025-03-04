@@ -5,6 +5,20 @@ $brown: #757763;
 $beige-light: #d0d1cd;
 $beige-lighter: #eff0eb;
 
+// Light theme colors
+$light-background: #ffffff;
+$light-text: #4a4a4a;
+$light-navbar-bg: #f8f9fa;
+$light-box-bg: #f5f5f5;
+$light-sidebar-bg: #f0f0f0;
+
+// Dark theme colors
+$dark-background: #121212;
+$dark-text: #ffffff;
+$dark-navbar-bg: #1e1e1e;
+$dark-box-bg: #363636;
+$dark-sidebar-bg: #242424;
+
 // Path to Bulma's sass folder
 @use "bulma/sass" with (
   $family-primary: '"Nunito", sans-serif',
@@ -23,36 +37,120 @@ $beige-lighter: #eff0eb;
 // Import the Google Font
 @import url("https://fonts.googleapis.com/css?family=Nunito:400,700");
 
-[data-theme="dark"] {
+// Default light theme
+html {
+  background-color: $light-background;
+  color: $light-text;
+  
   .navbar {
-    background-color: #363636; // Example dark navbar color
-    color: #fff;
+    background-color: $light-navbar-bg;
+    color: $light-text;
+  }
+  
+  .sidebar {
+    background-color: $light-sidebar-bg;
+  }
+  
+  .main-content {
+    background-color: $light-background;
+    color: $light-text;
+  }
+  
+  .title {
+    color: $light-text;
+  }
+  
+  .box {
+    background-color: $light-box-bg;
+    color: $light-text;
+  }
+  
+  .menu-list a {
+    color: $light-text;
+  }
+  
+  .menu-label {
+    color: #7a7a7a;
+  }
+  
+  .theme-toggle {
+    cursor: pointer;
+  }
+}
+
+// Dark theme
+[data-theme="dark"] {
+  background-color: $dark-background;
+  color: $dark-text;
+  
+  .navbar {
+    background-color: $dark-navbar-bg;
+    color: $dark-text;
+    
+    .navbar-item, 
+    .navbar-link {
+      color: $dark-text;
+      
+      &:hover {
+        background-color: darken($dark-navbar-bg, 5%);
+        color: $dark-text;
+      }
+    }
+    
+    .navbar-dropdown {
+      background-color: $dark-navbar-bg;
+      border-top-color: darken($dark-navbar-bg, 10%);
+      
+      .navbar-item:hover {
+        background-color: darken($dark-navbar-bg, 5%);
+      }
+    }
+    
+    .navbar-burger {
+      color: $dark-text;
+    }
+    
+    .navbar-divider {
+      background-color: darken($dark-navbar-bg, 10%);
+    }
   }
 
   .sidebar {
-    background-color: #242424;
+    background-color: $dark-sidebar-bg;
   }
 
   .main-content {
-    background-color: #121212;
-    color: #fff;
+    background-color: $dark-background;
+    color: $dark-text;
   }
+  
   .title {
-    color: #fff;
+    color: $dark-text;
   }
+  
   .box {
-    background-color: #363636;
-    color: #fff;
+    background-color: $dark-box-bg;
+    color: $dark-text;
   }
-  // ... other dark mode styles ...
-    .menu-list a {
-        color: #fff;
+  
+  .menu-list a {
+    color: $dark-text;
+    
+    &:hover {
+      background-color: darken($dark-sidebar-bg, 5%);
     }
-    .menu-label {
-        color: #b5b5b5;
-    }
-    .sidebar-toggle .fa-stack-1x {
-        color: #fff !important;
-    }
+  }
+  
+  .menu-label {
+    color: #b5b5b5;
+  }
+  
+  .sidebar-toggle .fa-stack-1x {
+    color: $dark-text !important;
+  }
+  
+  .theme-toggle {
+    color: $dark-text;
+  }
 }
 

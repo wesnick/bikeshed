@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html data-theme="dark">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,6 +9,62 @@
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   </head>
   <body>
+    <!-- Navbar -->
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a class="navbar-item" href="#">
+          <strong>Flibberflow</strong>
+        </a>
+        
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasic">
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </a>
+      </div>
+
+      <div id="navbarBasic" class="navbar-menu">
+        <div class="navbar-start">
+          <a class="navbar-item" href="#">
+            Dashboard
+          </a>
+          
+          <a class="navbar-item" href="#">
+            Chats
+          </a>
+          
+          <div class="navbar-item has-dropdown is-hoverable">
+            <a class="navbar-link">
+              More
+            </a>
+            
+            <div class="navbar-dropdown">
+              <a class="navbar-item" href="#">
+                Settings
+              </a>
+              <a class="navbar-item" href="#">
+                Help
+              </a>
+              <hr class="navbar-divider">
+              <a class="navbar-item" href="#">
+                Report an issue
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="navbar-end">
+          <div class="navbar-item">
+            <a class="theme-toggle" onclick="toggleTheme()">
+              <span class="icon">
+                <i class="fas fa-moon"></i>
+              </span>
+              <span class="theme-text">Light Mode</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
     <div class="columns is-gapless is-mobile" style="height: 100vh;">
       <!-- Left Sidebar -->
       <div id="left-sidebar" class="column is-narrow sidebar">
@@ -74,6 +130,59 @@
         const sidebar = document.getElementById(sidebarId);
         sidebar.classList.toggle('collapsed');
       }
+      
+      function toggleTheme() {
+        const html = document.documentElement;
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        html.setAttribute('data-theme', newTheme);
+        
+        // Update toggle button text and icon
+        const themeIcon = document.querySelector('.theme-toggle .icon i');
+        const themeText = document.querySelector('.theme-toggle .theme-text');
+        
+        if (newTheme === 'dark') {
+          themeIcon.className = 'fas fa-sun';
+          themeText.textContent = 'Light Mode';
+        } else {
+          themeIcon.className = 'fas fa-moon';
+          themeText.textContent = 'Dark Mode';
+        }
+        
+        // Save preference to localStorage
+        localStorage.setItem('theme', newTheme);
+      }
+      
+      // Initialize theme from localStorage
+      document.addEventListener('DOMContentLoaded', () => {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+          document.documentElement.setAttribute('data-theme', savedTheme);
+          
+          // Update toggle button to match current theme
+          const themeIcon = document.querySelector('.theme-toggle .icon i');
+          const themeText = document.querySelector('.theme-toggle .theme-text');
+          
+          if (savedTheme === 'dark') {
+            themeIcon.className = 'fas fa-sun';
+            themeText.textContent = 'Light Mode';
+          } else {
+            themeIcon.className = 'fas fa-moon';
+            themeText.textContent = 'Dark Mode';
+          }
+        }
+        
+        // Initialize navbar burger menu
+        const navbarBurgers = document.querySelectorAll('.navbar-burger');
+        navbarBurgers.forEach(burger => {
+          burger.addEventListener('click', () => {
+            const target = document.getElementById(burger.dataset.target);
+            burger.classList.toggle('is-active');
+            target.classList.toggle('is-active');
+          });
+        });
+      });
     </script>
   <script type="module" src="/build/js/app.js"></script>
   </body>

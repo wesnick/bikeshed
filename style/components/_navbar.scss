@@ -1,9 +1,39 @@
-.navbar-item {
+.navbar {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  
+  .navbar-brand {
+    font-weight: bold;
+  }
+  
+  .navbar-item {
     // Add any general navbar item styles here
+    transition: background-color 0.2s ease;
+  }
+  
+  .navbar-dropdown {
+    border-radius: 4px;
+  }
 }
   
 .theme-toggle {
-    .icon {
-      margin-right: 0.5em; // Space between icon and (potential) text
-    }
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+  
+  &:hover {
+    opacity: 0.8;
+  }
+  
+  .icon {
+    margin-right: 0.5em; // Space between icon and text
+    transition: transform 0.3s ease;
+  }
+  
+  &:hover .icon {
+    transform: rotate(15deg);
+  }
+  
+  .theme-text {
+    font-size: 0.9rem;
+  }
 }
