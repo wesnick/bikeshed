@@ -18,7 +18,41 @@ $beige-lighter: #eff0eb;
 
 // Import section specific styles.
 @use "sections/dashboard";
+@use "components/navbar";
 
 // Import the Google Font
 @import url("https://fonts.googleapis.com/css?family=Nunito:400,700");
+
+[data-theme="dark"] {
+  .navbar {
+    background-color: #363636; // Example dark navbar color
+    color: #fff;
+  }
+
+  .sidebar {
+    background-color: #242424;
+  }
+
+  .main-content {
+    background-color: #121212;
+    color: #fff;
+  }
+  .title {
+    color: #fff;
+  }
+  .box {
+    background-color: #363636;
+    color: #fff;
+  }
+  // ... other dark mode styles ...
+    .menu-list a {
+        color: #fff;
+    }
+    .menu-label {
+        color: #b5b5b5;
+    }
+    .sidebar-toggle .fa-stack-1x {
+        color: #fff !important;
+    }
+}
 
