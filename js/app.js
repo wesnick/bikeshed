@@ -3,8 +3,8 @@ import Bulma from '@vizuaalog/bulmajs';
 
 // Import components
 import { initThemeToggle } from './components/theme.js';
-import { initNavbar, toggleSidebar } from './components/navbar.js';
-import { initChat, startTimer, stopTimer } from './components/chat.js';
+import { initNavbar } from './components/navbar.js';
+import { initChat } from './components/chat.js';
 
 // Initialize components when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -23,7 +23,4 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Make functions available globally
-window.toggleSidebar = toggleSidebar;
-window.startTimer = startTimer;
-window.stopTimer = stopTimer;
+
