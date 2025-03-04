@@ -11,11 +11,10 @@ export function initThemeToggle() {
     updateThemeUI(savedTheme);
   }
   
-  // Add event listener to theme toggle button
-  const themeToggle = document.querySelector('.theme-toggle');
-  if (themeToggle) {
-    themeToggle.addEventListener('click', toggleTheme);
-  }
+  // Add event listener to all theme toggle buttons
+  document.querySelectorAll('.theme-toggle').forEach(button => {
+    button.addEventListener('click', toggleTheme);
+  });
 }
 
 export function toggleTheme() {
