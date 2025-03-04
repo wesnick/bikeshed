@@ -5,5 +5,7 @@ description = "MCP Playground"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.11",
+    "jinja2>=3.1.5",
+    "mcp-agent>=0.0.7",
     "uvicorn>=0.34.0",
 ]

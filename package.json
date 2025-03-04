@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+  },
+  "scripts": {
+    "build-bulma": "sass --load-path=node_modules style/app.scss build/css/app.css",
+    "build-vite": "vite build",
+    "start": "npm run build-bulma -- --watch"
+  },
+  "devDependencies": {
+    "@vizuaalog/bulmajs": "^0.12.2",
+    "bulma": "^1.0.3",
+    "sass": "^1.85.1",
+    "vite": "^6.2.0"
+  }
+}
