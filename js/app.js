@@ -1,8 +1,29 @@
-// All of bulma
+// Import Bulma
 import Bulma from '@vizuaalog/bulmajs';
 
-// Only the plugins you need
-//import Navbar from '@vizuaalog/bulmajs/src/plugins/navbar';
-//import Modal from '@vizuaalog/bulmajs/src/plugins/modal';
+// Import components
+import { initThemeToggle } from './components/theme.js';
+import { initNavbar, toggleSidebar } from './components/navbar.js';
+import { initChat, startTimer, stopTimer } from './components/chat.js';
 
-const modal = Bulma(document.querySelector('#myModal')).modal();
+// Initialize components when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize theme toggle
+  initThemeToggle();
+  
+  // Initialize navbar
+  initNavbar();
+  
+  // Initialize chat
+  initChat();
+  
+  // Initialize any Bulma components
+  if (document.querySelector('#myModal')) {
+    const modal = Bulma(document.querySelector('#myModal')).modal();
+  }
+});
+
+// Make functions available globally
+window.toggleSidebar = toggleSidebar;
+window.startTimer = startTimer;
+window.stopTimer = stopTimer;
