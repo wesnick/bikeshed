@@ -56,7 +56,7 @@
 
         <div class="navbar-end">
           <div class="navbar-item">
-            <a class="theme-toggle" onclick="toggleTheme()">
+            <a class="theme-toggle">
               <span class="icon">
                 <i class="fas fa-moon"></i>
               </span>
@@ -69,7 +69,7 @@
     <div class="columns is-gapless is-mobile main-layout">
       <!-- Left Sidebar -->
       <div id="left-sidebar" class="column is-narrow sidebar">
-        <div class="sidebar-toggle" onclick="toggleSidebar('left-sidebar')">
+        <div class="sidebar-toggle" id="left-sidebar-toggle">
            <span class="icon is-medium">
               <span class="fa-stack fa-sm">
                 <i class="fas fa-circle fa-stack-2x"></i>
@@ -206,7 +206,7 @@
                 </p>
             </aside>
         </div>
-        <div class="sidebar-toggle"  onclick="toggleSidebar('right-drawer')">
+        <div class="sidebar-toggle" id="right-sidebar-toggle">
           <span>&gt;</span>
         </div>
       </div>

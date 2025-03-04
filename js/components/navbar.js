@@ -11,6 +11,10 @@ export function initNavbar() {
       target.classList.toggle('is-active');
     });
   });
+  
+  // Initialize sidebar toggles
+  document.getElementById('left-sidebar-toggle')?.addEventListener('click', () => toggleSidebar('left-sidebar'));
+  document.getElementById('right-sidebar-toggle')?.addEventListener('click', () => toggleSidebar('right-drawer'));
 }
 
 export function toggleSidebar(sidebarId) {
