@@ -1,10 +1,12 @@
 import uvicorn
 import time
+import asyncio
 from fastapi import FastAPI, Request, Form
 from fastapi.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fasthx import Jinja
+from sse_starlette.sse import EventSourceResponse
 
 app = FastAPI()
 
@@ -12,6 +14,9 @@ app = FastAPI()
 app.mount("/build", StaticFiles(directory="build"), name="build")
 
 jinja = Jinja(Jinja2Templates(directory="templates"))
+
+# Store active chat connections
+CHAT_CONNECTIONS = {}
 
 
 @app.get("/")
@@ -46,6 +51,32 @@ def chat_form_component() -> None:
     """This route serves the chat form component for htmx requests."""
 
 
+@app.get("/chatroom")
+async def chatroom(request: Request):
+    """SSE endpoint for chat messages"""
+    client_id = str(id(request))
+    
+    # Create a queue for this client
+    queue = asyncio.Queue()
+    CHAT_CONNECTIONS[client_id] = queue
+    
+    async def event_generator():
+        try:
+            while True:
+                # Wait for messages to be added to the queue
+                message = await queue.get()
+                if message is None:  # None is our signal to stop
+                    break
+                yield {"event": "message", "data": message}
+        except asyncio.CancelledError:
+            pass
+        finally:
+            # Clean up when the client disconnects
+            if client_id in CHAT_CONNECTIONS:
+                del CHAT_CONNECTIONS[client_id]
+    
+    return EventSourceResponse(event_generator())
+
 @app.post("/chat", response_class=HTMLResponse)
 async def chat(request: Request, message: str = Form(...)):
     # Get model and strategy from form data
@@ -53,18 +84,27 @@ async def chat(request: Request, message: str = Form(...)):
     model = form_data.get("model", "default-model")
     strategy = form_data.get("strategy", "default-strategy")
     
-    # In a real app, you would process the message with an LLM here
-    # For now, we'll just echo the message and add a simulated delay
-    
-    # Create user message HTML with the message component
+    # Create user message HTML
     context = {"message_type": "user", "message_content": message}
     user_message_html = await request.app.state.templates.TemplateResponse(
         "components/message.html.j2", 
         {"request": request, **context}
     ).body.decode('utf-8')
     
+    # Send user message to all connected clients
+    for client_queue in CHAT_CONNECTIONS.values():
+        await client_queue.put(user_message_html)
+    
+    # Process in background (non-blocking)
+    asyncio.create_task(process_message(request, message, model, strategy))
+    
+    # Return empty response since messages will be sent via SSE
+    return ""
+
+async def process_message(request: Request, message: str, model: str, strategy: str):
+    """Process the message and send response via SSE"""
     # Simulate processing delay (remove in production)
-    time.sleep(1)
+    await asyncio.sleep(1)
     
     # For now, just echo the message back as the assistant
     # In a real implementation, this would be the LLM response
@@ -80,8 +120,9 @@ async def chat(request: Request, message: str = Form(...)):
     # Add script to stop timer
     assistant_message_html += "<script>stopTimer();</script>"
     
-    # Return both messages to be added to the chat
-    return user_message_html + assistant_message_html
+    # Send assistant message to all connected clients
+    for client_queue in CHAT_CONNECTIONS.values():
+        await client_queue.put(assistant_message_html)
 
 
 if __name__ == "__main__":
