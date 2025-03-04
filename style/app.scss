@@ -35,6 +35,7 @@ $dark-sidebar-bg: #242424;
 // Import section specific styles.
 @use "sections/dashboard";
 @use "components/navbar";
+@use "components/chat";
 
 // Import the Google Font
 @import url("https://fonts.googleapis.com/css?family=Nunito:400,700");
