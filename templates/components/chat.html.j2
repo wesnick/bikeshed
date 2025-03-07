@@ -1,80 +1,11 @@
-<h1 class="title">Chat Application</h1>
-<p class="subtitle">Central Console</p>
-<div class="box chat-container">
-  <div id="chat-messages" class="chat-messages">
-    <!-- Chat messages will appear here -->
-    <div class="welcome-message">
-      <p>Welcome to Flibberflow Chat! Start a conversation below.</p>
-    </div>
-  </div>
+<!-- Workspace -->
+<div class="box p-0 mb-5 is-flex-grow-1 is-overflow-y-scroll is-overflow-x-hidden">
+<div class="messages">
+    hi mom
+</div>
 </div>
 
-<!-- Chat Input Section -->
-<div class="chat-input-container">
-  <div class="columns">
-    <div class="column is-3">
-      <div class="field">
-        <label class="label">Model</label>
-        <div class="control">
-          <div class="select is-fullwidth">
-            <select id="model-selector" name="model">
-              <option value="gpt-4">GPT-4</option>
-              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-              <option value="claude-3">Claude 3</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="column is-3">
-      <div class="field">
-        <label class="label">Strategy</label>
-        <div class="control">
-          <div class="select is-fullwidth">
-            <select id="strategy-selector" name="strategy">
-              <option value="default">Default</option>
-              <option value="creative">Creative</option>
-              <option value="precise">Precise</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="column is-6">
-      <div class="field utility-buttons">
-        <label class="label">Utilities</label>
-        <div class="buttons">
-          <button class="button is-small" title="Clear chat">
-            <span class="icon">
-              <i class="fas fa-trash-alt"></i>
-            </span>
-          </button>
-          <button class="button is-small" title="Save conversation">
-            <span class="icon">
-              <i class="fas fa-save"></i>
-            </span>
-          </button>
-          <button class="button is-small" title="Export as PDF">
-            <span class="icon">
-              <i class="fas fa-file-pdf"></i>
-            </span>
-          </button>
-          <button class="button is-small" title="Settings">
-            <span class="icon">
-              <i class="fas fa-cog"></i>
-            </span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <div hx-get="/components/chat-form" hx-trigger="load">
-    <div class="skeleton-block">
-      <div class="skeleton-lines">
-        <div></div>
-        <div></div>
-      </div>
-    </div>
-  </div>
+<!-- Text Input Area -->
+<div class="box mb-0" hx-get="/components/chat-form" hx-trigger="load">
+
 </div>

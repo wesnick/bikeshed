@@ -240,6 +240,7 @@ dependencies = [
     { name = "jinja2" },
     { name = "mcp-agent" },
     { name = "python-multipart" },
+    { name = "sse-starlette" },
     { name = "uvicorn" },
 ]
 
@@ -250,6 +251,7 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.1.5" },
     { name = "mcp-agent", specifier = ">=0.0.7" },
     { name = "python-multipart", specifier = ">=0.0.20" },
+    { name = "sse-starlette", specifier = ">=2.2.1" },
     { name = "uvicorn", specifier = ">=0.34.0" },
 ]
 

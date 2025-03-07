@@ -1,3 +1,75 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+lib/
+lib64/
+parts/
+python-*
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+egg-info/
+.installed.cfg
+*.egg-info/
+.installed.cfg
+*.egg
+*.zip
+setup.py
+*.tar.gz
+
+# Testing
+.coverage
+.coverage.*.debug
+nosetests.xml
+test*.xml
+.junit.xml
+coverage.xml
+*.cover
+*.log
+    
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# Pyre type checker
+.pyre/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pytest
+.cache/
+pytestdebug.log
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm
+*.iml
+.idea/
+*.pyc
+
 .aider*
 node_modules
 build

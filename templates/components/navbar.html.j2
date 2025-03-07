@@ -1,56 +1,21 @@
-<!-- Navbar -->
-<nav class="navbar" role="navigation" aria-label="main navigation">
-  <div class="navbar-brand">
-    <a class="navbar-item" href="#">
-      <strong>Flibberflow</strong>
+<div class="navbar-brand">
+    <a class="navbar-item text-weight-bold is-size-4">
+        {% block branding %}Flibberflow{% endblock %}
     </a>
-    
-    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasic">
-      <span aria-hidden="true"></span>
-      <span aria-hidden="true"></span>
-      <span aria-hidden="true"></span>
-    </a>
-  </div>
-
-  <div id="navbarBasic" class="navbar-menu">
-    <div class="navbar-start">
-      <a class="navbar-item" href="#">
-        Dashboard
-      </a>
-      
-      <a class="navbar-item" href="#">
-        Chats
-      </a>
-      
-      <div class="navbar-item has-dropdown is-hoverable">
-        <a class="navbar-link">
-          More
-        </a>
-        
-        <div class="navbar-dropdown">
-          <a class="navbar-item" href="#">
-            Settings
-          </a>
-          <a class="navbar-item" href="#">
-            Help
-          </a>
-          <hr class="navbar-divider">
-          <a class="navbar-item" href="#">
-            Report an issue
-          </a>
-        </div>
-      </div>
+</div>
+<div class="navbar-end">
+    <div class="navbar-item">
+        <span class="icon ml-2">
+            <i class="fas fa-bell"></i>
+        </span>
+        Processes
     </div>
-
-    <div class="navbar-end">
-      <div class="navbar-item">
+    <div class="navbar-item">
         <a class="theme-toggle">
           <span class="icon">
             <i class="fas fa-moon"></i>
           </span>
-          <span class="theme-text">Light Mode</span>
+          Light Mode
         </a>
-      </div>
     </div>
-  </div>
-</nav>
+</div>

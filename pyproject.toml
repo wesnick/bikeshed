@@ -9,5 +9,6 @@ dependencies = [
     "jinja2>=3.1.5",
     "mcp-agent>=0.0.7",
     "python-multipart>=0.0.20",
+    "sse-starlette>=2.2.1",
     "uvicorn>=0.34.0",
 ]

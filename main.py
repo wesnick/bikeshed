@@ -13,7 +13,8 @@ app = FastAPI()
 # static asset mount
 app.mount("/build", StaticFiles(directory="build"), name="build")
 
-jinja = Jinja(Jinja2Templates(directory="templates"))
+jinja_templates = Jinja2Templates(directory="templates")
+jinja = Jinja(jinja_templates)
 
 # Store active chat connections
 CHAT_CONNECTIONS = {}
@@ -86,7 +87,7 @@ async def chat(request: Request, message: str = Form(...)):
     
     # Create user message HTML
     context = {"message_type": "user", "message_content": message}
-    user_message_html = await jinja.render_template(
+    user_message_html = await jinja_templates.render_template(
         request,
         "components/message.html.j2", 
         {"message_type": "user", "message_content": message}

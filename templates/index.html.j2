@@ -3,17 +3,7 @@
 {% block title %}Flibberflow Dashboard{% endblock %}
 
 {% block content %}
-  <div hx-get="/components/chat" hx-trigger="load">
-    <div class="box chat-container skeleton-block">
-      <div class="skeleton-lines">
-        <div></div>
-        <div></div>
-        <div></div>
-      </div>
-      <div class="skeleton-lines">
-        <div></div>
-        <div></div>
-      </div>
-    </div>
+  <div hx-get="/components/chat" hx-trigger="load" class="is-fullwidth">
+
   </div>
 {% endblock %}
