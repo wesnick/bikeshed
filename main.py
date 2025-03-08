@@ -2,7 +2,7 @@ import uvicorn
 import asyncio
 import json
 import uuid
-import signal
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Form, Depends
 from fastapi.templating import Jinja2Templates
 from flibberflow.http import HTMXRedirectMiddleware
@@ -11,7 +11,32 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
 
-app = FastAPI(title="Flibberflow")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: setup code here
+    yield
+    # Shutdown: cleanup code here
+    print("Shutting down server, closing all SSE connections...")
+    for client_id in list(ACTIVE_SESSIONS.keys()):
+        try:
+            queue = ACTIVE_SESSIONS[client_id]
+            # Send a disconnect event to tell the client to close gracefully
+            await queue.put({"event": "disconnect", "data": "Server shutting down"})
+            # Then send None to signal the event generator to stop
+            await queue.put(None)
+        except Exception as e:
+            print(f"Error closing SSE connection for client {client_id}: {e}")
+    
+    # Give clients a moment to receive the disconnect event
+    await asyncio.sleep(0.5)
+    
+    # Clear all collections
+    ACTIVE_SESSIONS.clear()
+    SSE_CLIENTS.clear()
+    print("All SSE connections closed")
+
+app = FastAPI(title="Flibberflow", lifespan=lifespan)
 app.add_middleware(HTMXRedirectMiddleware)
 
 # static asset mount
@@ -170,28 +195,6 @@ async def broadcast_event(event_name, data):
             if client_id in ACTIVE_SESSIONS:
                 del ACTIVE_SESSIONS[client_id]
 
-# Add a shutdown event handler to close all SSE connections
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Close all SSE connections when the server is shutting down"""
-    print("Shutting down server, closing all SSE connections...")
-    for client_id in list(ACTIVE_SESSIONS.keys()):
-        try:
-            queue = ACTIVE_SESSIONS[client_id]
-            # Send a disconnect event to tell the client to close gracefully
-            await queue.put({"event": "disconnect", "data": "Server shutting down"})
-            # Then send None to signal the event generator to stop
-            await queue.put(None)
-        except Exception as e:
-            print(f"Error closing SSE connection for client {client_id}: {e}")
-    
-    # Give clients a moment to receive the disconnect event
-    await asyncio.sleep(0.5)
-    
-    # Clear all collections
-    ACTIVE_SESSIONS.clear()
-    SSE_CLIENTS.clear()
-    print("All SSE connections closed")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
