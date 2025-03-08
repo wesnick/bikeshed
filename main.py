@@ -12,9 +12,11 @@ from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
 
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: setup code here
+    print("Starting up server...")
     yield
     # Shutdown: cleanup code here
     print("Shutting down server, closing all SSE connections...")
@@ -128,11 +130,14 @@ async def sse(request: Request):
                     # Send a keepalive ping every 30 seconds
                     yield {"event": "ping", "data": ""}
                     # Check if the client is still connected
-                    if await request.is_disconnected():
+                    if request.is_disconnected():
                         print(f"Client {client_id} disconnected")
                         break
         except asyncio.CancelledError:
             print(f"SSE connection for client {client_id} was cancelled")
+            raise  # Re-raise to ensure proper cleanup
+        except Exception as e:
+            print(f"Error in SSE connection for client {client_id}: {e}")
         finally:
             # Clean up when the generator exits
             if client_id in ACTIVE_SESSIONS:
@@ -141,7 +146,12 @@ async def sse(request: Request):
                 SSE_CLIENTS.remove(client_id)
             print(f"Cleaned up client {client_id}")
 
-    return EventSourceResponse(event_generator())
+    return EventSourceResponse(
+        event_generator(),
+        ping=30,  # Send ping every 30 seconds
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
+    )
 
 
 @app.post("/session-submit", response_class=HTMLResponse)
@@ -198,4 +208,15 @@ async def broadcast_event(event_name, data):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    # Configure Uvicorn with proper signal handling for graceful shutdown
+    config = uvicorn.Config(
+        app=app, 
+        host="0.0.0.0", 
+        port=8000, 
+        reload=True,
+        reload_delay=0.25,  # Small delay to allow connections to close
+        timeout_keep_alive=5,  # Reduce keep-alive timeout
+        access_log=True
+    )
+    server = uvicorn.Server(config)
+    server.run()
