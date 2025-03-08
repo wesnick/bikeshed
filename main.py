@@ -61,6 +61,8 @@ async def shutdown_event_handler():
 app.add_event_handler("shutdown", shutdown_event_handler)
 
 
+
+
 @app.get("/")
 @jinja.page('index.html.j2')
 def index() -> dict:

@@ -2,7 +2,7 @@
 // Path to Bulma's sass folder
 @use "bulma/sass" with (
   $family-primary: '"Atkinson Hyperlegible Next", sans-serif',
-  //$primary: #dff2d8,
+  $primary: #5FA,
   //$primary: iv.$turquoise !default,
 
   //$info: iv.$cyan !default,
@@ -12,6 +12,7 @@
   //$light: iv.$white-ter !default,
   //$dark: iv.$grey-darker !default,
   //// Link colors
+  $link: #209CEE,
   //$link: iv.$blue !default,
 );
 
@@ -38,7 +39,6 @@
 html, body {
     height: 100%;
 }
-
 
 .dashboard-container {
     min-height: 100vh;

@@ -10,27 +10,31 @@ Frontend:
  - HTMX v2
  - Bulma v2
 
-Whenever you update or establish a pattern, be sure to update this document.
+Whenever you make a fundamental change to architectural approach or establish a new pattern that should be followed through the whole application, be sure to update this document.
+
+## Backend
+
+- Prefer a modular structure.  The goal is for core functionality to be available via the CLI as well as the UI.
 
 ### Python
 
 - When creating requests and responses, use HTMX
 - When a request has the potential to last for longer than a second, return a queue id as the response response and update the UI with the SSE connection
 
-### Frontend
+## Frontend
 
 This application is a singleton intended for local use.  The goal is for it to be a SPA-like application, but managing only a single session.
 There will only ever be a single instance of the server and a lone user.  So the app state is global state.
+
+### Javascript
+
+- Use plain old javascript.  When adding custom javascript, prefer to add it to a `component/mycomponent.js` file in the `js` folder, and be sure to import it in `js/app.js`
 
 ### CSS Styling
 
 The UI uses Bulma CSS framework.
 
 - When adding CSS, always prefer to add the CSS as sass to custom section files, eg `/style/sections/_mysection.scss` rather than using inline styles.  If the styles correspond to a component, use a component sass file, eg, `styles/components/_mycomponent.scss`
-
-### Favicon
-
-The application uses an SVG favicon stored in the public directory. The SVG is converted to various formats (.ico, .png) for cross-browser compatibility. The favicon represents the Flibberflow logo with an "F" shape and a circle.
 
 ### Shell commands
 
