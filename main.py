@@ -13,8 +13,6 @@ from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
 
 
-
-
 app = FastAPI(title="Flibberflow")
 app.add_middleware(HTMXRedirectMiddleware)
 
