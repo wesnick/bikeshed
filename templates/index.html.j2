@@ -58,5 +58,12 @@
             </div>
         </div>
     </div>
+    <script>
+        document.body.addEventListener('htmx:sseClose', function(evt) {
+            // Optionally display a message to the user.  Could also
+            // redirect to a "server down" page.
+            alert('Server connection lost.');
+        });
+    </script>
   </body>
 </html>

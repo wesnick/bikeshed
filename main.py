@@ -2,6 +2,7 @@ import uvicorn
 import asyncio
 import json
 import uuid
+import signal
 from fastapi import FastAPI, Request, Form, Depends
 from fastapi.templating import Jinja2Templates
 from flibberflow.http import HTMXRedirectMiddleware
@@ -26,6 +27,25 @@ ACTIVE_SESSIONS = {}
 MESSAGES = []
 # Store clients connected to SSE
 SSE_CLIENTS = set()
+
+# Global flag to indicate shutdown
+SHUTTING_DOWN = False
+
+async def shutdown_event_handler():
+    """Handle shutdown events."""
+    global SHUTTING_DOWN
+    SHUTTING_DOWN = True
+    print("Shutting down...")
+    # Send shutdown signal to all clients
+    for client_id in list(ACTIVE_SESSIONS.keys()):
+        try:
+            queue = ACTIVE_SESSIONS[client_id]
+            await queue.put({"event": "shutdown", "data": "Server shutting down"})
+            await queue.put(None)  # Signal to stop the event generator
+        except Exception as e:
+            print(f"Error during shutdown for client {client_id}: {e}")
+
+app.add_event_handler("shutdown", shutdown_event_handler)
 
 @app.get("/")
 @jinja.page('index.html.j2')
@@ -91,7 +111,7 @@ async def sse(request: Request):
                 while True:
                     # Wait for messages to be added to the queue
                     event = await queue.get()
-                    if event is None:  # None is our signal to stop
+                    if event is None or SHUTTING_DOWN:  # None is our signal to stop
                         break
                     yield event
             except asyncio.CancelledError:
@@ -105,6 +125,7 @@ async def sse(request: Request):
                 del ACTIVE_SESSIONS[client_id]
             if client_id in SSE_CLIENTS:
                 SSE_CLIENTS.remove(client_id)
+            print(f"SSE connection closed: {client_id}")
         
         asyncio.create_task(cleanup())
 
@@ -160,5 +181,8 @@ async def broadcast_event(event_name, data):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Register signal handlers for graceful shutdown
+    signal.signal(signal.SIGTERM, lambda signum, frame: asyncio.create_task(shutdown_event_handler()))
+    signal.signal(signal.SIGINT, lambda signum, frame: asyncio.create_task(shutdown_event_handler()))
 
+    uvicorn.run(app, host="0.0.0.0", port=8000)
