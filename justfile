@@ -8,6 +8,3 @@ frontend-dev:
 build:
     npm run build
 
-dev: build
-    uvicorn main:app --reload
-

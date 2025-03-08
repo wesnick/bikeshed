@@ -14,9 +14,6 @@ app.add_middleware(HTMXRedirectMiddleware)
 
 # static asset mount
 app.mount("/build", StaticFiles(directory="build"), name="build")
-app.mount("/js", StaticFiles(directory="js"), name="js")
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/assets", StaticFiles(directory="assets", check_dir=False), name="assets")
 
 jinja_templates = Jinja2Templates(directory="templates")
 jinja = Jinja(jinja_templates)
