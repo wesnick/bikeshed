@@ -1,19 +1,20 @@
- import { defineConfig } from 'vite'
+import { defineConfig } from 'vite'
+import { resolve } from 'path'
 
- export default defineConfig({
-     build: {
-         outDir: 'build/js',
-         emptyOutDir: false,
-         rollupOptions: {
-             input: {
-                 app: 'js/app.js',
-             },
-             output: {
-                 entryFileNames: `app.js`,
-                 chunkFileNames: `[name].js`,
-                 assetFileNames: `[name].[ext]`
-             }
-         },
-         sourcemap: true
-     }
- })
+export default defineConfig({
+    build: {
+        outDir: 'build',
+        emptyOutDir: true,
+        rollupOptions: {
+            input: {
+                app: resolve(__dirname, 'js/app.js'),
+            },
+            output: {
+                entryFileNames: `[name].js`,
+                chunkFileNames: `[name]-[hash].js`,
+                assetFileNames: `assets/[name]-[hash].[ext]`
+            }
+        },
+        sourcemap: true
+    }
+})

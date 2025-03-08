@@ -5,3 +5,9 @@ fastapi-dev:
 frontend-dev:
     npm run dev
 
+build:
+    npm run build
+
+dev: build
+    uvicorn main:app --reload
+
