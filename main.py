@@ -66,6 +66,17 @@ def navbar_component() -> None:
 def session_form_component() -> None:
     """This route serves the session form component for htmx requests."""
 
+@app.get("/kitchen-sink")
+@jinja.page('kitchen_sink.html.j2')
+def kitchen_sink_page() -> dict:
+    """This route serves the kitchen sink page."""
+    return {}
+
+@app.get("/components/kitchen-sink")
+@jinja.hx('kitchen_sink.html.j2', no_data=True)
+def kitchen_sink_component() -> None:
+    """This route serves the kitchen sink component for htmx requests."""
+
 
 @app.get("/sse")
 async def sse(request: Request):
