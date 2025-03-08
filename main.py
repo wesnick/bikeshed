@@ -2,8 +2,6 @@ import uvicorn
 import asyncio
 import json
 import uuid
-import signal
-import os
 from fastapi import FastAPI, Request, Form, Depends
 from fastapi.templating import Jinja2Templates
 from flibberflow.http import HTMXRedirectMiddleware
@@ -11,23 +9,6 @@ from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
-from uvicorn.main import Server  # Import Server
-
-
-# --- AppStatus for graceful shutdown ---
-class AppStatus:
-    should_exit = False
-
-# Monkey-patch Uvicorn's handle_exit
-original_handler = Server.handle_exit
-
-def handle_exit(*args, **kwargs):
-    AppStatus.should_exit = True
-    original_handler(*args, **kwargs)
-
-Server.handle_exit = handle_exit
-# --- End AppStatus ---
-
 
 app = FastAPI(title="Flibberflow")
 app.add_middleware(HTMXRedirectMiddleware)
@@ -44,23 +25,6 @@ ACTIVE_SESSIONS = {}
 MESSAGES = []
 # Store clients connected to SSE
 SSE_CLIENTS = set()
-
-
-async def shutdown_event_handler():
-    """Handle shutdown events."""
-    print("Shutting down...")  # No longer setting a global flag
-    # Send shutdown signal to all clients
-    for client_id in list(ACTIVE_SESSIONS.keys()):
-        try:
-            queue = ACTIVE_SESSIONS[client_id]
-            await queue.put({"event": "shutdown", "data": "Server shutting down"})
-            # No need to send None; AppStatus.should_exit will handle it
-        except Exception as e:
-            print(f"Error during shutdown for client {client_id}: {e}")
-
-app.add_event_handler("shutdown", shutdown_event_handler)
-
-
 
 
 @app.get("/")
@@ -124,32 +88,25 @@ async def sse(request: Request):
             ACTIVE_SESSIONS[client_id] = queue
 
             try:
-                while not AppStatus.should_exit:  # Check AppStatus
-                    try:
-                        # Use a timeout to periodically check AppStatus
-                        event = await asyncio.wait_for(queue.get(), timeout=0.1)
-                        if event is None:  # Shouldn't happen now, but good practice
-                            break
-                        yield event
-                    except asyncio.TimeoutError:
-                        continue  # Check AppStatus.should_exit again
+
+                while True:
+
+                    event = await queue.get()
+                    if event is None:  # None is our signal to stop
+                        break
+                    yield event
             except asyncio.CancelledError:
                 pass
-            finally:
-                # This runs when the generator is closed, *including* on shutdown
-                if client_id in ACTIVE_SESSIONS:
-                    del ACTIVE_SESSIONS[client_id]
-                if client_id in SSE_CLIENTS:
-                    SSE_CLIENTS.remove(client_id)
-                print(f"SSE connection closed: {client_id}")
 
         return EventSourceResponse(event_generator())
-    except Exception as e:
-        print(f"Error in SSE endpoint: {e}") # ensure exceptions are logged
-        raise
     finally:
-        # Cleanup is now handled *within* the event_generator's finally block
-        pass
+        async def cleanup():
+            if client_id in ACTIVE_SESSIONS:
+                del ACTIVE_SESSIONS[client_id]
+            if client_id in SSE_CLIENTS:
+                SSE_CLIENTS.remove(client_id)
+        asyncio.create_task(cleanup())
+
 
 @app.post("/session-submit", response_class=HTMLResponse)
 async def session(request: Request, message: str = Form(...)):
