@@ -11,6 +11,22 @@ from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
+from uvicorn.main import Server  # Import Server
+
+
+# --- AppStatus for graceful shutdown ---
+class AppStatus:
+    should_exit = False
+
+# Monkey-patch Uvicorn's handle_exit
+original_handler = Server.handle_exit
+
+def handle_exit(*args, **kwargs):
+    AppStatus.should_exit = True
+    original_handler(*args, **kwargs)
+
+Server.handle_exit = handle_exit
+# --- End AppStatus ---
 
 
 app = FastAPI(title="Flibberflow")
@@ -29,20 +45,16 @@ MESSAGES = []
 # Store clients connected to SSE
 SSE_CLIENTS = set()
 
-# Global flag to indicate shutdown
-SHUTTING_DOWN = False
 
 async def shutdown_event_handler():
     """Handle shutdown events."""
-    global SHUTTING_DOWN
-    SHUTTING_DOWN = True
-    print("Shutting down...")
+    print("Shutting down...")  # No longer setting a global flag
     # Send shutdown signal to all clients
     for client_id in list(ACTIVE_SESSIONS.keys()):
         try:
             queue = ACTIVE_SESSIONS[client_id]
-            await queue.put({"event": "shutdown", "data": "Server shutting down"})  # Send shutdown event
-            # await queue.put(None)  # Signal to stop the event generator
+            await queue.put({"event": "shutdown", "data": "Server shutting down"})
+            # No need to send None; AppStatus.should_exit will handle it
         except Exception as e:
             print(f"Error during shutdown for client {client_id}: {e}")
 
@@ -100,36 +112,42 @@ async def sse(request: Request):
     queue = asyncio.Queue()
     SSE_CLIENTS.add(client_id)
     print(f"New SSE connection: {client_id}")
-    
+
     try:
         async def event_generator():
             # Send initial connection message
             yield {"event": "connected", "data": "Connected to SSE stream"}
-            
+
             # Create a queue for this client
             ACTIVE_SESSIONS[client_id] = queue
-            
+
             try:
-                while True:
-                    # Wait for messages to be added to the queue
-                    event = await queue.get()
-                    if event is None:  # None is our signal to stop
-                        break
-                    yield event
+                while not AppStatus.should_exit:  # Check AppStatus
+                    try:
+                        # Use a timeout to periodically check AppStatus
+                        event = await asyncio.wait_for(queue.get(), timeout=0.1)
+                        if event is None:  # Shouldn't happen now, but good practice
+                            break
+                        yield event
+                    except asyncio.TimeoutError:
+                        continue  # Check AppStatus.should_exit again
             except asyncio.CancelledError:
                 pass
-        
+            finally:
+                # This runs when the generator is closed, *including* on shutdown
+                if client_id in ACTIVE_SESSIONS:
+                    del ACTIVE_SESSIONS[client_id]
+                if client_id in SSE_CLIENTS:
+                    SSE_CLIENTS.remove(client_id)
+                print(f"SSE connection closed: {client_id}")
+
         return EventSourceResponse(event_generator())
+    except Exception as e:
+        print(f"Error in SSE endpoint: {e}") # ensure exceptions are logged
+        raise
     finally:
-        # Cleanup when client disconnects
-        async def cleanup():
-            if client_id in ACTIVE_SESSIONS:
-                del ACTIVE_SESSIONS[client_id]
-            if client_id in SSE_CLIENTS:
-                SSE_CLIENTS.remove(client_id)
-            print(f"SSE connection closed: {client_id}")
-        
-        asyncio.create_task(cleanup())
+        # Cleanup is now handled *within* the event_generator's finally block
+        pass
 
 @app.post("/session-submit", response_class=HTMLResponse)
 async def session(request: Request, message: str = Form(...)):
@@ -140,7 +158,7 @@ async def session(request: Request, message: str = Form(...)):
 
     # Process in background (non-blocking)
     asyncio.create_task(process_message(message, model, strategy))
-    
+
     # Return empty response as we'll update via SSE
     return ""
 
@@ -149,20 +167,20 @@ async def process_message(message: str, model: str, strategy: str):
     # Add user message to the messages list
     user_message = {"role": "user", "content": message}
     MESSAGES.append(user_message)
-    
+
     # Notify all clients to update the session component
     await broadcast_event("session_update", "update")
-    
+
     # Simulate processing time
     await asyncio.sleep(1)
-    
+
     # Add system response to the messages list
     system_response = {
         "role": "assistant", 
         "content": f"Processed message using {model} with {strategy} strategy: {message}"
     }
     MESSAGES.append(system_response)
-    
+
     # Notify all clients to update the session component again
     await broadcast_event("session_update", "update")
 
@@ -183,9 +201,5 @@ async def broadcast_event(event_name, data):
 
 
 if __name__ == "__main__":
-    # Register signal handlers for graceful shutdown *only* in the main process
-    if "SERVER_SOFTWARE" not in os.environ:
-        signal.signal(signal.SIGTERM, lambda signum, frame: asyncio.create_task(shutdown_event_handler()))
-        signal.signal(signal.SIGINT, lambda signum, frame: asyncio.create_task(shutdown_event_handler()))
-
+    # No need for signal handlers here anymore!
     uvicorn.run(app, host="0.0.0.0", port=8000)
