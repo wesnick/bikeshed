@@ -41,7 +41,7 @@ async def shutdown_event_handler():
     for client_id in list(ACTIVE_SESSIONS.keys()):
         try:
             queue = ACTIVE_SESSIONS[client_id]
-            await queue.put({"event": "shutdown", "data": "Server shutting down"})
+            await queue.put({"event": "shutdown", "data": "Server shutting down"})  # Send shutdown event
             await queue.put(None)  # Signal to stop the event generator
         except Exception as e:
             print(f"Error during shutdown for client {client_id}: {e}")
@@ -112,7 +112,7 @@ async def sse(request: Request):
                 while True:
                     # Wait for messages to be added to the queue
                     event = await queue.get()
-                    if event is None or SHUTTING_DOWN:  # None is our signal to stop
+                    if event is None:  # None is our signal to stop
                         break
                     yield event
             except asyncio.CancelledError:

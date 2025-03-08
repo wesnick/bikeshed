@@ -10,7 +10,7 @@
     <script type="module" src="/build/js/app.js" defer></script>
     {% block head %}{% endblock %}
   </head>
-  <body hx-ext="sse" sse-connect="/sse">
+  <body hx-ext="sse" sse-connect="/sse" sse-close="shutdown">
     <div class="dashboard-container">
         <!-- Navbar/Header -->
         <nav class="navbar has-shadow" role="navigation" aria-label="main navigation" hx-get="/components/navbar" hx-trigger="load">
@@ -58,12 +58,5 @@
             </div>
         </div>
     </div>
-    <script>
-        document.body.addEventListener('htmx:sseClose', function(evt) {
-            // Optionally display a message to the user.  Could also
-            // redirect to a "server down" page.
-            alert('Server connection lost.');
-        });
-    </script>
   </body>
 </html>
