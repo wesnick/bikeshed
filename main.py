@@ -20,17 +20,20 @@ jinja = Jinja(jinja_templates)
 
 # Store active session tasks
 queue = asyncio.Queue()
+ACTIVE_SESSIONS = {}
 
 
 @app.get("/")
 @jinja.page('index.html.j2')
-def index() -> None:
-    """This route serves the index.html template."""
+def index() -> dict:
+    """This route serves the index.html template with all components initialized."""
+    # Return empty data to ensure all components are properly initialized
+    return {}
 
 @app.get("/settings")
 @jinja.hx('components/settings.html.j2', no_data=True)
-def session_component() -> None:
-    """This route serves just the chat component for htmx requests."""
+def settings_component() -> None:
+    """This route serves just the settings component for htmx requests."""
 
 @app.get("/session")
 @jinja.hx('components/session.html.j2', no_data=True)
@@ -96,8 +99,21 @@ async def session(request: Request, message: str = Form(...)):
 
 async def process_message(request: Request, message: str, model: str, strategy: str):
     """Process the message and send response via SSE"""
-    # @TODO:
-    pass
+    client_id = str(id(request))
+    
+    # Add user message to the queue
+    user_message = {"role": "user", "content": message}
+    await queue.put(user_message)
+    
+    # Simulate processing time
+    await asyncio.sleep(1)
+    
+    # Add system response to the queue
+    system_response = {
+        "role": "assistant", 
+        "content": f"Processed message using {model} with {strategy} strategy: {message}"
+    }
+    await queue.put(system_response)
 
 
 if __name__ == "__main__":
