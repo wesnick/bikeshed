@@ -42,11 +42,12 @@ async def shutdown_event_handler():
         try:
             queue = ACTIVE_SESSIONS[client_id]
             await queue.put({"event": "shutdown", "data": "Server shutting down"})  # Send shutdown event
-            await queue.put(None)  # Signal to stop the event generator
+            # await queue.put(None)  # Signal to stop the event generator
         except Exception as e:
             print(f"Error during shutdown for client {client_id}: {e}")
 
 app.add_event_handler("shutdown", shutdown_event_handler)
+
 
 @app.get("/")
 @jinja.page('index.html.j2')
