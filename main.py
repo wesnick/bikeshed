@@ -141,6 +141,7 @@ async def process_message(message: str, model: str, strategy: str):
     # Notify all clients to update the session component
     await broadcast_event("session_update", "update")
 
+
     # Simulate processing time
     await asyncio.sleep(1)
 
@@ -168,7 +169,6 @@ async def broadcast_event(event_name, data):
             # If we can't send to this client, remove it
             if client_id in ACTIVE_SESSIONS:
                 del ACTIVE_SESSIONS[client_id]
-
 
 # Add a shutdown event handler to close all SSE connections
 @app.on_event("shutdown")
