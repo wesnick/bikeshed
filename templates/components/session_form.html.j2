@@ -1,8 +1,7 @@
 <form id="session-form"
       hx-post="/session-submit"
-      hx-target="#session-messages"
-      hx-swap="beforeend"
-      hx-on::after-request="this.reset(); startTimer();"
+      hx-swap="none"
+      hx-on::after-request="this.reset();"
 >
     <div class="session-input-container">
   <div class="columns">

@@ -1,5 +1,6 @@
-import { defineConfig } from 'vite'
-import { resolve } from 'path'
+import {defineConfig} from 'vite';
+import {resolve} from 'path';
+import {cpSync} from 'fs';
 
 export default defineConfig({
     build: {
@@ -7,7 +8,7 @@ export default defineConfig({
         emptyOutDir: true,
         rollupOptions: {
             input: {
-                app: resolve(__dirname, 'js/app.js'),
+                app: 'js/app.js',
             },
             output: {
                 entryFileNames: `[name].js`,
@@ -16,5 +17,23 @@ export default defineConfig({
             }
         },
         sourcemap: true
-    }
-})
+    },
+    plugins: [
+        {
+            name: 'copy-favicons',
+            enforce: 'post',
+            apply: 'build',
+            closeBundle: () => {
+                // Define source and destination paths
+                const srcDir = resolve(__dirname, 'style');
+                const destDir = resolve(__dirname, 'build');
+                  const srcIco = resolve(srcDir, 'favicon.ico')
+                const destIco = resolve(destDir, 'favicon.ico');
+
+                // Copy files
+                cpSync(srcIco, destIco, {overwrite: true});
+                console.log('Favicons copied successfully!');
+            }
+        }
+    ]
+});

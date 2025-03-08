@@ -1,5 +1,7 @@
 import uvicorn
 import asyncio
+import json
+import uuid
 from fastapi import FastAPI, Request, Form, Depends
 from fastapi.templating import Jinja2Templates
 from flibberflow.http import HTMXRedirectMiddleware
@@ -19,8 +21,11 @@ jinja_templates = Jinja2Templates(directory="templates")
 jinja = Jinja(jinja_templates)
 
 # Store active session tasks
-queue = asyncio.Queue()
 ACTIVE_SESSIONS = {}
+# Store messages for the session
+MESSAGES = []
+# Store clients connected to SSE
+SSE_CLIENTS = set()
 
 
 @app.get("/")
@@ -36,9 +41,10 @@ def settings_component() -> None:
     """This route serves just the settings component for htmx requests."""
 
 @app.get("/session")
-@jinja.hx('components/session.html.j2', no_data=True)
-def session_component() -> None:
+@jinja.hx('components/session.html.j2')
+def session_component() -> dict:
     """This route serves just the chat component for htmx requests."""
+    return {"messages": MESSAGES}
 
 @app.get("/components/left-sidebar")
 @jinja.hx('components/left_sidebar.html.j2', no_data=True)
@@ -61,29 +67,42 @@ def session_form_component() -> None:
     """This route serves the session form component for htmx requests."""
 
 
-@app.get("/session-start")
-async def session_workspace(request: Request):
-    """SSE endpoint for session messages"""
-    client_id = str(id(request))
-
-    # Create a queue for this client
-
-    ACTIVE_SESSIONS[client_id] = queue
-
-    async def event_generator():
-        try:
-            while True:
-                # Wait for messages to be added to the queue
-                message = await queue.get()
-                if message is None:  # None is our signal to stop
-                    break
-                yield {"event": "message", "data": message}
-        except asyncio.CancelledError:
-            pass
-        finally:
-            pass
+@app.get("/sse")
+async def sse(request: Request):
+    """SSE endpoint for all component updates"""
+    client_id = str(uuid.uuid4())
+    queue = asyncio.Queue()
+    SSE_CLIENTS.add(client_id)
+    print(f"New SSE connection: {client_id}")
     
-    return EventSourceResponse(event_generator())
+    try:
+        async def event_generator():
+            # Send initial connection message
+            yield {"event": "connected", "data": "Connected to SSE stream"}
+            
+            # Create a queue for this client
+            ACTIVE_SESSIONS[client_id] = queue
+            
+            try:
+                while True:
+                    # Wait for messages to be added to the queue
+                    event = await queue.get()
+                    if event is None:  # None is our signal to stop
+                        break
+                    yield event
+            except asyncio.CancelledError:
+                pass
+        
+        return EventSourceResponse(event_generator())
+    finally:
+        # Cleanup when client disconnects
+        async def cleanup():
+            if client_id in ACTIVE_SESSIONS:
+                del ACTIVE_SESSIONS[client_id]
+            if client_id in SSE_CLIENTS:
+                SSE_CLIENTS.remove(client_id)
+        
+        asyncio.create_task(cleanup())
 
 @app.post("/session-submit", response_class=HTMLResponse)
 async def session(request: Request, message: str = Form(...)):
@@ -92,28 +111,48 @@ async def session(request: Request, message: str = Form(...)):
     model = form_data.get("model", "default-model")
     strategy = form_data.get("strategy", "default-strategy")
 
-
     # Process in background (non-blocking)
-    asyncio.create_task(process_message(request, message, model, strategy))
-
-
-async def process_message(request: Request, message: str, model: str, strategy: str):
-    """Process the message and send response via SSE"""
-    client_id = str(id(request))
+    asyncio.create_task(process_message(message, model, strategy))
     
-    # Add user message to the queue
+    # Return empty response as we'll update via SSE
+    return ""
+
+async def process_message(message: str, model: str, strategy: str):
+    """Process the message and send response via SSE"""
+    # Add user message to the messages list
     user_message = {"role": "user", "content": message}
-    await queue.put(user_message)
+    MESSAGES.append(user_message)
+    
+    # Notify all clients to update the session component
+    await broadcast_event("session_update", "update")
     
     # Simulate processing time
     await asyncio.sleep(1)
     
-    # Add system response to the queue
+    # Add system response to the messages list
     system_response = {
         "role": "assistant", 
         "content": f"Processed message using {model} with {strategy} strategy: {message}"
     }
-    await queue.put(system_response)
+    MESSAGES.append(system_response)
+    
+    # Notify all clients to update the session component again
+    await broadcast_event("session_update", "update")
+
+async def broadcast_event(event_name, data):
+    """Send an event to all connected SSE clients"""
+    print(f"Broadcasting {event_name} to {len(ACTIVE_SESSIONS)} clients")
+    for client_id in list(ACTIVE_SESSIONS.keys()):
+        try:
+            queue = ACTIVE_SESSIONS[client_id]
+            # Format the event properly for SSE
+            event_data = json.dumps(data) if isinstance(data, (dict, list)) else data
+            await queue.put({"event": event_name, "data": event_data})
+        except Exception as e:
+            print(f"Error broadcasting to client {client_id}: {e}")
+            # If we can't send to this client, remove it
+            if client_id in ACTIVE_SESSIONS:
+                del ACTIVE_SESSIONS[client_id]
 
 
 if __name__ == "__main__":

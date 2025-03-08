@@ -1,11 +1,12 @@
 <!-- Workspace -->
 <div class="box p-0 mb-5 is-flex-grow-1 is-overflow-y-scroll is-overflow-x-hidden">
-<div class="messages">
-    hi mom
+    <div id="messages-container" class="messages">
+        {% for message in messages %}
+            {% include 'components/message.html.j2' %}
+        {% endfor %}
+    </div>
 </div>
-</div>
-
-<!-- Text Input Area -->
-<div class="box mb-0" hx-get="/components/session-form" hx-trigger="load">
-
+<div id="session-form-container"
+   hx-get="/components/session-form"
+   hx-trigger="load, sse:form_update from:body">
 </div>

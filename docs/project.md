@@ -28,6 +28,10 @@ The UI uses Bulma CSS framework.
 
 - When adding CSS, always prefer to add the CSS as sass to custom section files, eg `/style/sections/_mysection.scss` rather than using inline styles.  If the styles correspond to a component, use a component sass file, eg, `styles/components/_mycomponent.scss`
 
+### Favicon
+
+The application uses an SVG favicon stored in the public directory. The SVG is converted to various formats (.ico, .png) for cross-browser compatibility. The favicon represents the Flibberflow logo with an "F" shape and a circle.
+
 ### Shell commands
 
 All shell commands should be run through `just` using the `justfile` in root.

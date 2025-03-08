@@ -4,12 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Flibberflow Dashboard{% endblock %}</title>
+    <link rel="icon" href="/build/favicon.ico" sizes="any">
     <link rel="stylesheet" href="/build/css/app.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <script type="module" src="/build/js/app.js" defer></script>
+    <script type="module" src="/build/app.js" defer></script>
     {% block head %}{% endblock %}
   </head>
-  <body hx-ext="sse">
+  <body hx-ext="sse" sse-connect="/sse">
     <div class="dashboard-container">
         <!-- Navbar/Header -->
         <nav class="navbar has-shadow" role="navigation" aria-label="main navigation" hx-get="/components/navbar" hx-trigger="load">
@@ -20,7 +21,9 @@
         <div class="main-content columns">
             <!-- Sidebar -->
             <aside class="sidebar menu column is-2 is-narrow-mobile section p-4 is-flex is-flex-direction-column">
-                <div class="sidebar-navigation is-flex-grow-1 overflow-y-auto" hx-get="/components/left-sidebar" hx-trigger="load">
+                <div class="sidebar-navigation is-flex-grow-1 overflow-y-auto" 
+                     hx-get="/components/left-sidebar" 
+                     hx-trigger="load, sse:sidebar_update from:body">
                    {% include 'components/skeleton.html.j2' %}
                 </div>
 
@@ -40,15 +43,19 @@
             <div class="column is-7 section p-5">
                 <div class="is-flex is-flex-direction-column">
                     <div id="dashboard" class="is-fullwidth">
-                      <div hx-get="/components/session-form" hx-trigger="load">
-
-                        </div>
+                      <div id="session-container"
+                           hx-get="/session"
+                           hx-trigger="load, sse:session_update from:body"
+                      >
+                      </div>
                     </div>
                 </div>
             </div>
 
             <!-- Drawer Section -->
-            <div class="column is-3 section p-5">
+            <div class="column is-3 section p-5" 
+                 hx-get="/components/right-drawer" 
+                 hx-trigger="load, sse:drawer_update from:body">
             </div>
         </div>
     </div>
