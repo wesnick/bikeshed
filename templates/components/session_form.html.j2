@@ -1,10 +1,10 @@
-<form id="chat-form"
-      hx-post="/chat"
-      hx-target="#chat-messages"
+<form id="session-form"
+      hx-post="/session-submit"
+      hx-target="#session-messages"
       hx-swap="beforeend"
       hx-on::after-request="this.reset(); startTimer();"
 >
-    <div class="chat-input-container">
+    <div class="session-input-container">
   <div class="columns">
     <div class="column is-3">
       <div class="field">
@@ -38,7 +38,7 @@
       <div class="field utility-buttons">
         <label class="label">Utilities</label>
         <div class="buttons">
-          <button class="button is-small" title="Clear chat">
+          <button class="button is-small" title="Clear session">
             <span class="icon">
               <i class="fas fa-trash-alt"></i>
             </span>
@@ -65,8 +65,8 @@
 </div>
   <div class="field">
     <div class="control">
-        <label for="chat-input">Magic</label>
-        <textarea id="chat-input" name="message" class="textarea" placeholder="Type your message here..." rows="3" required></textarea>
+        <label for="session-input">Magic</label>
+        <textarea id="session-input" name="message" class="textarea" placeholder="Type your message here..." rows="3" required></textarea>
     </div>
   </div>
   <div class="field is-grouped is-grouped-right">

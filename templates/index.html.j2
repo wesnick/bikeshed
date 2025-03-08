@@ -1,9 +1,56 @@
-{% extends 'base.html.j2' %}
+<!doctype html>
+<html data-theme="light" lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Flibberflow Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="/build/css/app.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script type="module" src="/build/js/app.js" defer></script>
+    {% block head %}{% endblock %}
+  </head>
+  <body hx-ext="sse">
+    <div class="dashboard-container">
+        <!-- Navbar/Header -->
+        <nav class="navbar has-shadow" role="navigation" aria-label="main navigation" hx-get="/components/navbar" hx-trigger="load">
+            {% include 'components/skeleton.html.j2' %}
+        </nav>
 
-{% block title %}Flibberflow Dashboard{% endblock %}
+        <!-- Main Content Area -->
+        <div class="main-content columns">
+            <!-- Sidebar -->
+            <aside class="sidebar menu column is-2 is-narrow-mobile section p-4 is-flex is-flex-direction-column">
+                <div class="sidebar-navigation is-flex-grow-1 overflow-y-auto" hx-get="/components/left-sidebar" hx-trigger="load">
+                   {% include 'components/skeleton.html.j2' %}
+                </div>
 
-{% block content %}
-  <div hx-get="/components/chat" hx-trigger="load" class="is-fullwidth">
+                <div class="sidebar-settings">
+                    <!-- Misc Items -->
+                    <p class="menu-label mt-6">
+                        Misc
+                    </p>
+                    <ul class="menu-list">
+                        <li><a>Misc Item</a></li>
+                        <li><a>Misc Item</a></li>
+                    </ul>
+                </div>
+            </aside>
 
-  </div>
-{% endblock %}
+            <!-- Main Dashboard Area -->
+            <div class="column is-7 section p-5">
+                <div class="is-flex is-flex-direction-column">
+                    <div id="dashboard" class="is-fullwidth">
+                      <div hx-get="/components/session-form" hx-trigger="load">
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drawer Section -->
+            <div class="column is-3 section p-5">
+            </div>
+        </div>
+    </div>
+  </body>
+</html>

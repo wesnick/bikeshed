@@ -4,15 +4,15 @@
       <aside class="menu">
         <p class="menu-label">Navigation</p>
         <ul class="menu-list">
-          <li><a href="#">Dashboard</a></li>
-          <li><a href="#">Chats</a></li>
-          <li><a href="#">Settings</a></li>
+          <li><a href="/session" hx-get="/session" hx-target="#dashboard" hx-push-url="true">Dashboard</a></li>
+          <li><a href="#">Sessions</a></li>
+          <li><a href="/settings" hx-get="/settings" hx-target="#dashboard" hx-push-url="true">Settings</a></li>
         </ul>
         <p class="menu-label">History</p>
         <ul class="menu-list">
-          <li><a href="#">Chat 1</a></li>
-          <li><a href="#">Chat 2</a></li>
-          <li><a href="#">Chat 3</a></li>
+          <li><a href="#">session 1</a></li>
+          <li><a href="#">session 2</a></li>
+          <li><a href="#">session 3</a></li>
         </ul>
       </aside>
   </div>

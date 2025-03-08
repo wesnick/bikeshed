@@ -1,8 +1,21 @@
 
+
+
 // Path to Bulma's sass folder
 @use "bulma/sass" with (
   $family-primary: '"Atkinson Hyperlegible Next", sans-serif',
+  // Typography
+  $radius-small: 0rem,
+  $radius: 0rem,
+  $radius-medium: 0em,
+  $radius-large: 0rem,
+
+
+
+
 );
+
+
 
 @use "bulma/sass/utilities/derived-variables";
 
@@ -10,6 +23,47 @@
 @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,200..800;1,200..800&display=swap');
 
 
+:root {
+  // Shadow variables - changing to sharp, offset shadows
+  --bulma-shadow-h: 0;        // hue
+  --bulma-shadow-s: 0%;       // saturation
+  --bulma-shadow-l: 0%;       // lightness
+
+  // Override the shadow property with a brutalist box shadow
+  --bulma-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1), 0 0 0 2px rgba(0, 0, 0, 1);
+  //
+  //// For larger shadows
+  //--bulma-shadow-large: 8px 8px 0 0 rgba(0, 0, 0, 1), 0 0 0 2px rgba(0, 0, 0, 1);
+  //
+  //// Border radius - removing all rounded corners
+  //--bulma-radius: 0;
+  //--bulma-radius-small: 0;
+  //--bulma-radius-large: 0;
+  //
+  //// Colors for brutalist style
+  //--bulma-primary-h: 0;       // black hue
+  //--bulma-primary-s: 0%;      // black saturation
+  //--bulma-primary-l: 0%;      // black lightness
+  //
+  //// Other color overrides if needed
+  //--bulma-info-h: 240;        // blue hue
+  //--bulma-info-s: 100%;       // blue saturation
+  //--bulma-info-l: 50%;        // blue lightness
+  //
+  //--bulma-danger-h: 0;        // red hue
+  //--bulma-danger-s: 100%;     // red saturation
+  //--bulma-danger-l: 50%;      // red lightness
+  //
+  //// Override other specific component shadows
+  //--bulma-card-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1);
+  //--bulma-dropdown-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1);
+  //--bulma-dropdown-content-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1);
+  //--bulma-navbar-dropdown-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1);
+  //
+  //// Add border overrides
+  //--bulma-border-width: 2px;
+  //--bulma-border-color: rgba(0, 0, 0, 1);
+}
 html, body {
     height: 100%;
 }
