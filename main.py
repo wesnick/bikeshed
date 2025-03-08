@@ -3,6 +3,7 @@ import asyncio
 import json
 import uuid
 import signal
+import os
 from fastapi import FastAPI, Request, Form, Depends
 from fastapi.templating import Jinja2Templates
 from flibberflow.http import HTMXRedirectMiddleware
@@ -183,8 +184,9 @@ async def broadcast_event(event_name, data):
 
 
 if __name__ == "__main__":
-    # Register signal handlers for graceful shutdown
-    signal.signal(signal.SIGTERM, lambda signum, frame: asyncio.create_task(shutdown_event_handler()))
-    signal.signal(signal.SIGINT, lambda signum, frame: asyncio.create_task(shutdown_event_handler()))
+    # Register signal handlers for graceful shutdown *only* in the main process
+    if "SERVER_SOFTWARE" not in os.environ:
+        signal.signal(signal.SIGTERM, lambda signum, frame: asyncio.create_task(shutdown_event_handler()))
+        signal.signal(signal.SIGINT, lambda signum, frame: asyncio.create_task(shutdown_event_handler()))
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
