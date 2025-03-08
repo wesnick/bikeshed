@@ -1,7 +1,6 @@
 import uvicorn
-import time
 import asyncio
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, Depends
 from fastapi.templating import Jinja2Templates
 from flibberflow.http import HTMXRedirectMiddleware
 from starlette.staticfiles import StaticFiles
@@ -9,9 +8,9 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
 
-app = FastAPI()
 
-# app.add_middleware(HTMXRedirectMiddleware)
+app = FastAPI(title="Flibberflow")
+app.add_middleware(HTMXRedirectMiddleware)
 
 # static asset mount
 app.mount("/build", StaticFiles(directory="build"), name="build")
@@ -19,8 +18,8 @@ app.mount("/build", StaticFiles(directory="build"), name="build")
 jinja_templates = Jinja2Templates(directory="templates")
 jinja = Jinja(jinja_templates)
 
-# Store active session connections
-ACTIVE_SESSIONS = {}
+# Store active session tasks
+queue = asyncio.Queue()
 
 
 @app.get("/")
@@ -63,11 +62,11 @@ def session_form_component() -> None:
 async def session_workspace(request: Request):
     """SSE endpoint for session messages"""
     client_id = str(id(request))
-    
+
     # Create a queue for this client
-    queue = asyncio.Queue()
+
     ACTIVE_SESSIONS[client_id] = queue
-    
+
     async def event_generator():
         try:
             while True:
@@ -79,9 +78,7 @@ async def session_workspace(request: Request):
         except asyncio.CancelledError:
             pass
         finally:
-            # Clean up when the client disconnects
-            if client_id in ACTIVE_SESSIONS:
-                del ACTIVE_SESSIONS[client_id]
+            pass
     
     return EventSourceResponse(event_generator())
 

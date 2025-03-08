@@ -1,27 +1,23 @@
 
-
-
 // Path to Bulma's sass folder
 @use "bulma/sass" with (
   $family-primary: '"Atkinson Hyperlegible Next", sans-serif',
-  // Typography
-  $radius-small: 0rem,
-  $radius: 0rem,
-  $radius-medium: 0em,
-  $radius-large: 0rem,
+  //$primary: #dff2d8,
+  //$primary: iv.$turquoise !default,
 
-
-
-
+  //$info: iv.$cyan !default,
+  //$success: iv.$green !default,
+  //$warning: iv.$yellow !default,
+  //$danger: iv.$red !default,
+  //$light: iv.$white-ter !default,
+  //$dark: iv.$grey-darker !default,
+  //// Link colors
+  //$link: iv.$blue !default,
 );
 
 
-
-@use "bulma/sass/utilities/derived-variables";
-
 // Import the Google Font
 @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,200..800;1,200..800&display=swap');
-
 
 :root {
   // Shadow variables - changing to sharp, offset shadows
@@ -31,42 +27,18 @@
 
   // Override the shadow property with a brutalist box shadow
   --bulma-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1), 0 0 0 2px rgba(0, 0, 0, 1);
-  //
-  //// For larger shadows
-  //--bulma-shadow-large: 8px 8px 0 0 rgba(0, 0, 0, 1), 0 0 0 2px rgba(0, 0, 0, 1);
-  //
-  //// Border radius - removing all rounded corners
-  //--bulma-radius: 0;
-  //--bulma-radius-small: 0;
-  //--bulma-radius-large: 0;
-  //
-  //// Colors for brutalist style
-  //--bulma-primary-h: 0;       // black hue
-  //--bulma-primary-s: 0%;      // black saturation
-  //--bulma-primary-l: 0%;      // black lightness
-  //
-  //// Other color overrides if needed
-  //--bulma-info-h: 240;        // blue hue
-  //--bulma-info-s: 100%;       // blue saturation
-  //--bulma-info-l: 50%;        // blue lightness
-  //
-  //--bulma-danger-h: 0;        // red hue
-  //--bulma-danger-s: 100%;     // red saturation
-  //--bulma-danger-l: 50%;      // red lightness
-  //
-  //// Override other specific component shadows
-  //--bulma-card-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1);
-  //--bulma-dropdown-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1);
-  //--bulma-dropdown-content-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1);
-  //--bulma-navbar-dropdown-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1);
-  //
-  //// Add border overrides
-  //--bulma-border-width: 2px;
-  //--bulma-border-color: rgba(0, 0, 0, 1);
+
+  // Border radius - removing all rounded corners
+  --bulma-radius: 0;
+  --bulma-radius-small: 0;
+  --bulma-radius-large: 0;
+
 }
+
 html, body {
     height: 100%;
 }
+
 
 .dashboard-container {
     min-height: 100vh;
@@ -78,7 +50,7 @@ html, body {
 }
 
 .sidebar {
-    border-right: 1px solid derived-variables.$border;
+    border-right: 1px solid sass.$black;
     display: flex;
     flex-direction: column;
     height: 100%;
