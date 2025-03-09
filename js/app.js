@@ -5,6 +5,9 @@ import Bulma from '@vizuaalog/bulmajs';
 import htmx from 'htmx.org';
 import 'htmx-ext-sse';
 
+// Import custom handlers
+import './shutdown-handler.js';
+
 // Initialize application
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Flibberflow application initialized');
