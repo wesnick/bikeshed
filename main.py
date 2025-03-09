@@ -72,6 +72,7 @@ async def shutdown_sse_connections():
 # Initialize signal handlers
 setup_signal_handlers()
 
+
 @app.get("/")
 @jinja.page('index.html.j2')
 def index() -> dict:
