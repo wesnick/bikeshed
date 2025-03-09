@@ -4,6 +4,7 @@ import json
 import uuid
 import signal
 import sys
+import threading
 from fastapi import FastAPI, Request, Form, Depends
 from fastapi.templating import Jinja2Templates
 from flibberflow.http import HTMXRedirectMiddleware
@@ -34,14 +35,35 @@ SHUTDOWN_IN_PROGRESS = False
 # Set up signal handlers for graceful shutdown
 def setup_signal_handlers():
     """Set up signal handlers for graceful shutdown"""
+    # Store original signal handlers to chain to them
+    original_term_handler = signal.getsignal(signal.SIGTERM)
+    original_int_handler = signal.getsignal(signal.SIGINT)
+    
     def signal_handler(sig, frame):
         print(f"Received signal {sig}, initiating graceful shutdown...")
         global SHUTDOWN_IN_PROGRESS
         SHUTDOWN_IN_PROGRESS = True
-        # Schedule the shutdown task
+        
+        # Schedule the shutdown task without blocking
         asyncio.create_task(shutdown_sse_connections())
         
-    # Register handlers for common termination signals
+        # Chain to the original handler after a short delay
+        # This allows our shutdown_sse_connections to start running
+        def chain_to_original():
+            print(f"Chaining to original signal handler for {sig}")
+            # Call the original handler
+            if sig == signal.SIGTERM and original_term_handler and callable(original_term_handler):
+                original_term_handler(sig, frame)
+            elif sig == signal.SIGINT and original_int_handler and callable(original_int_handler):
+                original_int_handler(sig, frame)
+        
+        # Schedule the original handler to run after a short delay
+        # This gives our shutdown_sse_connections time to start
+        timer = threading.Timer(0.5, chain_to_original)
+        timer.daemon = True  # Make sure this doesn't block process exit
+        timer.start()
+    
+    # Register our handlers
     signal.signal(signal.SIGTERM, signal_handler)  # Signal 15, sent by uvicorn --reload
     signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
     
@@ -55,7 +77,8 @@ async def shutdown_sse_connections():
         await broadcast_event("server_shutdown", "Server is shutting down")
         
         # Give clients a moment to process the shutdown message
-        await asyncio.sleep(0.5)
+        # Use a shorter sleep time to ensure we don't block shutdown
+        await asyncio.sleep(0.2)
         
         # Close all connections
         for client_id in list(ACTIVE_SESSIONS.keys()):
@@ -68,6 +91,9 @@ async def shutdown_sse_connections():
         print(f"Error during shutdown of SSE connections: {e}")
     finally:
         print("All SSE connections have been notified of shutdown")
+        # Clear the collections to help with cleanup
+        ACTIVE_SESSIONS.clear()
+        SSE_CLIENTS.clear()
 
 # Initialize signal handlers
 setup_signal_handlers()
