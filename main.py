@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from random import randint
 import uvicorn
 import asyncio
@@ -14,7 +15,15 @@ from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
 
 
-app = FastAPI(title="Flibberflow")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize a dictionary to store multiple SSE client connections
+    app.state.sse_connections = {}
+
+    yield
+
+
+app = FastAPI(title="Flibberflow", lifespan=lifespan)
 app.add_middleware(HTMXRedirectMiddleware)
 
 # static asset mount
