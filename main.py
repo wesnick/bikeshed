@@ -1,11 +1,10 @@
+from random import randint
 import uvicorn
 import asyncio
 import json
 import uuid
 import signal
-import sys
 import threading
-import datetime
 from fastapi import FastAPI, Request, Form, Depends
 from fastapi.templating import Jinja2Templates
 from flibberflow.http import HTMXRedirectMiddleware
@@ -75,17 +74,10 @@ async def shutdown_sse_connections():
     print(f"Shutting down {len(ACTIVE_SESSIONS)} SSE connections...")
     try:
         # Broadcast shutdown message to all clients with more detailed information
-        shutdown_message = {
-            "status": "shutdown",
-            "message": "Server is shutting down for restart",
-            "timestamp": str(datetime.datetime.now())
-        }
-        await broadcast_event("server_shutdown", json.dumps(shutdown_message))
-        
+        await broadcast_event("server_shutdown", "Server is shutting down for restart")
         # Give clients a moment to process the shutdown message
         # Use a shorter sleep time to ensure we don't block shutdown
         await asyncio.sleep(0.2)
-        
         # Close all connections
         for client_id in list(ACTIVE_SESSIONS.keys()):
             try:
@@ -152,10 +144,6 @@ def kitchen_sink_component() -> None:
 @app.get("/sse")
 async def sse(request: Request):
     """SSE endpoint for all component updates"""
-    # If shutdown is in progress, don't accept new connections
-    if SHUTDOWN_IN_PROGRESS:
-        return EventSourceResponse([{"event": "server_shutdown", "data": "Server is shutting down"}])
-        
     client_id = str(uuid.uuid4())
     queue = asyncio.Queue()
     SSE_CLIENTS.add(client_id)
@@ -220,7 +208,7 @@ async def process_message(message: str, model: str, strategy: str):
 
 
     # Simulate processing time
-    await asyncio.sleep(1)
+    await asyncio.sleep(randint(1, 5))
 
     # Add system response to the messages list
     system_response = {
