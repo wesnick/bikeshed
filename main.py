@@ -46,6 +46,8 @@ async def lifespan(app: FastAPI):
     await mcp_client.cleanup()
 
 
+
+
 app = FastAPI(title="Flibberflow", lifespan=lifespan)
 app.add_middleware(HTMXRedirectMiddleware)
 

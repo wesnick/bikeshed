@@ -50,13 +50,13 @@ class MCPClient:
                 await self.sessions[name].exit_stack.aclose()
                 del self.sessions[name]
         else:
-            for session_data in self.sessions.values():
+            for name, session_data in self.sessions.items():
                 await session_data.exit_stack.aclose()
+                del self.sessions[name]
             self.sessions.clear()
 
     async def get_session(self, name: str) -> Optional[ClientSession]:
         """Get the ClientSession by name.
-
                 Args:
                     name: name of the session
 
