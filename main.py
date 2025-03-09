@@ -44,7 +44,12 @@ async def lifespan(app: FastAPI):
     yield
 
     # Clean up our connections
+    # First, explicitly close all SSE connections.
+    await shutdown_sse_connections()
+
+    # Then, close the MCP client connections.
     await mcp_client.cleanup()
+
 
 
 app = FastAPI(title="Flibberflow", lifespan=lifespan)
