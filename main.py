@@ -40,16 +40,10 @@ async def lifespan(app: FastAPI):
 
     print("initialized")
 
-
     yield
 
-    # Clean up our connections
-    # First, explicitly close all SSE connections.
-    await shutdown_sse_connections()
-
-    # Then, close the MCP client connections.
+    # Close the MCP client connections.
     await mcp_client.cleanup()
-
 
 
 app = FastAPI(title="Flibberflow", lifespan=lifespan)
@@ -102,7 +96,6 @@ def setup_signal_handlers():
     signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
     
     print("Signal handlers registered for graceful shutdown")
-
 
 
 async def shutdown_sse_connections():

@@ -64,7 +64,7 @@ class MCPClient:
         ClientSession if found, None otherwise.
         """
         session_data = self.sessions.get(name)
-        if session_
+        if session_data:
             return session_data.session
         return None
 
