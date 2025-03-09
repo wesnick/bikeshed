@@ -17,33 +17,38 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
 
-mcp_client = MCPClient()
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    server = {
-        "sqlite": {
-          "command": "uvx",
-          "args": ["mcp-server-sqlite", "--db-path", "./test.db"]
-        },
-        "fetch": {
-          "command": "uvx",
-          "args": ["mcp-server-fetch", "--ignore-robots-txt"]
+    # Use MCPClient as an async context manager
+    async with MCPClient() as client:
+        # Store the client in the app state for access in routes
+        app.state.mcp_client = client
+        
+        server = {
+            "sqlite": {
+              "command": "uvx",
+              "args": ["mcp-server-sqlite", "--db-path", "./test.db"]
+            },
+            "fetch": {
+              "command": "uvx",
+              "args": ["mcp-server-fetch", "--ignore-robots-txt"]
+            }
         }
-    }
 
-    for name, params in server.items():
-        res = await mcp_client.connect_to_server(
-            name=name,
-            server_params=StdioServerParameters(**params)
-        )
+        for name, params in server.items():
+            try:
+                await client.connect_to_server(
+                    name=name,
+                    server_params=StdioServerParameters(**params)
+                )
+            except Exception as e:
+                print(f"Failed to connect to server {name}: {e}")
 
-    print("initialized")
+        print("initialized")
 
-    yield
-
-    # Close the MCP client connections.
-    await mcp_client.cleanup()
+        yield
+        
+        # No need to explicitly call cleanup as it will be handled by the context manager
 
 
 
