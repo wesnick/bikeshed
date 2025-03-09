@@ -1,48 +1,68 @@
-from typing import Optional
+from typing import Optional, Dict
 from contextlib import AsyncExitStack
 
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
 
 
+class SessionData:
+    def __init__(self, session: ClientSession, exit_stack: AsyncExitStack, write, stdio):
+        self.session = session
+        self.exit_stack = exit_stack
+        self.write = write
+        self.stdio = stdio
+
+
 class MCPClient:
     def __init__(self):
-
-        self.write = None
-        self.stdio = None
-        self.session: Optional[ClientSession] = None
-        self.exit_stack = AsyncExitStack()
+        self.sessions: Dict[str, SessionData] = {}
 
     async def connect_to_server(self, name: str, server_params: StdioServerParameters):
         """Connect to an MCP server
 
         Args:
-            name: Name of the server
+            name: Name of the server, used as the key for the session dictionary.
             server_params: StdioServerParameters
         """
-        # is_python = server_script_path.endswith('.py')
-        # is_js = server_script_path.endswith('.js')
-        # if not (is_python or is_js):
-        #     raise ValueError("Server script must be a .py or .js file")
-        #
-        # command = "python" if is_python else "node"
-        # server_params = StdioServerParameters(
-        #     command=command,
-        #     args=[server_script_path],
-        #     env=None
-        # )
+        exit_stack = AsyncExitStack()
+        stdio_transport = await exit_stack.enter_async_context(stdio_client(server_params))
+        stdio, write = stdio_transport
+        session = await exit_stack.enter_async_context(ClientSession(stdio, write))
 
-        stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
-        self.stdio, self.write = stdio_transport
-        self.session = await self.exit_stack.enter_async_context(ClientSession(self.stdio, self.write))
-
-        init_result: types.InitializeResult = await self.session.initialize()
+        init_result: types.InitializeResult = await session.initialize()
 
         # List available tools
-        response = await self.session.list_tools()
+        response = await session.list_tools()
         tools = response.tools
         print("\nConnected to server with tools:", [tool.name for tool in tools])
 
-    async def cleanup(self):
-        """Clean up resources"""
-        await self.exit_stack.aclose()
+        self.sessions[name] = SessionData(session, exit_stack, write, stdio)
+
+    async def cleanup(self, name: Optional[str] = None):
+        """Clean up resources
+
+        Args:
+            name: Optional name of the session to clean up. Cleans all if None
+        """
+        if name:
+            if name in self.sessions:
+                await self.sessions[name].exit_stack.aclose()
+                del self.sessions[name]
+        else:
+            for session_data in self.sessions.values():
+                await session_data.exit_stack.aclose()
+            self.sessions.clear()
+
+    async def get_session(self, name: str) -> Optional[ClientSession]:
+        """Get the ClientSession by name.
+
+                Args:
+                    name: name of the session
+
+                Returns:
+        ClientSession if found, None otherwise.
+        """
+        session_data = self.sessions.get(name)
+        if session_
+            return session_data.session
+        return None
