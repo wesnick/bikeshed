@@ -1,6 +1,5 @@
 from typing import Optional, Dict
 from contextlib import AsyncExitStack
-
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
 
@@ -30,6 +29,8 @@ class MCPClient:
         session = await exit_stack.enter_async_context(ClientSession(stdio, write))
 
         init_result: types.InitializeResult = await session.initialize()
+
+        print(f"Connected to server with protocol version: {init_result}")
 
         # List available tools
         response = await session.list_tools()
@@ -63,7 +64,7 @@ class MCPClient:
         ClientSession if found, None otherwise.
         """
         session_data = self.sessions.get(name)
-        if session_
+        if session_data:
             return session_data.session
         return None
 

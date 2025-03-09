@@ -8,19 +8,43 @@ import signal
 import threading
 from fastapi import FastAPI, Request, Form, Depends
 from fastapi.templating import Jinja2Templates
+from mcp import StdioServerParameters
+
+from flibberflow.core.mcp_client import MCPClient
 from flibberflow.http import HTMXRedirectMiddleware
 from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
 
+mcp_client = MCPClient()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize a dictionary to store multiple SSE client connections
-    app.state.sse_connections = {}
+    server = {
+        "sqlite": {
+          "command": "uvx",
+          "args": ["mcp-server-sqlite", "--db-path", "./test.db"]
+        },
+        "fetch": {
+          "command": "uvx",
+          "args": ["mcp-server-fetch", "--ignore-robots-txt"]
+        }
+    }
+
+    for name, params in server.items():
+        res = await mcp_client.connect_to_server(
+            name=name,
+            server_params=StdioServerParameters(**params)
+        )
+
+    print("initialized")
+
 
     yield
+
+    # Clean up our connections
+    await mcp_client.cleanup()
 
 
 app = FastAPI(title="Flibberflow", lifespan=lifespan)
@@ -73,6 +97,8 @@ def setup_signal_handlers():
     signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
     
     print("Signal handlers registered for graceful shutdown")
+
+
 
 async def shutdown_sse_connections():
     """Send shutdown message to all SSE clients and close connections"""
