@@ -52,7 +52,6 @@ async def lifespan(app: FastAPI):
 
 
 
-
 app = FastAPI(title="Flibberflow", lifespan=lifespan)
 app.add_middleware(HTMXRedirectMiddleware)
 
