@@ -2,7 +2,6 @@ import uvicorn
 import asyncio
 import json
 import uuid
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Form, Depends
 from fastapi.templating import Jinja2Templates
 from flibberflow.http import HTMXRedirectMiddleware
@@ -12,33 +11,7 @@ from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
 
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup: setup code here
-    print("Starting up server...")
-    yield
-    # Shutdown: cleanup code here
-    print("Shutting down server, closing all SSE connections...")
-    for client_id in list(ACTIVE_SESSIONS.keys()):
-        try:
-            queue = ACTIVE_SESSIONS[client_id]
-            # Send a disconnect event to tell the client to close gracefully
-            await queue.put({"event": "disconnect", "data": "Server shutting down"})
-            # Then send None to signal the event generator to stop
-            await queue.put(None)
-        except Exception as e:
-            print(f"Error closing SSE connection for client {client_id}: {e}")
-    
-    # Give clients a moment to receive the disconnect event
-    await asyncio.sleep(0.5)
-    
-    # Clear all collections
-    ACTIVE_SESSIONS.clear()
-    SSE_CLIENTS.clear()
-    print("All SSE connections closed")
-
-app = FastAPI(title="Flibberflow", lifespan=lifespan)
+app = FastAPI(title="Flibberflow")
 app.add_middleware(HTMXRedirectMiddleware)
 
 # static asset mount
@@ -53,7 +26,6 @@ ACTIVE_SESSIONS = {}
 MESSAGES = []
 # Store clients connected to SSE
 SSE_CLIENTS = set()
-
 
 @app.get("/")
 @jinja.page('index.html.j2')
@@ -107,51 +79,39 @@ async def sse(request: Request):
     SSE_CLIENTS.add(client_id)
     print(f"New SSE connection: {client_id}")
 
-    # Store the client's request object to detect disconnection
-    request.state.client_id = client_id
+    try:
+        async def event_generator():
+            # Send initial connection message
+            yield {"event": "connected", "data": "Connected to SSE stream"}
 
-    async def event_generator():
-        # Send initial connection message
-        yield {"event": "connected", "data": "Connected to SSE stream"}
+            # Create a queue for this client
+            ACTIVE_SESSIONS[client_id] = queue
 
-        # Create a queue for this client
-        ACTIVE_SESSIONS[client_id] = queue
-
-        try:
-            while True:
-                # Wait for the next event with a timeout
-                try:
-                    event = await asyncio.wait_for(queue.get(), timeout=30)
+            try:
+                while True:
+                    # Wait for the next event with a timeout
+                    event = await queue.get()
                     if event is None:  # None is our signal to stop
                         print(f"Closing SSE connection for client {client_id}")
                         break
                     yield event
-                except asyncio.TimeoutError:
-                    # Send a keepalive ping every 30 seconds
-                    yield {"event": "ping", "data": ""}
-                    # Check if the client is still connected
-                    if request.is_disconnected():
-                        print(f"Client {client_id} disconnected")
-                        break
-        except asyncio.CancelledError:
-            print(f"SSE connection for client {client_id} was cancelled")
-            raise  # Re-raise to ensure proper cleanup
-        except Exception as e:
-            print(f"Error in SSE connection for client {client_id}: {e}")
-        finally:
-            # Clean up when the generator exits
-            if client_id in ACTIVE_SESSIONS:
-                del ACTIVE_SESSIONS[client_id]
-            if client_id in SSE_CLIENTS:
-                SSE_CLIENTS.remove(client_id)
-            print(f"Cleaned up client {client_id}")
+            except asyncio.TimeoutError:
+                # Send a keepalive ping every 30 seconds
+                yield {"event": "ping", "data": ""}
+            except asyncio.CancelledError:
+                print(f"SSE connection for client {client_id} was cancelled")
+                raise  # Re-raise to ensure proper cleanup
+            except Exception as e:
+                print(f"Error in SSE connection for client {client_id}: {e}")
 
-    return EventSourceResponse(
-        event_generator(),
-        ping=30,  # Send ping every 30 seconds
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"}
-    )
+        return EventSourceResponse(event_generator())
+    finally:
+        # Clean up when the generator exits
+        if client_id in ACTIVE_SESSIONS:
+            del ACTIVE_SESSIONS[client_id]
+        if client_id in SSE_CLIENTS:
+            SSE_CLIENTS.remove(client_id)
+        print(f"Cleaned up client {client_id}")
 
 
 @app.post("/session-submit", response_class=HTMLResponse)
@@ -206,17 +166,5 @@ async def broadcast_event(event_name, data):
                 del ACTIVE_SESSIONS[client_id]
 
 
-
 if __name__ == "__main__":
-    # Configure Uvicorn with proper signal handling for graceful shutdown
-    config = uvicorn.Config(
-        app=app, 
-        host="0.0.0.0", 
-        port=8000, 
-        reload=True,
-        reload_delay=0.25,  # Small delay to allow connections to close
-        timeout_keep_alive=5,  # Reduce keep-alive timeout
-        access_log=True
-    )
-    server = uvicorn.Server(config)
-    server.run()
+    uvicorn.run(app, host="0.0.0.0", port=8000)
