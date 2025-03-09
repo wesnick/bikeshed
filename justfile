@@ -10,3 +10,18 @@ build:
     
 aider *args:
     aider --file docs/project.md --file justfile {{args}}
+
+docup:
+    docker compose up -d
+
+docdown:
+    docker compose down
+
+migrate:
+    alembic upgrade head
+
+migmake args:
+    alembic revision -m "{{args}}"
+
+alembic-current:
+    alembic current

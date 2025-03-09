@@ -1,0 +1,42 @@
+services:
+
+  database:
+    image: pgvector/pgvector:0.8.0-pg16
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U app" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-app}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-pass}
+      - POSTGRES_USER=${POSTGRES_USER:-app}
+    volumes:
+      - ./api/frankenphp/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db_data:/var/lib/postgresql/data
+      # you may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
+      # - ./api/docker/db/data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+
+#  phoenix:
+#    image: arizephoenix/phoenix:latest
+#    ports:
+#      - "6006:6006"  # UI and OTLP HTTP collector
+#      - "4317:4317"  # OTLP gRPC collector
+##      - "9090:9090"  # [Optional] PROMETHEUS PORT IF ENABLED
+#    environment:
+#      - PHOENIX_SQL_DATABASE_URL=postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-!ChangeMe!}@database:5432/${POSTGRES_PHOENIX_DB:-phoenix}
+#    depends_on:
+#      database:
+#        condition: service_healthy
+        
+    # HTML scraping
+    # https://github.com/Y2Z/monolith
+#  scraper:
+#    image: y2z/monolith
+    
+        
+volumes:
+  db_data:

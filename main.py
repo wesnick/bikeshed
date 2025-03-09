@@ -29,8 +29,6 @@ ACTIVE_SESSIONS = {}
 MESSAGES = []
 # Store clients connected to SSE
 SSE_CLIENTS = set()
-# Flag to track if shutdown is in progress
-SHUTDOWN_IN_PROGRESS = False
 
 # Set up signal handlers for graceful shutdown
 def setup_signal_handlers():
@@ -41,9 +39,7 @@ def setup_signal_handlers():
     
     def signal_handler(sig, frame):
         print(f"Received signal {sig}, initiating graceful shutdown...")
-        global SHUTDOWN_IN_PROGRESS
-        SHUTDOWN_IN_PROGRESS = True
-        
+
         # Schedule the shutdown task without blocking
         asyncio.create_task(shutdown_sse_connections())
         
