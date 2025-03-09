@@ -28,6 +28,49 @@ ACTIVE_SESSIONS = {}
 MESSAGES = []
 # Store clients connected to SSE
 SSE_CLIENTS = set()
+# Flag to track if shutdown is in progress
+SHUTDOWN_IN_PROGRESS = False
+
+# Set up signal handlers for graceful shutdown
+def setup_signal_handlers():
+    """Set up signal handlers for graceful shutdown"""
+    def signal_handler(sig, frame):
+        print(f"Received signal {sig}, initiating graceful shutdown...")
+        global SHUTDOWN_IN_PROGRESS
+        SHUTDOWN_IN_PROGRESS = True
+        # Schedule the shutdown task
+        asyncio.create_task(shutdown_sse_connections())
+        
+    # Register handlers for common termination signals
+    signal.signal(signal.SIGTERM, signal_handler)  # Signal 15, sent by uvicorn --reload
+    signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+    
+    print("Signal handlers registered for graceful shutdown")
+
+async def shutdown_sse_connections():
+    """Send shutdown message to all SSE clients and close connections"""
+    print(f"Shutting down {len(ACTIVE_SESSIONS)} SSE connections...")
+    try:
+        # Broadcast shutdown message to all clients
+        await broadcast_event("server_shutdown", "Server is shutting down")
+        
+        # Give clients a moment to process the shutdown message
+        await asyncio.sleep(0.5)
+        
+        # Close all connections
+        for client_id in list(ACTIVE_SESSIONS.keys()):
+            try:
+                queue = ACTIVE_SESSIONS[client_id]
+                await queue.put(None)  # Signal to close the connection
+            except Exception as e:
+                print(f"Error closing connection for client {client_id}: {e}")
+    except Exception as e:
+        print(f"Error during shutdown of SSE connections: {e}")
+    finally:
+        print("All SSE connections have been notified of shutdown")
+
+# Initialize signal handlers
+setup_signal_handlers()
 
 @app.get("/")
 @jinja.page('index.html.j2')
@@ -76,6 +119,10 @@ def kitchen_sink_component() -> None:
 @app.get("/sse")
 async def sse(request: Request):
     """SSE endpoint for all component updates"""
+    # If shutdown is in progress, don't accept new connections
+    if SHUTDOWN_IN_PROGRESS:
+        return EventSourceResponse([{"event": "server_shutdown", "data": "Server is shutting down"}])
+        
     client_id = str(uuid.uuid4())
     queue = asyncio.Queue()
     SSE_CLIENTS.add(client_id)
@@ -169,4 +216,6 @@ async def broadcast_event(event_name, data):
 
 
 if __name__ == "__main__":
+    # Make sure signal handlers are set up before starting the server
+    setup_signal_handlers()
     uvicorn.run(app, host="0.0.0.0", port=8000)
