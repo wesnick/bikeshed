@@ -5,6 +5,7 @@ import uuid
 import signal
 import sys
 import threading
+import datetime
 from fastapi import FastAPI, Request, Form, Depends
 from fastapi.templating import Jinja2Templates
 from flibberflow.http import HTMXRedirectMiddleware
@@ -73,8 +74,13 @@ async def shutdown_sse_connections():
     """Send shutdown message to all SSE clients and close connections"""
     print(f"Shutting down {len(ACTIVE_SESSIONS)} SSE connections...")
     try:
-        # Broadcast shutdown message to all clients
-        await broadcast_event("server_shutdown", "Server is shutting down")
+        # Broadcast shutdown message to all clients with more detailed information
+        shutdown_message = {
+            "status": "shutdown",
+            "message": "Server is shutting down for restart",
+            "timestamp": str(datetime.datetime.now())
+        }
+        await broadcast_event("server_shutdown", json.dumps(shutdown_message))
         
         # Give clients a moment to process the shutdown message
         # Use a shorter sleep time to ensure we don't block shutdown
