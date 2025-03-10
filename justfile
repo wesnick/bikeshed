@@ -25,3 +25,6 @@ migmake args:
 
 alembic-current:
     alembic current
+
+search-mcp query="":
+    python -m src.cli search-mcp {{query}}
