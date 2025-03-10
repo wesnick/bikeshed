@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse
 from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Use MCPClient as an async context manager
