@@ -40,19 +40,13 @@ class MCPClient:
         try:
             stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
             stdio, write = stdio_transport
-            session = await self.exit_stack.enter_async_context(ClientSession(stdio, write))
+            session: ClientSession = await self.exit_stack.enter_async_context(ClientSession(stdio, write))
 
             init_result: types.InitializeResult = await session.initialize()
 
-            print(f"Connected to server with protocol version: {init_result}")
-
-            # List available tools
-            response = await session.list_tools()
-            tools = response.tools
-            print("\nConnected to server with tools:", [tool.name for tool in tools])
+            print(f"Connected to server with features: {init_result}")
 
             self.sessions[name] = SessionData(session, write, stdio)
-            return init_result
         except Exception as e:
             print(f"Error connecting to server {name}: {e}")
             # Re-raise to allow caller to handle

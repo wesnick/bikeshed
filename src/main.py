@@ -24,14 +24,18 @@ async def lifespan(app: FastAPI):
         app.state.mcp_client = client
         
         server = {
-            "sqlite": {
-              "command": "uvx",
-              "args": ["mcp-server-sqlite", "--db-path", "./test.db"]
-            },
+            # "sqlite": {
+            #   "command": "uvx",
+            #   "args": ["mcp-server-sqlite", "--db-path", "./test.db"]
+            # },
             "fetch": {
               "command": "uvx",
               "args": ["mcp-server-fetch", "--ignore-robots-txt"]
             }
+            # "puppeteer": {
+            #     "command": "npx",
+            #     "args": ["https://github.com/lars-hagen/mcp-playwright-cdp", "-y"]
+            # }
         }
 
         for name, params in server.items():
@@ -140,38 +144,38 @@ def index() -> dict:
 
 @app.get("/settings")
 @jinja.hx('components/settings.html.j2', no_data=True)
-def settings_component() -> None:
+async def settings_component() -> None:
     """This route serves just the settings component for htmx requests."""
 
 @app.get("/session")
 @jinja.hx('components/session.html.j2')
-def session_component() -> dict:
+async def session_component() -> dict:
     """This route serves just the chat component for htmx requests."""
     return {"messages": MESSAGES}
 
 @app.get("/components/left-sidebar")
-@jinja.hx('components/left_sidebar.html.j2', no_data=True)
-def left_sidebar_component() -> None:
+@jinja.hx('components/left_sidebar.html.j2')
+async def left_sidebar_component(request: Request) -> None:
     """This route serves the left sidebar component for htmx requests."""
 
 @app.get("/components/right-drawer")
 @jinja.hx('components/right_drawer.html.j2', no_data=True)
-def right_drawer_component() -> None:
+async def right_drawer_component() -> None:
     """This route serves the right drawer component for htmx requests."""
 
 @app.get("/components/navbar")
 @jinja.hx('components/navbar.html.j2', no_data=True)
-def navbar_component() -> None:
+async def navbar_component() -> None:
     """This route serves the navbar component for htmx requests."""
 
 @app.get("/components/session-form")
 @jinja.hx('components/session_form.html.j2', no_data=True)
-def session_form_component() -> None:
+async def session_form_component() -> None:
     """This route serves the session form component for htmx requests."""
 
 @app.get("/kitchen-sink")
 @jinja.hx('components/kitchen_sink.html.j2', no_data=True)
-def kitchen_sink_component() -> None:
+async def kitchen_sink_component() -> None:
     """This route serves the kitchen sink component for htmx requests."""
 
 

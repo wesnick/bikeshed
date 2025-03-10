@@ -1,0 +1,125 @@
+{# form_macros.html - Reusable Bulma form components #}
+{% macro render_field(field, value=None) %}
+  {% set field_id = field.name|replace('_', '-') %}
+  {% set field_value = value or field.default_value or '' %}
+  {% set is_required = field.required %}
+  
+  <div class="field">
+    <label class="label" for="{{ field_id }}">
+      {{ field.label }}
+      {% if is_required %}<span class="has-text-danger">*</span>{% endif %}
+    </label>
+    
+    <div class="control{% if field.field_type == 'email' %} has-icons-left{% endif %}">
+      {% if field.field_type == 'textarea' %}
+        <textarea 
+          id="{{ field_id }}" 
+          name="{{ field.name }}" 
+          class="textarea {{ field.css_class or '' }}"
+          placeholder="{{ field.placeholder or '' }}"
+          {% if is_required %}required{% endif %}
+        >{{ field_value }}</textarea>
+      
+      {% elif field.field_type == 'select' %}
+        <div class="select">
+          <select 
+            id="{{ field_id }}" 
+            name="{{ field.name }}"
+            class="{{ field.css_class or '' }}"
+            {% if is_required %}required{% endif %}
+          >
+            <option value="">-- Select --</option>
+            {% for option in field.options or [] %}
+              <option 
+                value="{{ option.value }}" 
+                {% if field_value == option.value %}selected{% endif %}
+              >
+                {{ option.label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        
+      {% elif field.field_type == 'checkbox' %}
+        <label class="checkbox">
+          <input 
+            type="checkbox" 
+            id="{{ field_id }}" 
+            name="{{ field.name }}"
+            {% if field_value %}checked{% endif %}
+          >
+          {{ field.help_text or '' }}
+        </label>
+        
+      {% elif field.field_type == 'radio' %}
+        {% for option in field.options or [] %}
+          <label class="radio">
+            <input 
+              type="radio" 
+              name="{{ field.name }}" 
+              value="{{ option.value }}"
+              {% if field_value == option.value %}checked{% endif %}
+              {% if is_required %}required{% endif %}
+            >
+            {{ option.label }}
+          </label>
+        {% endfor %}
+        
+      {% else %}
+        <input 
+          type="{{ field.field_type }}" 
+          id="{{ field_id }}" 
+          name="{{ field.name }}" 
+          value="{{ field_value }}"
+          class="input {{ field.css_class or '' }}"
+          placeholder="{{ field.placeholder or '' }}"
+          {% if field.min_value is not none %}min="{{ field.min_value }}"{% endif %}
+          {% if field.max_value is not none %}max="{{ field.max_value }}"{% endif %}
+          {% if is_required %}required{% endif %}
+        >
+        {% if field.field_type == 'email' %}
+          <span class="icon is-small is-left">
+            <i class="fas fa-envelope"></i>
+          </span>
+        {% endif %}
+      {% endif %}
+    </div>
+    
+    {% if field.help_text and field.field_type != 'checkbox' %}
+      <p class="help">{{ field.help_text }}</p>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{# dynamic_form.html - Main form template #}
+{% from 'form_macros.html' import render_field %}
+
+<form id="{{ form.id }}" method="post" class="dynamic-form">
+  {% if form.title %}
+    <h3 class="title is-4">{{ form.title }}</h3>
+  {% endif %}
+  
+  {% if form.description %}
+    <p class="subtitle is-6">{{ form.description }}</p>
+  {% endif %}
+  
+  {% for field in form.fields %}
+    {{ render_field(field, values.get(field.name) if values else None) }}
+  {% endfor %}
+  
+  <div class="field is-grouped mt-5">
+    <div class="control">
+      <button type="submit" class="button is-primary">
+        {{ form.submit_label }}
+      </button>
+    </div>
+    
+    {% if form.cancel_url %}
+    <div class="control">
+      <a href="{{ form.cancel_url }}" class="button is-light">
+        Cancel
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</form>
