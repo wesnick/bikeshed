@@ -9,10 +9,10 @@
           <li><a href="/settings" hx-get="/settings" hx-target="#dashboard" hx-push-url="true">Settings</a></li>
           <li><a href="/kitchen-sink" hx-get="/kitchen-sink" hx-target="#dashboard" hx-push-url="true">Kitchen Sink</a></li>
         </ul>
-          {% for capability, items in manifest.items() if items %}
-            <p class="menu-label">{{ capability }}</p>
+          {% if manifest['tools'] | length %}
+            <p class="menu-label">Tools</p>
             <ul class="menu-list">
-            {% for key, item in items.items() %}
+            {% for key, item in manifest['tools'].items() %}
                 <li>
                   <a href="/tool/{{ key }}" 
                      hx-get="/tool/{{ key }}" 
@@ -23,6 +23,6 @@
                 </li>
             {% endfor %}
             </ul>
-          {%  endfor %}
+          {% endif %}
       </aside>
   </div>

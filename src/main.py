@@ -269,13 +269,16 @@ async def process_tool_execution(tool_id: str, tool_name: str, session, params: 
     await broadcast_event("session_update", "update")
     
     try:
+        from mcp import ClientSession
+        session: ClientSession
+
         # Execute the tool
-        result = await session.execute_tool(tool_name, params)
+        result = await session.call_tool(tool_name, params)
         
         # Add system response to the messages list
         system_response = {
             "role": "assistant", 
-            "content": f"Tool execution result: {result}"
+            "content": f"Tool execution result: {result.content}"
         }
     except Exception as e:
         # Handle errors
