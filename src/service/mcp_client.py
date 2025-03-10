@@ -1,9 +1,9 @@
 from typing import Optional, Dict, Any, Union
 from contextlib import AsyncExitStack
 import json
-import redis
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
+from src.service.redis_service import RedisService
 
 
 class SessionData:
@@ -14,12 +14,11 @@ class SessionData:
 
 
 class MCPClient:
-    def __init__(self, redis_url: str = "redis://localhost:6379/0"):
+    def __init__(self, redis_service: Optional[RedisService] = None):
         self.sessions: Dict[str, SessionData] = {}
         self.exit_stack = AsyncExitStack()
         self._initialized = False
-        self.redis = redis.Redis.from_url(redis_url, decode_responses=True)
-        self.cache_ttl = 3600  # Default cache TTL: 1 hour
+        self.redis_service = redis_service
 
     async def __aenter__(self):
         """Make MCPClient usable as an async context manager."""
@@ -100,15 +99,11 @@ class MCPClient:
             key: Cache key
             data: Data to cache
         """
+        if not self.redis_service:
+            return
+            
         cache_key = f"mcp:{server_name}:{cache_type}:{key}"
-        try:
-            await self.redis.setex(
-                cache_key,
-                self.cache_ttl,
-                json.dumps(data)
-            )
-        except Exception as e:
-            print(f"Error caching data: {e}")
+        await self.redis_service.set(cache_key, data)
             
     async def get_cached_result(self, server_name: str, cache_type: str, key: str) -> Optional[Any]:
         """Get cached result from a server session.
@@ -121,20 +116,9 @@ class MCPClient:
         Returns:
             Cached data if found, None otherwise
         """
+        if not self.redis_service:
+            return None
+            
         cache_key = f"mcp:{server_name}:{cache_type}:{key}"
-        try:
-            cached_data = await self.redis.get(cache_key)
-            if cached_data:
-                return json.loads(cached_data)
-        except Exception as e:
-            print(f"Error retrieving cached data: {e}")
-        return None
-        
-    def set_cache_ttl(self, ttl_seconds: int) -> None:
-        """Set the cache TTL (Time To Live) in seconds.
-        
-        Args:
-            ttl_seconds: TTL in seconds
-        """
-        self.cache_ttl = ttl_seconds
+        return await self.redis_service.get(cache_key)
 
