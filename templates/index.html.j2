@@ -43,7 +43,6 @@
             <div class="column is-7 section p-5">
                 <div class="is-flex is-flex-direction-column">
                     <div id="dashboard"
-                         class="is-fullwidth"
                          hx-get="/session"
                          hx-trigger="load, sse:session_update from:body"
                     >
@@ -52,7 +51,7 @@
             </div>
 
             <!-- Drawer Section -->
-            <div class="column is-3 section p-5" 
+            <div class="column is-3 section p-5"
                  hx-get="/components/right-drawer" 
                  hx-trigger="load, sse:drawer_update from:body">
             </div>
