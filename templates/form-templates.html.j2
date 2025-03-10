@@ -1,4 +1,4 @@
-{# form_macros.html - Reusable Bulma form components #}
+{# form_macros.html.j2 - Reusable Bulma form components #}
 {% macro render_field(field, value=None) %}
   {% set field_id = field.name|replace('_', '-') %}
   {% set field_value = value or field.default_value or '' %}

@@ -186,6 +186,109 @@ async def navbar_component() -> None:
 async def session_form_component() -> None:
     """This route serves the session form component for htmx requests."""
 
+@app.get("/tool/{tool_id}")
+@jinja.hx('components/tool_form.html.j2')
+async def tool_form(request: Request, tool_id: str) -> dict:
+    """This route serves a dynamic form for a specific tool."""
+    # Split the tool_id into server_name and tool_name
+    parts = tool_id.split('.')
+    if len(parts) != 2:
+        return {"error": "Invalid tool ID format"}
+    
+    server_name, tool_name = parts
+    
+    # Get the MCP client from app state
+    mcp_client: MCPClient = request.app.state.mcp_client
+    
+    # Get the manifest to find the tool
+    manifest = await mcp_client.get_manifest()
+    
+    # Find the tool in the manifest
+    tool = manifest.get('tools', {}).get(tool_id)
+    if not tool:
+        return {"error": f"Tool {tool_id} not found"}
+    
+    # Create a dynamic form from the tool's input schema
+    from src.form_models import DynamicForm
+    
+    form = DynamicForm.from_json_schema(
+        schema=tool['schema'],
+        form_id=f"tool-form-{tool_id.replace('.', '-')}",
+        title=f"Tool: {tool['name']}",
+        description=tool['description'],
+        submit_label="Execute Tool"
+    )
+    
+    # Return the form data for rendering
+    return {
+        "tool": tool,
+        "tool_id": tool_id,
+        "form": form.to_dict()
+    }
+
+@app.post("/tool/{tool_id}/execute")
+async def execute_tool(request: Request, tool_id: str):
+    """Execute a tool with the provided parameters."""
+    # Split the tool_id into server_name and tool_name
+    parts = tool_id.split('.')
+    if len(parts) != 2:
+        return {"error": "Invalid tool ID format"}
+    
+    server_name, tool_name = parts
+    
+    # Get the MCP client from app state
+    mcp_client: MCPClient = request.app.state.mcp_client
+    
+    # Get the session for this server
+    session = await mcp_client.get_session(server_name)
+    if not session:
+        return {"error": f"Server {server_name} not connected"}
+    
+    # Parse the form data
+    form_data = await request.form()
+    
+    # Convert form data to a dictionary for the tool
+    tool_params = dict(form_data)
+    
+    # Process in background (non-blocking)
+    asyncio.create_task(process_tool_execution(tool_id, tool_name, session, tool_params))
+    
+    # Return empty response as we'll update via SSE
+    return ""
+
+async def process_tool_execution(tool_id: str, tool_name: str, session, params: dict):
+    """Process the tool execution and send response via SSE."""
+    # Add user message to the messages list
+    user_message = {
+        "role": "user", 
+        "content": f"Executing tool: {tool_id} with parameters: {params}"
+    }
+    MESSAGES.append(user_message)
+    
+    # Notify all clients to update the session component
+    await broadcast_event("session_update", "update")
+    
+    try:
+        # Execute the tool
+        result = await session.execute_tool(tool_name, params)
+        
+        # Add system response to the messages list
+        system_response = {
+            "role": "assistant", 
+            "content": f"Tool execution result: {result}"
+        }
+    except Exception as e:
+        # Handle errors
+        system_response = {
+            "role": "assistant", 
+            "content": f"Error executing tool: {str(e)}"
+        }
+    
+    MESSAGES.append(system_response)
+    
+    # Notify all clients to update the session component again
+    await broadcast_event("session_update", "update")
+
 @app.get("/kitchen-sink")
 @jinja.hx('components/kitchen_sink.html.j2', no_data=True)
 async def kitchen_sink_component() -> None:

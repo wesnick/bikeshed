@@ -80,11 +80,12 @@ class MCPClient:
 
     async def get_session(self, name: str) -> Optional[ClientSession]:
         """Get the ClientSession by name.
-                Args:
-                    name: name of the session
+        
+        Args:
+            name: name of the session
 
-                Returns:
-        ClientSession if found, None otherwise.
+        Returns:
+            ClientSession if found, None otherwise.
         """
         session_data = self.sessions.get(name)
         if session_data:

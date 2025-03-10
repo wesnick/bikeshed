@@ -1,0 +1,35 @@
+{% from 'form-templates.html.j2' import render_field %}
+
+<div class="box">
+  <h3 class="title is-4">{{ form.title }}</h3>
+  
+  {% if form.description %}
+    <p class="subtitle is-6">{{ form.description }}</p>
+  {% endif %}
+  
+  <form id="{{ form.id }}" 
+        hx-post="/tool/{{ tool_id }}/execute" 
+        hx-swap="none">
+    
+    {% for field in form.fields %}
+      {{ render_field(field) }}
+    {% endfor %}
+    
+    <div class="field is-grouped mt-5">
+      <div class="control">
+        <button type="submit" class="button is-primary">
+          {{ form.submit_label }}
+        </button>
+      </div>
+      
+      <div class="control">
+        <a href="/session" 
+           hx-get="/session" 
+           hx-target="#dashboard" 
+           class="button is-light">
+          Cancel
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
