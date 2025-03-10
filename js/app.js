@@ -5,6 +5,10 @@ import Bulma from '@vizuaalog/bulmajs';
 import htmx from 'htmx.org';
 import 'htmx-ext-sse';
 
+// Import highlight.js for code syntax highlighting
+import hljs from 'highlight.js';
+import 'highlight.js/styles/github.css';
+
 
 // Import custom handlers
 import './shutdown-handler.js';
@@ -34,6 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize theme from localStorage
   initializeTheme();
+  
+  // Initialize syntax highlighting
+  highlightCodeBlocks();
 });
 
 // Function to initialize theme
@@ -44,14 +51,15 @@ function initializeTheme() {
   }
 }
 
-// Setup theme toggle when navbar is loaded
+// Setup theme toggle when navbar is loaded and highlight code blocks
 document.body.addEventListener('htmx:afterSettle', function(event) {
   // Only proceed if the loaded content contains the theme toggle
   if (event.detail.elt.querySelector && event.detail.elt.querySelector('.theme-toggle')) {
     setupThemeToggle();
   }
-
-
+  
+  // Apply syntax highlighting to any new code blocks
+  highlightCodeBlocks(event.detail.elt);
 });
 
 // Function to set up theme toggle
@@ -115,5 +123,22 @@ function updateThemeToggleAppearance(themeToggle) {
     icon.classList.remove('fa-sun');
     icon.classList.add('fa-moon');
     text.textContent = 'Light Mode';
+  }
+}
+
+// Function to apply syntax highlighting to code blocks
+function highlightCodeBlocks(container = document) {
+  // Find all code elements within the container
+  const codeBlocks = container.querySelectorAll('pre code');
+  
+  if (codeBlocks.length > 0) {
+    console.log(`Highlighting ${codeBlocks.length} code blocks`);
+    
+    // Apply highlighting to each code block
+    codeBlocks.forEach(block => {
+      if (!block.classList.contains('hljs')) {
+        hljs.highlightElement(block);
+      }
+    });
   }
 }
