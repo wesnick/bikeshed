@@ -8,7 +8,11 @@ import signal
 import threading
 import os
 from src.service.redis_service import RedisService
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.database import get_db
+from src.models import Message
+from src.repositories.message_repository import MessageRepository
 from fastapi.templating import Jinja2Templates
 from mcp import StdioServerParameters
 from service.mcp_client import MCPClient
@@ -87,8 +91,6 @@ jinja = Jinja(jinja_templates)
 
 # Store active session tasks
 ACTIVE_SESSIONS = {}
-# Store messages for the session
-MESSAGES = []
 # Store clients connected to SSE
 SSE_CLIENTS = set()
 
@@ -168,11 +170,16 @@ def index() -> dict:
 async def settings_component() -> None:
     """This route serves just the settings component for htmx requests."""
 
+# Add a dependency for the MessageRepository
+async def get_message_repository(db: AsyncSession = Depends(get_db)):
+    return MessageRepository(db)
+
 @app.get("/session")
 @jinja.hx('components/session.html.j2')
-async def session_component() -> dict:
+async def session_component(repo: MessageRepository = Depends(get_message_repository)) -> dict:
     """This route serves just the chat component for htmx requests."""
-    return {"messages": MESSAGES}
+    messages = await repo.get_all(limit=100)
+    return {"messages": [message.to_dict() for message in messages]}
 
 @app.get("/components/left-sidebar")
 @jinja.hx('components/left_sidebar.html.j2')
@@ -309,7 +316,11 @@ async def tool_form(request: Request, tool_id: str) -> dict:
     }
 
 @app.post("/tool/{tool_id}/execute")
-async def execute_tool(request: Request, tool_id: str):
+async def execute_tool(
+    request: Request, 
+    tool_id: str,
+    repo: MessageRepository = Depends(get_message_repository)
+):
     """Execute a tool with the provided parameters."""
     # Split the tool_id into server_name and tool_name
     parts = tool_id.split('.')
@@ -355,19 +366,21 @@ async def execute_tool(request: Request, tool_id: str):
 
     
     # Process in background (non-blocking)
-    asyncio.create_task(process_tool_execution(tool_id, tool_name, session, tool_params))
+    asyncio.create_task(process_tool_execution(tool_id, tool_name, session, tool_params, repo))
     
     # Return empty response as we'll update via SSE
     return ""
 
-async def process_tool_execution(tool_id: str, tool_name: str, session, params: dict):
+async def process_tool_execution(tool_id: str, tool_name: str, session, params: dict, repo: MessageRepository):
     """Process the tool execution and send response via SSE."""
-    # Add user message to the messages list
-    user_message = {
+    # Add user message to the database
+    user_message_data = {
         "role": "user", 
-        "content": f"Executing tool: {tool_id} with parameters: {params}"
+        "content": f"Executing tool: {tool_id} with parameters: {params}",
+        "model": None,
+        "extra": {"tool_id": tool_id, "params": params}
     }
-    MESSAGES.append(user_message)
+    await repo.create(user_message_data)
     
     # Notify all clients to update the session component
     await broadcast_event("session_update", "update")
@@ -379,19 +392,23 @@ async def process_tool_execution(tool_id: str, tool_name: str, session, params: 
         # Execute the tool
         result = await session.call_tool(tool_name, params)
         
-        # Add system response to the messages list
-        system_response = {
+        # Add system response to the database
+        system_response_data = {
             "role": "assistant", 
-            "content": f"Tool execution result: {result.content}"
+            "content": f"Tool execution result: {result.content}",
+            "model": None,
+            "extra": {"tool_id": tool_id, "result": result.content}
         }
     except Exception as e:
         # Handle errors
-        system_response = {
+        system_response_data = {
             "role": "assistant", 
-            "content": f"Error executing tool: {str(e)}"
+            "content": f"Error executing tool: {str(e)}",
+            "model": None,
+            "extra": {"tool_id": tool_id, "error": str(e)}
         }
     
-    MESSAGES.append(system_response)
+    await repo.create(system_response_data)
     
     # Notify all clients to update the session component again
     await broadcast_event("session_update", "update")
@@ -446,37 +463,47 @@ async def sse(request: Request):
 
 
 @app.post("/session-submit", response_class=HTMLResponse)
-async def session(request: Request, message: str = Form(...)):
+async def session(
+    request: Request, 
+    message: str = Form(...),
+    repo: MessageRepository = Depends(get_message_repository)
+):
     # Get model and strategy from form data
     form_data = await request.form()
     model = form_data.get("model", "default-model")
     strategy = form_data.get("strategy", "default-strategy")
 
     # Process in background (non-blocking)
-    asyncio.create_task(process_message(message, model, strategy))
+    asyncio.create_task(process_message(message, model, strategy, repo))
 
     # Return empty response as we'll update via SSE
     return ""
 
-async def process_message(message: str, model: str, strategy: str):
+async def process_message(message: str, model: str, strategy: str, repo: MessageRepository):
     """Process the message and send response via SSE"""
-    # Add user message to the messages list
-    user_message = {"role": "user", "content": message}
-    MESSAGES.append(user_message)
+    # Add user message to the database
+    user_message_data = {
+        "role": "user", 
+        "content": message,
+        "model": None,  # User messages don't have a model
+        "extra": {"strategy": strategy}  # Store strategy in extra
+    }
+    await repo.create(user_message_data)
 
     # Notify all clients to update the session component
     await broadcast_event("session_update", "update")
 
-
     # Simulate processing time
     await asyncio.sleep(randint(1, 5))
 
-    # Add system response to the messages list
-    system_response = {
+    # Add system response to the database
+    system_response_data = {
         "role": "assistant", 
-        "content": f"Processed message using {model} with {strategy} strategy: {message}"
+        "content": f"Processed message using {model} with {strategy} strategy: {message}",
+        "model": model,
+        "extra": {"strategy": strategy}
     }
-    MESSAGES.append(system_response)
+    await repo.create(system_response_data)
 
     # Notify all clients to update the session component again
     await broadcast_event("session_update", "update")
