@@ -16,6 +16,11 @@ Whenever you make a fundamental change to architectural approach or establish a 
 
 - Prefer a modular structure.  The goal is for core functionality to be available via the CLI as well as the UI.
 
+### API Clients
+
+- The application includes a client for the PulseMCP API, which provides information about available MCP servers.
+- The client is implemented in `src/service/pulse_mcp_api.py` and provides async methods for interacting with the API.
+
 ### Python
 
 - When creating requests and responses, use HTMX

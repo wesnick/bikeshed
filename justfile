@@ -25,3 +25,6 @@ migmake args:
 
 alembic-current:
     alembic current
+
+test-pulse-api:
+    python -c "import asyncio; from src.service.pulse_mcp_api import PulseMCPAPI; api = PulseMCPAPI(); print(asyncio.run(api.get_servers(count_per_page=5)))"
