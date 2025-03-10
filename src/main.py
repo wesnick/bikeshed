@@ -6,14 +6,13 @@ import json
 import uuid
 import signal
 import threading
-from fastapi import FastAPI, Request, Form, Depends
+from fastapi import FastAPI, Request, Form
 from fastapi.templating import Jinja2Templates
 from mcp import StdioServerParameters
-
-from flibberflow.core.mcp_client import MCPClient
-from flibberflow.http import HTMXRedirectMiddleware
+from service.mcp_client import MCPClient
+from src.http.middleware import HTMXRedirectMiddleware
 from starlette.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse
 from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
 

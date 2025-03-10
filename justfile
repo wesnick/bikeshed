@@ -1,6 +1,6 @@
 
 fastapi-dev:
-    uvicorn main:app --reload --timeout-graceful-shutdown 2
+    uvicorn src.main:app --reload --timeout-graceful-shutdown 2
 
 frontend-dev:
     npm run dev

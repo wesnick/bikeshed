@@ -19,6 +19,14 @@ services:
     ports:
       - "5432:5432"
 
+  redis:
+   image: redis:alpine
+   ports:
+     - "6379:6379"
+   volumes:
+     - redis_data:/data
+   restart: unless-stopped
+
 
 #  phoenix:
 #    image: arizephoenix/phoenix:latest
@@ -40,3 +48,4 @@ services:
         
 volumes:
   db_data:
+  redis_data:
