@@ -1,12 +1,14 @@
 <!-- Workspace -->
-<div class="box p-0 mb-5 is-overflow-y-scroll is-overflow-x-hidden">
-    <div id="messages-container" class="messages">
-        {% for message in messages %}
-            {% include 'components/message.html.j2' %}
-        {% endfor %}
+<div class="is-flex is-flex-direction-column" style="height: 100%;">
+    <div class="box p-0 mb-3 is-overflow-y-scroll is-overflow-x-hidden is-flex-grow-1">
+        <div id="messages-container" class="messages">
+            {% for message in messages %}
+                {% include 'components/message.html.j2' %}
+            {% endfor %}
+        </div>
     </div>
-</div>
-<div id="session-form-container"
-   hx-get="/components/session-form"
-   hx-trigger="load, sse:form_update from:body">
+    <div id="session-form-container"
+       hx-get="/components/session-form"
+       hx-trigger="load, sse:form_update from:body">
+    </div>
 </div>

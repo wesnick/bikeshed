@@ -40,13 +40,12 @@
             </aside>
 
             <!-- Main Dashboard Area -->
-            <div class="column is-7 section p-5">
-                <div class="is-flex is-flex-direction-column">
-                    <div id="dashboard"
-                         hx-get="/session"
-                         hx-trigger="load, sse:session_update from:body"
-                    >
-                    </div>
+            <div class="column is-7 section p-5 is-flex is-flex-direction-column" style="height: calc(100vh - 3.25rem);">
+                <div id="dashboard"
+                     hx-get="/session"
+                     hx-trigger="load, sse:session_update from:body"
+                     class="is-flex-grow-1 overflow-y-auto"
+                >
                 </div>
             </div>
 
