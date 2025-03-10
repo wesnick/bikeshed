@@ -102,7 +102,7 @@ class MCPClient:
         """
         cache_key = f"mcp:{server_name}:{cache_type}:{key}"
         try:
-            self.redis.setex(
+            await self.redis.setex(
                 cache_key,
                 self.cache_ttl,
                 json.dumps(data)
@@ -123,7 +123,7 @@ class MCPClient:
         """
         cache_key = f"mcp:{server_name}:{cache_type}:{key}"
         try:
-            cached_data = self.redis.get(cache_key)
+            cached_data = await self.redis.get(cache_key)
             if cached_data:
                 return json.loads(cached_data)
         except Exception as e:
