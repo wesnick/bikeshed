@@ -186,6 +186,76 @@ async def navbar_component() -> None:
 async def session_form_component() -> None:
     """This route serves the session form component for htmx requests."""
 
+
+@app.get("/prompt/{prompt_id}")
+@jinja.hx('components/prompt_form.html.j2')
+async def prompt_form(request: Request, prompt_id: str) -> dict:
+    """This route serves a form for a specific prompt."""
+    # Split the prompt_id into server_name and prompt_name
+    parts = prompt_id.split('.')
+    if len(parts) != 2:
+        return {"error": "Invalid prompt ID format"}
+
+    server_name, prompt_name = parts
+
+    # Get the MCP client from app state
+    mcp_client: MCPClient = request.app.state.mcp_client
+
+    # Get the manifest to find the prompt
+    manifest = await mcp_client.get_manifest()
+
+    # Find the prompt in the manifest
+    prompt = manifest.get('prompts', {}).get(prompt_id)
+    if not prompt:
+        return {"error": f"Prompt {prompt_id} not found"}
+
+        # Return the prompt data for rendering
+    return {
+        "prompt": prompt,
+        "prompt_id": prompt_id
+    }
+
+
+@app.post("/prompt/{prompt_id}/interpolate")
+@jinja.hx('components/session_form.html.j2')
+async def interpolate_prompt(request: Request, prompt_id: str) -> dict:
+    """Interpolate a prompt with the provided arguments and return the session form."""
+    # Split the prompt_id into server_name and prompt_name
+    parts = prompt_id.split('.')
+    if len(parts) != 2:
+        return {"error": "Invalid prompt ID format"}
+
+    server_name, prompt_name = parts
+
+    # Get the MCP client from app state
+    mcp_client: MCPClient = request.app.state.mcp_client
+
+    # Get the manifest to find the prompt
+    manifest = await mcp_client.get_manifest()
+
+    # Find the prompt in the manifest
+    prompt = manifest.get('prompts', {}).get(prompt_id)
+    if not prompt:
+        return {"error": f"Prompt {prompt_id} not found"}
+
+        # Parse the form data
+    form_data = await request.form()
+
+    # Get the session for this server
+    session = await mcp_client.get_session(server_name)
+    if not session:
+        return {"error": f"Server {server_name} not connected"}
+
+    try:
+        # Call the interpolate_prompt method
+        args = {k: v for k, v in form_data.items()}
+        interpolated_text = await session.get_prompt(prompt_name, args)
+
+        # Return the session form with the interpolated text
+        return {"default_message": interpolated_text}
+    except Exception as e:
+        return {"error": f"Error interpolating prompt: {str(e)}"}
+
 @app.get("/tool/{tool_id}")
 @jinja.hx('components/tool_form.html.j2')
 async def tool_form(request: Request, tool_id: str) -> dict:

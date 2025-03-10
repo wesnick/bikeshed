@@ -16,7 +16,7 @@
                 <li>
                   <a href="/tool/{{ key }}" 
                      hx-get="/tool/{{ key }}" 
-                     hx-target="#dashboard">
+                     hx-target="#session-form-container">
                     {{ item.name }}
                   </a>
                   <span class="is-small">{{ item.description }}</span>
@@ -24,5 +24,20 @@
             {% endfor %}
             </ul>
           {% endif %}
+          {% if manifest['prompts'] | length %}
+             <p class="menu-label">Prompts</p>
+             <ul class="menu-list">
+             {% for key, item in manifest['prompts'].items() %}
+                 <li>
+                   <a href="/prompt/{{ key }}"
+                      hx-get="/prompt/{{ key }}"
+                      hx-target="#session-form-container">
+                     {{ item.name }}
+                   </a>
+                   <span class="is-small">{{ item.description }}</span>
+                 </li>
+             {% endfor %}
+             </ul>
+           {% endif %}
       </aside>
   </div>
