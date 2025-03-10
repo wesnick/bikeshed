@@ -4,11 +4,14 @@ A playground for experimenting with LLM completions using the Model Context Prot
 
 The application uses:
 
-Python:
+Postgres (17)
+ - pgvector
+Redis
+Python (3.12):
  - Packages are managed with uv
- - FastAPI
- - Redis for caching MCP server outputs
+ - FastAPI 
 Frontend:
+ - build system is vite
  - HTMX v2
  - Bulma v2
 

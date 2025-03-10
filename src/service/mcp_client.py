@@ -7,10 +7,11 @@ from src.service.redis_service import RedisService
 
 
 class SessionData:
-    def __init__(self, session: ClientSession, write, stdio):
+    def __init__(self, session: ClientSession, capabilities: types.ServerCapabilities, write, stdio):
         self.session = session
         self.write = write
         self.stdio = stdio
+        self.capabilities = capabilities
 
 
 class MCPClient:
@@ -49,7 +50,7 @@ class MCPClient:
 
             print(f"Connected to server with features: {init_result}")
 
-            self.sessions[name] = SessionData(session, write, stdio)
+            self.sessions[name] = SessionData(session, init_result.capabilities, write, stdio)
         except Exception as e:
             print(f"Error connecting to server {name}: {e}")
             # Re-raise to allow caller to handle
@@ -89,36 +90,48 @@ class MCPClient:
         if session_data:
             return session_data.session
         return None
-        
-    async def cache_result(self, server_name: str, cache_type: str, key: str, data: Any) -> None:
-        """Cache result from a server session.
-        
-        Args:
-            server_name: Name of the server session
-            cache_type: Type of cache (tools, prompts, resources, resource_templates)
-            key: Cache key
-            data: Data to cache
-        """
-        if not self.redis_service:
-            return
-            
-        cache_key = f"mcp:{server_name}:{cache_type}:{key}"
-        await self.redis_service.set(cache_key, data)
-            
-    async def get_cached_result(self, server_name: str, cache_type: str, key: str) -> Optional[Any]:
-        """Get cached result from a server session.
-        
-        Args:
-            server_name: Name of the server session
-            cache_type: Type of cache (tools, prompts, resources, resource_templates)
-            key: Cache key
-            
-        Returns:
-            Cached data if found, None otherwise
-        """
-        if not self.redis_service:
-            return None
-            
-        cache_key = f"mcp:{server_name}:{cache_type}:{key}"
-        return await self.redis_service.get(cache_key)
 
+
+    async def get_manifest(self):
+        cached_manifest = await self.redis_service.get("mcp:manifest")
+        if cached_manifest:
+            return json.loads(cached_manifest)
+
+        manifest = await self.build_manifest()
+        await self.redis_service.set("mcp:manifest", json.dumps(manifest))
+        return manifest
+
+    async def build_manifest(self):
+        # iterate over sessions
+        manifest = {'tools': {}, 'prompts': {}, 'resources': {}, 'resource_templates': {}}
+        for name, session in self.sessions.items():
+            if session.capabilities.tools:
+                tools = await session.session.list_tools()
+                for t in tools.tools:
+                    manifest['tools'][name + '.' + t.name] = {
+                        'name': t.name,
+                        'description': t.description,
+                        'schema': t.inputSchema
+                    }
+
+            if session.capabilities.prompts:
+                prompts = await session.session.list_prompts()
+                for p in prompts.prompts:
+                    manifest['prompts'][name + '.' + p.name] = {
+                        'name': p.name,
+                        'description': p.description,
+                        'arguments': [arg.model_dump() for arg in p.arguments]
+                    }
+
+            if session.capabilities.resources:
+                resources = await session.session.list_resources()
+                for r in resources.resources:
+                    manifest['resources'][name + '.' + r.name] = {
+                        'name': r.name,
+                        'uri': r.uri,
+                        'description': r.description,
+                        'mimeType': r.mimeType
+                    }
+
+
+        return manifest

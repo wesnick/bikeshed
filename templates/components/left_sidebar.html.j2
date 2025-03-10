@@ -9,11 +9,13 @@
           <li><a href="/settings" hx-get="/settings" hx-target="#dashboard" hx-push-url="true">Settings</a></li>
           <li><a href="/kitchen-sink" hx-get="/kitchen-sink" hx-target="#dashboard" hx-push-url="true">Kitchen Sink</a></li>
         </ul>
-        <p class="menu-label">History</p>
-        <ul class="menu-list">
-          <li><a href="#">session 1</a></li>
-          <li><a href="#">session 2</a></li>
-          <li><a href="#">session 3</a></li>
-        </ul>
+          {% for capability, items in manifest.items() if items %}
+            <p class="menu-label">{{ capability }}</p>
+            <ul class="menu-list">
+            {% for key, item in items.items() %}
+                <li><a href="#{{ key }}">{{ item.name }}</a><span class="is-small">{{ item.description }}</span></li>
+            {% endfor %}
+            </ul>
+          {%  endfor %}
       </aside>
   </div>

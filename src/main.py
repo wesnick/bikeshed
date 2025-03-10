@@ -25,10 +25,10 @@ async def lifespan(app: FastAPI):
     redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
     
     # Create Redis service
-    redis_service = RedisService(redis_url=redis_url)
+    app.state.redis_service = RedisService(redis_url=redis_url)
     
     # Use MCPClient as an async context manager with injected Redis service
-    async with MCPClient(redis_service=redis_service) as client:
+    async with MCPClient(redis_service=app.state.redis_service) as client:
         # Store the client in the app state for access in routes
         app.state.mcp_client = client
         
@@ -164,8 +164,12 @@ async def session_component() -> dict:
 
 @app.get("/components/left-sidebar")
 @jinja.hx('components/left_sidebar.html.j2')
-async def left_sidebar_component(request: Request) -> None:
+async def left_sidebar_component(request: Request):
     """This route serves the left sidebar component for htmx requests."""
+    mcp_client: MCPClient = request.app.state.mcp_client
+    manifest = await mcp_client.get_manifest()
+    print(manifest)
+    return {"manifest": manifest}
 
 @app.get("/components/right-drawer")
 @jinja.hx('components/right_drawer.html.j2', no_data=True)

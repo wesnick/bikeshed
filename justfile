@@ -26,14 +26,6 @@ docup:
 docdown:
     docker compose down
 
-# Start Redis server locally
-redis-start:
-    redis-server --daemonize yes
-
-# Stop Redis server
-redis-stop:
-    redis-cli shutdown
-
 # Run database migrations to the latest version
 migrate:
     alembic upgrade head
