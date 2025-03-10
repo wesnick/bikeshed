@@ -7,6 +7,7 @@ The application uses:
 Python:
  - Packages are managed with uv
  - FastAPI
+ - Redis for caching MCP server outputs
 Frontend:
  - HTMX v2
  - Bulma v2

@@ -1,5 +1,7 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 from contextlib import AsyncExitStack
+import json
+import redis
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
 
@@ -12,10 +14,12 @@ class SessionData:
 
 
 class MCPClient:
-    def __init__(self):
+    def __init__(self, redis_url: str = "redis://localhost:6379/0"):
         self.sessions: Dict[str, SessionData] = {}
         self.exit_stack = AsyncExitStack()
         self._initialized = False
+        self.redis = redis.Redis.from_url(redis_url, decode_responses=True)
+        self.cache_ttl = 3600  # Default cache TTL: 1 hour
 
     async def __aenter__(self):
         """Make MCPClient usable as an async context manager."""
@@ -86,4 +90,51 @@ class MCPClient:
         if session_data:
             return session_data.session
         return None
+        
+    async def cache_result(self, server_name: str, cache_type: str, key: str, data: Any) -> None:
+        """Cache result from a server session.
+        
+        Args:
+            server_name: Name of the server session
+            cache_type: Type of cache (tools, prompts, resources, resource_templates)
+            key: Cache key
+            data: Data to cache
+        """
+        cache_key = f"mcp:{server_name}:{cache_type}:{key}"
+        try:
+            self.redis.setex(
+                cache_key,
+                self.cache_ttl,
+                json.dumps(data)
+            )
+        except Exception as e:
+            print(f"Error caching data: {e}")
+            
+    async def get_cached_result(self, server_name: str, cache_type: str, key: str) -> Optional[Any]:
+        """Get cached result from a server session.
+        
+        Args:
+            server_name: Name of the server session
+            cache_type: Type of cache (tools, prompts, resources, resource_templates)
+            key: Cache key
+            
+        Returns:
+            Cached data if found, None otherwise
+        """
+        cache_key = f"mcp:{server_name}:{cache_type}:{key}"
+        try:
+            cached_data = self.redis.get(cache_key)
+            if cached_data:
+                return json.loads(cached_data)
+        except Exception as e:
+            print(f"Error retrieving cached data: {e}")
+        return None
+        
+    def set_cache_ttl(self, ttl_seconds: int) -> None:
+        """Set the cache TTL (Time To Live) in seconds.
+        
+        Args:
+            ttl_seconds: TTL in seconds
+        """
+        self.cache_ttl = ttl_seconds
 

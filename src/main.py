@@ -6,6 +6,7 @@ import json
 import uuid
 import signal
 import threading
+import os
 from fastapi import FastAPI, Request, Form
 from fastapi.templating import Jinja2Templates
 from mcp import StdioServerParameters
@@ -19,8 +20,11 @@ from sse_starlette.sse import EventSourceResponse
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Get Redis URL from environment or use default
+    redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+    
     # Use MCPClient as an async context manager
-    async with MCPClient() as client:
+    async with MCPClient(redis_url=redis_url) as client:
         # Store the client in the app state for access in routes
         app.state.mcp_client = client
         
