@@ -1,10 +1,11 @@
 ## Flibberflow Project
 
-A playground for experimenting with LLM completions.
+A playground for experimenting with LLM completions using the Model Context Protocol.  The goal of the project is to be able to experiment with LLM calls and workflows to ultimately be able to compile for use in another project.
 
 The application uses:
 
 Python:
+ - Packages are managed with uv
  - FastAPI
 Frontend:
  - HTMX v2
@@ -16,15 +17,11 @@ Whenever you make a fundamental change to architectural approach or establish a 
 
 - Prefer a modular structure.  The goal is for core functionality to be available via the CLI as well as the UI.
 
-### API Clients
-
-- The application includes a client for the PulseMCP API, which provides information about available MCP servers.
-- The client is implemented in `src/service/pulse_mcp_api.py` and provides async methods for interacting with the API.
-
 ### Python
 
 - When creating requests and responses, use HTMX
 - When a request has the potential to last for longer than a second, return a queue id as the response response and update the UI with the SSE connection
+- When creating command line tools, create a click command in `src/cli.py` and add a shortcut in the `justfile`
 
 ## Frontend
 

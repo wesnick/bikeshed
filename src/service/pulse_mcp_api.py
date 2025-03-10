@@ -36,7 +36,7 @@ class PulseMCPAPI:
     """Client for the PulseMCP API"""
     
     BASE_URL = "https://api.pulsemcp.com/v0beta"
-    USER_AGENT = "FlibberflowApp/1.0"
+    USER_AGENT = "mcp-agent/1.0"
     
     def __init__(self, base_url: Optional[str] = None, user_agent: Optional[str] = None):
         """
