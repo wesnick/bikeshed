@@ -35,4 +35,16 @@ class Message(Base):
             content=data.get('content'),
             extra=data.get('extra')
         )
+    
+    def to_dict(self):
+        """Convert Message to dictionary"""
+        return {
+            "id": str(self.id),
+            "parent_id": str(self.parent_id) if self.parent_id else None,
+            "role": self.role,
+            "model": self.model,
+            "content": self.content,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "extra": self.extra
+        }
 
