@@ -1,7 +1,7 @@
 {# form_macros.html.j2 - Reusable Bulma form components #}
 {% macro render_field(field, value=None) %}
   {% set field_id = field.name|replace('_', '-') %}
-  {% set field_value = value or field.default_value or '' %}
+  {% set field_value = value if value is not none else (field.default_value if field.default_value is not none else '') %}
   {% set is_required = field.required %}
   
   <div class="field">
