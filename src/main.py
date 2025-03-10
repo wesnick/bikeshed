@@ -47,13 +47,14 @@ async def lifespan(app: FastAPI):
             #   "command": "uvx",
             #   "args": ["mcp-server-sqlite", "--db-path", "./test.db"]
             # },
-            "fetch": {
-              "command": "uvx",
-              "args": ["mcp-server-fetch", "--ignore-robots-txt"]
-            }
-            # "puppeteer": {
+            # "fetch": {
+            #   "command": "uvx",
+            #   "args": ["mcp-server-fetch", "--ignore-robots-txt"]
+            # }
+            # "thank": {
             #     "command": "npx",
-            #     "args": ["https://github.com/lars-hagen/mcp-playwright-cdp", "-y"]
+            #     "args": [        "-y",
+            #     "@modelcontextprotocol/server-sequential-thinking"]
             # }
         }
 
@@ -319,7 +320,10 @@ async def execute_tool(request: Request, tool_id: str):
     
     # Get the MCP client from app state
     mcp_client: MCPClient = request.app.state.mcp_client
-    
+
+    # Get the manifest to find the tool
+    manifest = await mcp_client.get_manifest()
+
     # Get the session for this server
     session = await mcp_client.get_session(server_name)
     if not session:
@@ -330,6 +334,25 @@ async def execute_tool(request: Request, tool_id: str):
     
     # Convert form data to a dictionary for the tool
     tool_params = dict(form_data)
+
+    print(f"Executing tool: {tool_id} with params: {tool_params}")
+
+    # Cast data back to types it is expecting
+    tool_schema = manifest['tools'][tool_id]['schema']
+    for key, value in tool_params.items():
+        if key in tool_schema['properties'] and isinstance(value, str):
+            prop_type = tool_schema['properties'][key]['type']
+            if prop_type == 'integer':
+                if value == '':
+                    value = 0
+                tool_params[key] = int(value)
+            elif prop_type == 'number':
+                if value == '':
+                    value = 0
+                tool_params[key] = float(value)
+            elif prop_type == 'boolean':
+                tool_params[key] = (value.lower() == 'true' or value.lower() == 'on')
+
     
     # Process in background (non-blocking)
     asyncio.create_task(process_tool_execution(tool_id, tool_name, session, tool_params))

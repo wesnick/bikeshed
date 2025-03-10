@@ -7,7 +7,6 @@ import 'htmx-ext-sse';
 
 // Import highlight.js for code syntax highlighting
 import hljs from 'highlight.js';
-import 'highlight.js/styles/github.css';
 
 
 // Import custom handlers

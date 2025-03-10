@@ -14,7 +14,7 @@ class RedisService:
         self.redis = redis.Redis.from_url(redis_url, decode_responses=True)
         self.default_ttl = 3600  # Default TTL: 1 hour
     
-    async def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
         """Set a value in Redis with optional TTL
         
         Args:
@@ -23,7 +23,7 @@ class RedisService:
             ttl: Time to live in seconds, uses default_ttl if None
         """
         try:
-            await self.redis.setex(
+            self.redis.setex(
                 key,
                 ttl or self.default_ttl,
                 json.dumps(value)
@@ -31,7 +31,7 @@ class RedisService:
         except Exception as e:
             print(f"Error setting Redis key {key}: {e}")
     
-    async def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str) -> Optional[Any]:
         """Get a value from Redis
         
         Args:
@@ -41,7 +41,7 @@ class RedisService:
             Deserialized value if found, None otherwise
         """
         try:
-            value = await self.redis.get(key)
+            value = self.redis.get(key)
             if value:
                 return json.loads(value)
         except Exception as e:

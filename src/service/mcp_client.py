@@ -94,12 +94,12 @@ class MCPClient:
 
 
     async def get_manifest(self):
-        cached_manifest = await self.redis_service.get("mcp:manifest")
+        cached_manifest = self.redis_service.get("mcp:manifes")
         if cached_manifest:
             return json.loads(cached_manifest)
 
         manifest = await self.build_manifest()
-        await self.redis_service.set("mcp:manifest", json.dumps(manifest))
+        self.redis_service.set("mcp:manifes", json.dumps(manifest))
         return manifest
 
     async def build_manifest(self):
