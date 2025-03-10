@@ -1,0 +1,32 @@
+<div class="box">
+  <h3 class="title is-4">{{ prompt.name }}</h3>
+  <p class="subtitle is-6">{{ prompt.description }}</p>
+
+  <form id="prompt-form-{{ prompt_id | replace('.', '-') }}" 
+        hx-post="/prompt/{{ prompt_id }}/interpolate" 
+        hx-target="#session-form-container">
+    
+    {% for arg in prompt.arguments %}
+      <div class="field">
+        <label class="label">{{ arg.name }}</label>
+        <div class="control">
+          <textarea class="textarea" 
+                    name="{{ arg.name }}" 
+                    placeholder="{{ arg.description }}"
+                    {% if arg.required %}required{% endif %}></textarea>
+        </div>
+        {% if arg.description %}
+          <p class="help">{{ arg.description }}</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <div class="field is-grouped mt-5">
+      <div class="control">
+        <button type="submit" class="button is-primary">
+          Apply to Session
+        </button>
+      </div>
+    </div>
+  </form>
+</div>

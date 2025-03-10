@@ -1,0 +1,42 @@
+async def interpolate_prompt(self, server_name: str, prompt_name: str, args: Dict[str, str]) -> str:
+    """Interpolate a prompt with the provided arguments.
+    
+    Args:
+        server_name: Name of the server
+        prompt_name: Name of the prompt
+        args: Dictionary of argument name to value
+        
+    Returns:
+        The interpolated prompt text
+    """
+    session_data = self.sessions.get(server_name)
+    if not session_data:
+        raise ValueError(f"Server {server_name} not connected")
+        
+    if not session_data.capabilities.prompts:
+        raise ValueError(f"Server {server_name} does not support prompts")
+        
+    try:
+        # Call the interpolate_prompt method on the session
+        result = await session_data.session.interpolate_prompt(prompt_name, args)
+        return result.text
+    except Exception as e:
+        # If there's an error with the MCP call, try a simple Jinja2 interpolation
+        try:
+            from jinja2 import Template
+            
+            # Get the manifest to find the prompt template
+            manifest = await self.get_manifest()
+            prompt_key = f"{server_name}.{prompt_name}"
+            prompt = manifest.get('prompts', {}).get(prompt_key)
+            
+            if not prompt:
+                raise ValueError(f"Prompt {prompt_key} not found in manifest")
+                
+            # Use the description as a fallback template
+            template_text = getattr(prompt, 'template', prompt.get('description', ''))
+            template = Template(template_text)
+            return template.render(**args)
+        except Exception as inner_e:
+            # If both methods fail, raise the original error
+            raise ValueError(f"Failed to interpolate prompt: {str(e)}") from e

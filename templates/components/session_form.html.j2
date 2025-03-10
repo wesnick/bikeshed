@@ -3,6 +3,7 @@
       hx-swap="none"
       hx-on::after-request="this.reset();"
 >
+    <input type="hidden" name="default_message_used" value="{{ 'true' if default_message else 'false' }}">
     <div class="session-input-container">
   <div class="columns">
     <div class="column is-3">
@@ -65,7 +66,7 @@
   <div class="field">
     <div class="control">
         <label for="session-input">Magic</label>
-        <textarea id="session-input" name="message" class="textarea" placeholder="Type your message here..." rows="3" required></textarea>
+        <textarea id="session-input" name="message" class="textarea" placeholder="Type your message here..." rows="3" required>{{ default_message if default_message else "" }}</textarea>
     </div>
   </div>
   <div class="field is-grouped is-grouped-right">
