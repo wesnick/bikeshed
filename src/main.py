@@ -17,6 +17,16 @@ from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
+from markdown2 import markdown
+
+
+def markdown2html(text: str):
+    return markdown(text, extras={
+        'breaks': {'on_newline': True},
+        'fenced-code-blocks': {},
+        'highlightjs-lang': {},
+    })
+
 
 
 @asynccontextmanager
@@ -71,6 +81,7 @@ app.add_middleware(HTMXRedirectMiddleware)
 app.mount("/build", StaticFiles(directory="build"), name="build")
 
 jinja_templates = Jinja2Templates(directory="templates")
+jinja_templates.env.filters['markdown2html'] = markdown2html
 jinja = Jinja(jinja_templates)
 
 # Store active session tasks

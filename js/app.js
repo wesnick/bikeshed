@@ -5,6 +5,7 @@ import Bulma from '@vizuaalog/bulmajs';
 import htmx from 'htmx.org';
 import 'htmx-ext-sse';
 
+
 // Import custom handlers
 import './shutdown-handler.js';
 
@@ -49,6 +50,8 @@ document.body.addEventListener('htmx:afterSettle', function(event) {
   if (event.detail.elt.querySelector && event.detail.elt.querySelector('.theme-toggle')) {
     setupThemeToggle();
   }
+
+
 });
 
 // Function to set up theme toggle
