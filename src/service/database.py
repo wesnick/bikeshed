@@ -1,6 +1,5 @@
 from sqlalchemy import MetaData
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from src.config import get_config
 
 config = get_config()
@@ -15,8 +14,8 @@ POSTGRES_INDEXES_NAMING_CONVENTION = {
 metadata = MetaData(naming_convention=POSTGRES_INDEXES_NAMING_CONVENTION)
 
 engine = create_async_engine(
-    str(config.DATABASE_URL),
-    echo=config.DEBUG,
+    str(config.database_url),
+    echo=config.debug,
 )
 
 async_session_factory = async_sessionmaker(
