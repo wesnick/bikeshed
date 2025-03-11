@@ -5,7 +5,7 @@ import logging
 from typing import Dict, Any
 from src.config import get_config
 
-config = get_config()
+app_config = get_config()
 
 class InterceptHandler(logging.Handler):
     """
@@ -44,20 +44,20 @@ def setup_logging(config: Dict[str, Any] = None) -> None:
     # Configure console output
     logger.add(
         sys.stderr,
-        level=config.log_level,
+        level=app_config.log_level,
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
         colorize=True,
     )
     
     # Add file logging if LOG_FILE is specified in environment
-    log_file = config.log_file
+    log_file = app_config.log_file
     if log_file:
         logger.add(
             log_file,
             rotation="10 MB",
             retention="1 week",
             compression="zip",
-            level=log_level,
+            level=app_config.log_level,
             format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
         )
     
@@ -76,7 +76,7 @@ def setup_logging(config: Dict[str, Any] = None) -> None:
         logging_logger.handlers = [InterceptHandler()]
         logging_logger.propagate = False
     
-    logger.info("Logging configured with level: {}", log_level)
+    logger.info("Logging configured with level: {}", app_config.log_level)
 
 # Export logger for use in other modules
 __all__ = ["logger", "setup_logging"]
