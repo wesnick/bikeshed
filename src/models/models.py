@@ -4,7 +4,7 @@ from typing import Optional, List, Dict, Any
 
 from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, JSON, Table
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import declarative_base, relationship, mapped_column
 
 # Create Base without importing metadata from database to avoid circular imports
 Base = declarative_base()
@@ -19,13 +19,13 @@ POSTGRES_INDEXES_NAMING_CONVENTION = {
 }
 Base.metadata.naming_convention = POSTGRES_INDEXES_NAMING_CONVENTION
 
-# Association tables for many-to-many relationships
-artifact_scratchpad = Table(
-    'artifact_scratchpad',
-    Base.metadata,
-    Column('artifact_id', UUID(as_uuid=True), ForeignKey('artifacts.id'), primary_key=True),
-    Column('scratchpad_id', UUID(as_uuid=True), ForeignKey('scratchpads.id'), primary_key=True)
-)
+# # Association tables for many-to-many relationships
+# artifact_scratchpad = Table(
+#     'artifact_scratchpad',
+#     Base.metadata,
+#     Column('artifact_id', UUID(as_uuid=True), ForeignKey('artifacts.id'), primary_key=True),
+#     Column('scratchpad_id', UUID(as_uuid=True), ForeignKey('scratchpads.id'), primary_key=True)
+# )
 
 
 class Message(Base):
@@ -44,9 +44,11 @@ class Message(Base):
     extra = Column(JSONB, nullable=True)  # For LLM parameters, UI customization, etc.
 
     # Relationships
-    parent = relationship("Message", remote_side=[id], backref="children")
+    children = relationship("Message", back_populates="parent", lazy="selectin",
+                           cascade="all, delete-orphan", remote_side=[parent_id])
+    parent = relationship("Message", remote_side=[id], back_populates="children")
     session = relationship("Session", back_populates="messages")
-    artifacts = relationship("Artifact", back_populates="source_message")
+    # artifacts = relationship("Artifact", back_populates="source_message")
 
 
 class Session(Base):
@@ -64,9 +66,9 @@ class Session(Base):
 
     # Relationships
     messages = relationship("Message", back_populates="session")
-    flow = relationship("Flow", back_populates="sessions")
-    artifacts = relationship("Artifact", back_populates="source_session")
-    template = relationship("FlowTemplate", back_populates="derived_sessions")
+    # flow = relationship("Flow", back_populates="sessions")
+    # artifacts = relationship("Artifact", back_populates="source_session")
+    # template = relationship("FlowTemplate", back_populates="derived_sessions")
 
     @property
     def first_message(self):
@@ -97,9 +99,9 @@ class Flow(Base):
     template_id = Column(UUID(as_uuid=True), ForeignKey('flow_templates.id'), nullable=True)
 
     # Relationships
-    sessions = relationship("Session", back_populates="flow")
-    artifacts = relationship("Artifact", back_populates="source_flow")
-    template = relationship("FlowTemplate", back_populates="derived_flows")
+    # sessions = relationship("Session", back_populates="flow")
+    # artifacts = relationship("Artifact", back_populates="source_flow")
+    # template = relationship("FlowTemplate", back_populates="derived_flows")
 
 
 class Artifact(Base):
@@ -123,10 +125,10 @@ class Artifact(Base):
     extra = Column(JSONB, nullable=True)  # For file size, dimensions, etc.
 
     # Relationships
-    source_message = relationship("Message", back_populates="artifacts")
-    source_session = relationship("Session", back_populates="artifacts")
-    source_flow = relationship("Flow", back_populates="artifacts")
-    scratchpads = relationship("ScratchPad", secondary=artifact_scratchpad, back_populates="scratchpads")
+    # source_message = relationship("Message", back_populates="artifacts")
+    # source_session = relationship("Session", back_populates="artifacts")
+    # source_flow = relationship("Flow", back_populates="artifacts")
+    # scratchpads = relationship("ScratchPad", secondary=artifact_scratchpad, back_populates="scratchpads")
 
 
 class FlowTemplate(Base):
@@ -142,8 +144,8 @@ class FlowTemplate(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    derived_flows = relationship("Flow", back_populates="template")
-    derived_sessions = relationship("Session", back_populates="template")
+    # derived_flows = relationship("Flow", back_populates="template")
+    # derived_sessions = relationship("Session", back_populates="template")
 
 
 class ScratchPad(Base):
@@ -159,4 +161,4 @@ class ScratchPad(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    artifacts = relationship("Artifact", secondary=artifact_scratchpad, back_populates="scratchpads")
+    # artifacts = relationship("Artifact", secondary=artifact_scratchpad, back_populates="scratchpads")
