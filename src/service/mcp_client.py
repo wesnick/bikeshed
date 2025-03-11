@@ -4,6 +4,7 @@ import json
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
 from src.service.cache import RedisService
+from src.service.logging import logger
 
 
 class SessionData:
@@ -48,11 +49,11 @@ class MCPClient:
 
             init_result: types.InitializeResult = await session.initialize()
 
-            print(f"Connected to server with features: {init_result}")
+            logger.info(f"Connected to server with features: {init_result}")
 
             self.sessions[name] = SessionData(session, init_result.capabilities, write, stdio)
         except Exception as e:
-            print(f"Error connecting to server {name}: {e}")
+            logger.error(f"Error connecting to server {name}: {e}")
             # Re-raise to allow caller to handle
             raise
 

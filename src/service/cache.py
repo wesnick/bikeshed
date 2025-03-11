@@ -1,6 +1,7 @@
 import json
 import redis
 from typing import Any, Optional
+from src.service.logging import logger
 
 
 class RedisService:
@@ -30,7 +31,7 @@ class RedisService:
                 json.dumps(value)
             )
         except Exception as e:
-            print(f"Error setting Redis key {key}: {e}")
+            logger.error(f"Error setting Redis key {key}: {e}")
     
     def get(self, key: str) -> Optional[Any]:
         """Get a value from Redis
@@ -46,7 +47,7 @@ class RedisService:
             if value:
                 return json.loads(value)
         except Exception as e:
-            print(f"Error getting Redis key {key}: {e}")
+            logger.error(f"Error getting Redis key {key}: {e}")
         return None
     
     def set_default_ttl(self, ttl_seconds: int) -> None:

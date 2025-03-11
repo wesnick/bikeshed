@@ -9,6 +9,7 @@ import threading
 import os
 from config import Config
 from src.service.cache import RedisService
+from src.service.logging import logger, setup_logging
 from fastapi import FastAPI, Request, Form, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from service.database import get_db
@@ -36,8 +37,9 @@ def markdown2html(text: str):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Get Redis URL from environment or use default
-
+    # Setup logging
+    setup_logging()
+    
     # Create Redis service
     app.state.redis_service = RedisService(redis_url=str(settings.redis_url))
     
@@ -71,7 +73,7 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 print(f"Failed to connect to server {name}: {e}")
 
-        print("initialized")
+        logger.info("Application initialized")
 
         yield
         
@@ -102,7 +104,7 @@ def setup_signal_handlers():
     original_int_handler = signal.getsignal(signal.SIGINT)
     
     def signal_handler(sig, frame):
-        print(f"Received signal {sig}, initiating graceful shutdown...")
+        logger.warning(f"Received signal {sig}, initiating graceful shutdown...")
 
         # Schedule the shutdown task without blocking
         asyncio.create_task(shutdown_sse_connections())
@@ -110,7 +112,7 @@ def setup_signal_handlers():
         # Chain to the original handler after a short delay
         # This allows our shutdown_sse_connections to start running
         def chain_to_original():
-            print(f"Chaining to original signal handler for {sig}")
+            logger.info(f"Chaining to original signal handler for {sig}")
             # Call the original handler
             if sig == signal.SIGTERM and original_term_handler and callable(original_term_handler):
                 original_term_handler(sig, frame)
@@ -127,12 +129,12 @@ def setup_signal_handlers():
     signal.signal(signal.SIGTERM, signal_handler)  # Signal 15, sent by uvicorn --reload
     signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
     
-    print("Signal handlers registered for graceful shutdown")
+    logger.info("Signal handlers registered for graceful shutdown")
 
 
 async def shutdown_sse_connections():
     """Send shutdown message to all SSE clients and close connections"""
-    print(f"Shutting down {len(ACTIVE_SESSIONS)} SSE connections...")
+    logger.info(f"Shutting down {len(ACTIVE_SESSIONS)} SSE connections...")
     try:
         # Broadcast shutdown message to all clients with more detailed information
         await broadcast_event("server_shutdown", "Server is shutting down for restart")
@@ -145,11 +147,11 @@ async def shutdown_sse_connections():
                 queue = ACTIVE_SESSIONS[client_id]
                 await queue.put(None)  # Signal to close the connection
             except Exception as e:
-                print(f"Error closing connection for client {client_id}: {e}")
+                logger.error(f"Error closing connection for client {client_id}: {e}")
     except Exception as e:
-        print(f"Error during shutdown of SSE connections: {e}")
+        logger.error(f"Error during shutdown of SSE connections: {e}")
     finally:
-        print("All SSE connections have been notified of shutdown")
+        logger.info("All SSE connections have been notified of shutdown")
         # Clear the collections to help with cleanup
         ACTIVE_SESSIONS.clear()
         SSE_CLIENTS.clear()
@@ -187,7 +189,7 @@ async def left_sidebar_component(request: Request):
     """This route serves the left sidebar component for htmx requests."""
     mcp_client: MCPClient = request.app.state.mcp_client
     manifest = await mcp_client.get_manifest()
-    print(manifest)
+    logger.debug(f"MCP manifest: {manifest}")
     return {"manifest": manifest}
 
 @app.get("/components/right-drawer")
@@ -346,7 +348,7 @@ async def execute_tool(
     # Convert form data to a dictionary for the tool
     tool_params = dict(form_data)
 
-    print(f"Executing tool: {tool_id} with params: {tool_params}")
+    logger.info(f"Executing tool: {tool_id} with params: {tool_params}")
 
     # Cast data back to types it is expecting
     tool_schema = manifest['tools'][tool_id]['schema']
@@ -425,7 +427,7 @@ async def sse(request: Request):
     client_id = str(uuid.uuid4())
     queue = asyncio.Queue()
     SSE_CLIENTS.add(client_id)
-    print(f"New SSE connection: {client_id}")
+    logger.info(f"New SSE connection: {client_id}")
 
     try:
         async def event_generator():
@@ -440,17 +442,17 @@ async def sse(request: Request):
                     # Wait for the next event with a timeout
                     event = await queue.get()
                     if event is None:  # None is our signal to stop
-                        print(f"Closing SSE connection for client {client_id}")
+                        logger.info(f"Closing SSE connection for client {client_id}")
                         break
                     yield event
             except asyncio.TimeoutError:
                 # Send a keepalive ping every 30 seconds
                 yield {"event": "ping", "data": ""}
             except asyncio.CancelledError:
-                print(f"SSE connection for client {client_id} was cancelled")
+                logger.warning(f"SSE connection for client {client_id} was cancelled")
                 raise  # Re-raise to ensure proper cleanup
             except Exception as e:
-                print(f"Error in SSE connection for client {client_id}: {e}")
+                logger.error(f"Error in SSE connection for client {client_id}: {e}")
 
         return EventSourceResponse(event_generator())
     finally:
@@ -459,7 +461,7 @@ async def sse(request: Request):
             del ACTIVE_SESSIONS[client_id]
         if client_id in SSE_CLIENTS:
             SSE_CLIENTS.remove(client_id)
-        print(f"Cleaned up client {client_id}")
+        logger.info(f"Cleaned up client {client_id}")
 
 
 @app.post("/session-submit", response_class=HTMLResponse)
@@ -510,7 +512,7 @@ async def process_message(message: str, model: str, strategy: str, repo: Message
 
 async def broadcast_event(event_name, data):
     """Send an event to all connected SSE clients"""
-    print(f"Broadcasting {event_name} to {len(ACTIVE_SESSIONS)} clients")
+    logger.debug(f"Broadcasting {event_name} to {len(ACTIVE_SESSIONS)} clients")
     for client_id in list(ACTIVE_SESSIONS.keys()):
         try:
             queue = ACTIVE_SESSIONS[client_id]
@@ -518,7 +520,7 @@ async def broadcast_event(event_name, data):
             event_data = json.dumps(data) if isinstance(data, (dict, list)) else data
             await queue.put({"event": event_name, "data": event_data})
         except Exception as e:
-            print(f"Error broadcasting to client {client_id}: {e}")
+            logger.error(f"Error broadcasting to client {client_id}: {e}")
             # If we can't send to this client, remove it
             if client_id in ACTIVE_SESSIONS:
                 del ACTIVE_SESSIONS[client_id]
