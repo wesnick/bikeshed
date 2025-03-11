@@ -4,8 +4,7 @@ from typing import Optional, List, Dict, Any
 
 from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, JSON, Table
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import declarative_base, relationship
 
 # Create Base without importing metadata from database to avoid circular imports
 Base = declarative_base()

@@ -4,6 +4,7 @@ import pytest
 
 from src.main import app
 
+
 @pytest.fixture
 async def client() -> AsyncGenerator[AsyncClient, None]:
     """

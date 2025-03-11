@@ -1,10 +1,11 @@
 from pydantic import PostgresDsn, RedisDsn, computed_field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
 
 class Config(BaseSettings):
     """Application configuration settings loaded from environment variables"""
+    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
 
     # Database settings
     postgres_host: str
@@ -21,10 +22,7 @@ class Config(BaseSettings):
     # Application settings
     log_level: str = "INFO"
     log_file: str | None = None
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+
 
     @computed_field
     def database_url(self) -> PostgresDsn:
