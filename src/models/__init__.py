@@ -1,4 +1,3 @@
-# Import all models here to make them available when importing the models package
 from src.models.models import (
     Base,
     Message,
@@ -9,7 +8,6 @@ from src.models.models import (
     ScratchPad
 )
 
-# Re-export all models at the package level
 __all__ = [
     'Base',
     'Message',

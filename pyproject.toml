@@ -1,5 +1,5 @@
 [project]
-name = "flibberflow"
+name = "bikeshed"
 version = "0.1.0"
 description = "MCP Playground"
 requires-python = ">=3.12"

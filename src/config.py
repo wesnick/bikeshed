@@ -34,7 +34,7 @@ class Config(BaseSettings):
                 password=self.postgres_password,
                 host=self.postgres_host,
                 port=self.postgres_port,
-                path=f"/{self.postgres_db}"
+                path=self.postgres_db
             )
 
     @computed_field

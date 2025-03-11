@@ -1,5 +1,4 @@
 import asyncio
-import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -24,7 +23,7 @@ config.set_main_option("sqlalchemy.url", str(app_config.database_url))
 
 # Import all models to ensure they're registered with the metadata
 # This is crucial for autogenerate to work properly
-from src.models.models import Base, Message, Session, Flow, Artifact, FlowTemplate, ScratchPad
+from src.models import Base
 
 # add your model's MetaData object here
 # for 'autogenerate' support

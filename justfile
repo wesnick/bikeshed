@@ -36,7 +36,7 @@ migrate:
 
 # Create a new migration with the specified message
 migmake args:
-    alembic revision -m "{{args}}"
+    alembic revision --autogenerate -m "{{args}}"
 
 # Show current migration version
 alembic-current:

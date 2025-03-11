@@ -6,81 +6,28 @@ import json
 import uuid
 import signal
 import threading
-from config import Config
-from src.service.cache import RedisService
-from src.service.logging import logger, setup_logging
-from fastapi import FastAPI, Request, Form, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from service.database import get_db
-from src.repositories.message_repository import MessageRepository
+
+from fastapi import FastAPI, Request, Form
 from fastapi.templating import Jinja2Templates
-from mcp import StdioServerParameters
-from service.mcp_client import MCPClient
-from src.http.middleware import HTMXRedirectMiddleware
 from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
-from markdown2 import markdown
 
-settings = Config()
-
-def markdown2html(text: str):
-    return markdown(text, extras={
-        'breaks': {'on_newline': True},
-        'fenced-code-blocks': {},
-        'highlightjs-lang': {},
-    })
-
+from src.service.logging import logger, setup_logging
+from src.service.mcp_client import MCPClient
+from src.http.middleware import HTMXRedirectMiddleware
+from src.dependencies import markdown2html
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Setup logging
     setup_logging()
-    
-    # Create Redis service
-    app.state.redis_service = RedisService(redis_url=str(settings.redis_url))
-    
-    # Use MCPClient as an async context manager with injected Redis service
-    async with MCPClient(redis_service=app.state.redis_service) as client:
-        # Store the client in the app state for access in routes
-        app.state.mcp_client = client
-        
-        server = {
-            # "sqlite": {
-            #   "command": "uvx",
-            #   "args": ["mcp-server-sqlite", "--db-path", "./test.db"]
-            # },
-            # "fetch": {
-            #   "command": "uvx",
-            #   "args": ["mcp-server-fetch", "--ignore-robots-txt"]
-            # }
-            # "thank": {
-            #     "command": "npx",
-            #     "args": [        "-y",
-            #     "@modelcontextprotocol/server-sequential-thinking"]
-            # }
-        }
 
-        for name, params in server.items():
-            try:
-                await client.connect_to_server(
-                    name=name,
-                    server_params=StdioServerParameters(**params)
-                )
-            except Exception as e:
-                print(f"Failed to connect to server {name}: {e}")
-
-        logger.info("Application initialized")
-
-        yield
-        
-        # No need to explicitly call cleanup as it will be handled by the context manager
+    yield
 
 
-
-app = FastAPI(title="Flibberflow", lifespan=lifespan)
+app = FastAPI(title="BikeShed", lifespan=lifespan)
 app.add_middleware(HTMXRedirectMiddleware)
 
 # static asset mount
@@ -130,7 +77,6 @@ def setup_signal_handlers():
     
     logger.info("Signal handlers registered for graceful shutdown")
 
-
 async def shutdown_sse_connections():
     """Send shutdown message to all SSE clients and close connections"""
     logger.info(f"Shutting down {len(ACTIVE_SESSIONS)} SSE connections...")
@@ -171,25 +117,17 @@ def index() -> dict:
 async def settings_component() -> None:
     """This route serves just the settings component for htmx requests."""
 
-# Add a dependency for the MessageRepository
-async def get_message_repository(db: AsyncSession = Depends(get_db)):
-    return MessageRepository(db)
-
 @app.get("/session")
 @jinja.hx('components/session.html.j2')
-async def session_component(repo: MessageRepository = Depends(get_message_repository)) -> dict:
+async def session_component() -> dict:
     """This route serves just the chat component for htmx requests."""
-    messages = await repo.get_all(limit=100)
-    return {"messages": [message.to_dict() for message in messages]}
+    return {"messages": []}
 
 @app.get("/components/left-sidebar")
 @jinja.hx('components/left_sidebar.html.j2')
 async def left_sidebar_component(request: Request):
     """This route serves the left sidebar component for htmx requests."""
-    mcp_client: MCPClient = request.app.state.mcp_client
-    manifest = await mcp_client.get_manifest()
-    logger.debug(f"MCP manifest: {manifest}")
-    return {"manifest": manifest}
+    return {"manifest": {}}
 
 @app.get("/components/right-drawer")
 @jinja.hx('components/right_drawer.html.j2', no_data=True)
@@ -299,7 +237,7 @@ async def tool_form(request: Request, tool_id: str) -> dict:
         return {"error": f"Tool {tool_id} not found"}
     
     # Create a dynamic form from the tool's input schema
-    from src.form_models import DynamicForm
+    from models.form_models import DynamicForm
     
     form = DynamicForm.from_json_schema(
         schema=tool['schema'],
@@ -320,7 +258,6 @@ async def tool_form(request: Request, tool_id: str) -> dict:
 async def execute_tool(
     request: Request, 
     tool_id: str,
-    repo: MessageRepository = Depends(get_message_repository)
 ):
     """Execute a tool with the provided parameters."""
     # Split the tool_id into server_name and tool_name
@@ -349,6 +286,7 @@ async def execute_tool(
 
     logger.info(f"Executing tool: {tool_id} with params: {tool_params}")
 
+    # @TODO: refactor with json-form htmx plugin
     # Cast data back to types it is expecting
     tool_schema = manifest['tools'][tool_id]['schema']
     for key, value in tool_params.items():
@@ -367,12 +305,12 @@ async def execute_tool(
 
     
     # Process in background (non-blocking)
-    asyncio.create_task(process_tool_execution(tool_id, tool_name, session, tool_params, repo))
+    asyncio.create_task(process_tool_execution(tool_id, tool_name, session, tool_params))
     
     # Return empty response as we'll update via SSE
     return ""
 
-async def process_tool_execution(tool_id: str, tool_name: str, session, params: dict, repo: MessageRepository):
+async def process_tool_execution(tool_id: str, tool_name: str, session, params: dict):
     """Process the tool execution and send response via SSE."""
     # Add user message to the database
     user_message_data = {
@@ -381,8 +319,7 @@ async def process_tool_execution(tool_id: str, tool_name: str, session, params: 
         "model": None,
         "extra": {"tool_id": tool_id, "params": params}
     }
-    await repo.create(user_message_data)
-    
+
     # Notify all clients to update the session component
     await broadcast_event("session_update", "update")
     
@@ -408,9 +345,7 @@ async def process_tool_execution(tool_id: str, tool_name: str, session, params: 
             "model": None,
             "extra": {"tool_id": tool_id, "error": str(e)}
         }
-    
-    await repo.create(system_response_data)
-    
+
     # Notify all clients to update the session component again
     await broadcast_event("session_update", "update")
 
@@ -467,7 +402,6 @@ async def sse(request: Request):
 async def session(
     request: Request, 
     message: str = Form(...),
-    repo: MessageRepository = Depends(get_message_repository)
 ):
     # Get model and strategy from form data
     form_data = await request.form()
@@ -475,12 +409,12 @@ async def session(
     strategy = form_data.get("strategy", "default-strategy")
 
     # Process in background (non-blocking)
-    asyncio.create_task(process_message(message, model, strategy, repo))
+    asyncio.create_task(process_message(message, model, strategy))
 
     # Return empty response as we'll update via SSE
     return ""
 
-async def process_message(message: str, model: str, strategy: str, repo: MessageRepository):
+async def process_message(message: str, model: str, strategy: str):
     """Process the message and send response via SSE"""
     # Add user message to the database
     user_message_data = {
@@ -489,7 +423,6 @@ async def process_message(message: str, model: str, strategy: str, repo: Message
         "model": None,  # User messages don't have a model
         "extra": {"strategy": strategy}  # Store strategy in extra
     }
-    await repo.create(user_message_data)
 
     # Notify all clients to update the session component
     await broadcast_event("session_update", "update")
@@ -504,7 +437,6 @@ async def process_message(message: str, model: str, strategy: str, repo: Message
         "model": model,
         "extra": {"strategy": strategy}
     }
-    await repo.create(system_response_data)
 
     # Notify all clients to update the session component again
     await broadcast_event("session_update", "update")
@@ -526,16 +458,5 @@ async def broadcast_event(event_name, data):
 
 
 if __name__ == "__main__":
-    # Make sure signal handlers are set up before starting the server
-    setup_signal_handlers()
-    
-    # Set up logging before starting uvicorn
-    setup_logging()
-    
     # Configure uvicorn to use our logging
-    uvicorn.run(
-        app, 
-        host="0.0.0.0", 
-        port=8000,
-        log_config=None  # Disable uvicorn's default logging config
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8000)

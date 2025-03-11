@@ -14,7 +14,7 @@ import './shutdown-handler.js';
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('Flibberflow application initialized');
+  console.log('BikeShed application initialized');
   
   // Ensure SSE extension is properly initialized
   if (typeof htmx !== 'undefined') {

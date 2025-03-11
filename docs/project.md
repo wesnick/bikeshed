@@ -1,4 +1,4 @@
-## Flibberflow Project
+## BikeShed Project
 
 A playground for experimenting with LLM completions using the Model Context Protocol.  The goal of the project is to be able to experiment with LLM calls and workflows to ultimately be able to compile for use in another project.
 
