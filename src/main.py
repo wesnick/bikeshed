@@ -7,6 +7,7 @@ import uuid
 import signal
 import threading
 import os
+from config import Config
 from src.service.cache import RedisService
 from fastapi import FastAPI, Request, Form, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +23,7 @@ from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
 from markdown2 import markdown
 
+settings = Config()
 
 def markdown2html(text: str):
     return markdown(text, extras={
@@ -35,10 +37,9 @@ def markdown2html(text: str):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Get Redis URL from environment or use default
-    redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
-    
+
     # Create Redis service
-    app.state.redis_service = RedisService(redis_url=redis_url)
+    app.state.redis_service = RedisService(redis_url=str(settings.redis_url))
     
     # Use MCPClient as an async context manager with injected Redis service
     async with MCPClient(redis_service=app.state.redis_service) as client:

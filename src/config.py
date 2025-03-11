@@ -1,28 +1,30 @@
+from typing import Any
+
 from pydantic import PostgresDsn, RedisDsn, Field
-from pydantic_settings import BaseSettings
+from pydantic.fields import FieldInfo
+from pydantic_settings import BaseSettings, EnvSettingsSource
 from functools import lru_cache
 import os
 
-
 class Config(BaseSettings):
     """Application configuration settings loaded from environment variables"""
-    
+
     # Database settings
-    POSTGRES_HOST: str = Field("localhost", description="PostgreSQL host")
-    POSTGRES_PORT: int = Field(5432, description="PostgreSQL port")
-    POSTGRES_DB: str = Field("flibberflow", description="PostgreSQL database name")
-    POSTGRES_USER: str = Field("app", description="PostgreSQL username")
-    POSTGRES_PASSWORD: str = Field("pass", description="PostgreSQL password")
-    DATABASE_URL: PostgresDsn = Field(None, description="Full PostgreSQL connection string")
-    
+    postgres_host: str
+    postgres_port: int
+    postgres_db: str
+    postgres_user: str
+    postgres_password: str
+    database_url: PostgresDsn
+
     # Redis settings
-    REDIS_HOST: str = Field("localhost", description="Redis host")
-    REDIS_PORT: int = Field(6379, description="Redis port")
-    REDIS_DB: int = Field(0, description="Redis database number")
-    REDIS_URL: RedisDsn = Field(None, description="Full Redis connection string")
+    redis_host: str
+    redis_port: int
+    redis_db: int
+    redis_url: RedisDsn
     
     # Application settings
-    DEBUG: bool = Field(False, description="Debug mode")
+    debug: bool
     
     class Config:
         env_file = ".env"
@@ -32,23 +34,23 @@ class Config(BaseSettings):
         super().__init__(**kwargs)
         
         # Build DATABASE_URL if not provided
-        if not self.DATABASE_URL:
-            self.DATABASE_URL = PostgresDsn.build(
+        if not self.database_url:
+            self.database_url = PostgresDsn.build(
                 scheme="postgresql+asyncpg",
-                username=self.POSTGRES_USER,
-                password=self.POSTGRES_PASSWORD,
-                host=self.POSTGRES_HOST,
-                port=str(self.POSTGRES_PORT),
-                path=f"/{self.POSTGRES_DB}"
+                username=self.postgres_user,
+                password=self.postgres_password,
+                host=self.postgres_host,
+                port=self.postgres_port,
+                path=f"/{self.postgres_db}"
             )
             
         # Build REDIS_URL if not provided
-        if not self.REDIS_URL:
-            self.REDIS_URL = RedisDsn.build(
+        if not self.redis_url:
+            self.redis_url = RedisDsn.build(
                 scheme="redis",
-                host=self.REDIS_HOST,
-                port=str(self.REDIS_PORT),
-                path=f"/{self.REDIS_DB}"
+                host=self.redis_host,
+                port=self.redis_port,
+                path=f"/{self.redis_db}"
             )
 
 
