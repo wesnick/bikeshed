@@ -71,8 +71,11 @@ class Session(Base):
     @property
     def first_message(self):
         """Return the first message in this session"""
-        from sqlalchemy import asc
-        return self.messages.order_by(asc(Message.timestamp)).first()
+        if not self.messages:
+            return None
+        from sqlalchemy import asc, select
+        from sqlalchemy.orm import selectinload
+        return sorted(self.messages, key=lambda m: m.timestamp)[0] if self.messages else None
 
 
 class Flow(Base):
@@ -123,7 +126,7 @@ class Artifact(Base):
     source_message = relationship("Message", back_populates="artifacts")
     source_session = relationship("Session", back_populates="artifacts")
     source_flow = relationship("Flow", back_populates="artifacts")
-    scratchpads = relationship("ScratchPad", secondary=artifact_scratchpad, back_populates="artifacts")
+    scratchpads = relationship("ScratchPad", secondary=artifact_scratchpad, back_populates="scratchpads")
 
 
 class FlowTemplate(Base):
@@ -156,4 +159,4 @@ class ScratchPad(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    artifacts = relationship("Artifact", secondary=artifact_scratchpad, back_populates="artifacts")
+    artifacts = relationship("Artifact", secondary=artifact_scratchpad, back_populates="scratchpads")

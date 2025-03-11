@@ -14,7 +14,7 @@ from src.models.models import (
 fake = Faker()
 
 # Test database URL - replace app with app_test
-TEST_DATABASE_URL = "postgresql+asyncpg://app:pass@localhost:5432/app_test"
+TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/app_test"
 
 # Create async engine and session
 @pytest.fixture(scope="function")
@@ -262,6 +262,9 @@ async def test_session_first_message_property(db_session):
     
     # Refresh session object
     await db_session.refresh(session_obj)
+    
+    # Fetch all messages to ensure they're loaded
+    await db_session.refresh(session_obj, ["messages"])
     
     # Test first_message property
     first = session_obj.first_message
