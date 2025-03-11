@@ -1,7 +1,31 @@
 from loguru import logger
 import sys
 import os
+import logging
 from typing import Dict, Any
+
+class InterceptHandler(logging.Handler):
+    """
+    Intercept standard logging messages and redirect them to loguru
+    
+    This allows us to capture logs from libraries like uvicorn and route them through loguru
+    """
+    def emit(self, record):
+        # Get corresponding Loguru level if it exists
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+
+        # Find caller from where the logged message originated
+        frame, depth = logging.currentframe(), 2
+        while frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level, record.getMessage()
+        )
 
 def setup_logging(config: Dict[str, Any] = None) -> None:
     """
@@ -41,6 +65,15 @@ def setup_logging(config: Dict[str, Any] = None) -> None:
         if "extra_handlers" in config:
             for handler in config["extra_handlers"]:
                 logger.add(**handler)
+    
+    # Intercept standard logging
+    logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
+    
+    # Explicitly intercept uvicorn and FastAPI logs
+    for logger_name in ["uvicorn", "uvicorn.error", "uvicorn.access", "fastapi"]:
+        logging_logger = logging.getLogger(logger_name)
+        logging_logger.handlers = [InterceptHandler()]
+        logging_logger.propagate = False
     
     logger.info("Logging configured with level: {}", log_level)
 

@@ -529,4 +529,14 @@ async def broadcast_event(event_name, data):
 if __name__ == "__main__":
     # Make sure signal handlers are set up before starting the server
     setup_signal_handlers()
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    
+    # Set up logging before starting uvicorn
+    setup_logging()
+    
+    # Configure uvicorn to use our logging
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=8000,
+        log_config=None  # Disable uvicorn's default logging config
+    )
