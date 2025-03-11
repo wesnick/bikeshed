@@ -1,6 +1,5 @@
 from sqlalchemy import MetaData
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 import os
 
 POSTGRES_INDEXES_NAMING_CONVENTION = {
@@ -17,17 +16,15 @@ DATABASE_URL = os.environ.get(
     "DATABASE_URL", 
     "postgresql+asyncpg://postgres:postgres@localhost:5432/flibberflow"
 )
+DEBUG = False
 
-# Create async engine
 engine = create_async_engine(
     DATABASE_URL,
-    echo=False,  # Set to True for SQL logging
+    echo=DEBUG,
 )
 
-# Create async session factory
-async_session_factory = sessionmaker(
-    engine, 
-    class_=AsyncSession, 
+async_session_factory = async_sessionmaker(
+    engine,
     expire_on_commit=False
 )
 

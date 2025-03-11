@@ -1,10 +1,10 @@
-from sqlalchemy import Column, String, ForeignKey, DateTime, Text, Boolean, JSON
+from sqlalchemy import Column, String, ForeignKey, DateTime, Text, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import uuid
 from datetime import datetime
-from src.database import metadata
+from service.database import metadata
 
 Base = declarative_base(metadata=metadata)
 

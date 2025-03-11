@@ -7,11 +7,10 @@ import uuid
 import signal
 import threading
 import os
-from src.service.redis_service import RedisService
+from src.service.cache import RedisService
 from fastapi import FastAPI, Request, Form, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.database import get_db
-from src.models import Message
+from service.database import get_db
 from src.repositories.message_repository import MessageRepository
 from fastapi.templating import Jinja2Templates
 from mcp import StdioServerParameters
