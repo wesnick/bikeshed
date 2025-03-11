@@ -45,3 +45,15 @@ alembic-current:
 # Search MCP with an optional query
 search-mcp query="":
     python -m src.cli search-mcp {{query}}
+
+# Run all tests
+test:
+    pytest tests/ -v
+
+# Run tests with coverage report
+test-cov:
+    pytest tests/ --cov=src --cov-report=term-missing -v
+
+# Run tests and watch for changes
+test-watch:
+    pytest-watch -- tests/ -v
