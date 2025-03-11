@@ -2,10 +2,6 @@
 default:
     @just --list
 
-# Install loguru dependency
-install-loguru:
-    uv pip install loguru
-
 # Create a local .env file from .env.dist if it doesn't exist
 setup-env:
     [ -f .env ] || cp .env.dist .env
