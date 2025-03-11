@@ -2,15 +2,20 @@ import json
 import redis
 from typing import Any, Optional
 
+from src.config import get_config
+
+config = get_config()
+
 class RedisService:
     """Service for Redis caching operations"""
     
-    def __init__(self, redis_url: str = "redis://localhost:6379/0"):
+    def __init__(self, redis_url: str = None):
         """Initialize Redis service
         
         Args:
-            redis_url: Redis connection URL
+            redis_url: Redis connection URL, defaults to config if None
         """
+        redis_url = redis_url or str(config.REDIS_URL)
         self.redis = redis.Redis.from_url(redis_url, decode_responses=True)
         self.default_ttl = 3600  # Default TTL: 1 hour
     

@@ -2,9 +2,13 @@
 default:
     @just --list
 
+# Create a local .env file from .env.dist if it doesn't exist
+setup-env:
+    [ -f .env ] || cp .env.dist .env
+
 # Start the FastAPI development server with auto-reload
 fastapi-dev:
-    uvicorn src.main:app --reload --timeout-graceful-shutdown 2
+    uvicorn src.main:app --reload --timeout-graceful-shutdown 2 --env-file .env
 
 # Start the frontend development server
 frontend-dev:

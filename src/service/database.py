@@ -1,6 +1,9 @@
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-import os
+
+from src.config import get_config
+
+config = get_config()
 
 POSTGRES_INDEXES_NAMING_CONVENTION = {
     "ix": "%(column_0_label)s_idx",
@@ -11,16 +14,9 @@ POSTGRES_INDEXES_NAMING_CONVENTION = {
 }
 metadata = MetaData(naming_convention=POSTGRES_INDEXES_NAMING_CONVENTION)
 
-# Get database URL from environment or use default
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL", 
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/flibberflow"
-)
-DEBUG = False
-
 engine = create_async_engine(
-    DATABASE_URL,
-    echo=DEBUG,
+    str(config.DATABASE_URL),
+    echo=config.DEBUG,
 )
 
 async_session_factory = async_sessionmaker(
