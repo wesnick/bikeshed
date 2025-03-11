@@ -34,6 +34,11 @@ docdown:
 migrate:
     alembic upgrade head
 
+# Set up test database
+setup-test-db:
+    createdb -U postgres app_test || echo "Test database already exists"
+    PGPASSWORD=postgres psql -U postgres -d app_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
 # Create a new migration with the specified message
 migmake args:
     alembic revision --autogenerate -m "{{args}}"
@@ -49,6 +54,10 @@ search-mcp query="":
 # Run all tests
 test:
     pytest tests/ -v
+
+# Run model tests specifically
+test-models:
+    pytest tests/test_models.py -v
 
 # Run tests with coverage report
 test-cov:
