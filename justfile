@@ -34,11 +34,6 @@ docdown:
 migrate:
     alembic upgrade head
 
-# Set up test database
-setup-test-db:
-    createdb -U postgres app_test || echo "Test database already exists"
-    PGPASSWORD=postgres psql -U postgres -d app_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
-
 # Create a new migration with the specified message
 migmake args:
     alembic revision --autogenerate -m "{{args}}"

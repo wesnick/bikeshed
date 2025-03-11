@@ -2,8 +2,7 @@ import uuid
 import pytest
 from faker import Faker
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from datetime import datetime, timedelta
 
 from src.models.models import (
@@ -15,7 +14,7 @@ from src.models.models import (
 fake = Faker()
 
 # Test database URL - replace app with app_test
-TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/app_test"
+TEST_DATABASE_URL = "postgresql+asyncpg://app:pass@localhost:5432/app_test"
 
 # Create async engine and session
 @pytest.fixture(scope="function")
@@ -28,7 +27,7 @@ async def db_session():
         await conn.run_sync(Base.metadata.create_all)
     
     # Create session
-    async_session = sessionmaker(
+    async_session = async_sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
     )
     
