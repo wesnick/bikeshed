@@ -3,10 +3,10 @@ from typing import Annotated
 from fastapi import Depends
 from markdown2 import markdown
 
-from service.database import async_session_factory
-from service.cache import RedisService
-from service.mcp_client import MCPClient
-from config import get_config
+from src.service.database import async_session_factory
+from src.service.cache import RedisService
+from src.service.mcp_client import MCPClient
+from src.config import get_config
 
 settings = get_config()
 

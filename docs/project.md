@@ -8,7 +8,7 @@ Postgres (17)
  - pgvector
 Redis
 Python (3.12):
- - Packages are managed with uv
+ - Packages are managed with uv (NOT `pip`!)
  - FastAPI 
 Frontend:
  - build system is vite

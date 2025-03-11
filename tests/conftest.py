@@ -1,19 +1,16 @@
-import pytest
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from typing import AsyncGenerator
-from fastapi.testclient import TestClient
+import pytest
 
 from src.main import app
-
 
 @pytest.fixture
 async def client() -> AsyncGenerator[AsyncClient, None]:
     """
     Create an async test client for FastAPI app
     """
-    # Create a TestClient first to get ASGI app
-    test_client = TestClient(app)
+    host, port = "127.0.0.1", 9000
     
     # Use the ASGI app with AsyncClient
-    async with AsyncClient(app=test_client.app, base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app, client=(host, port)), base_url="http://test") as client:
         yield client
