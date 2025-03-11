@@ -10,10 +10,6 @@ setup-env:
 fastapi-dev:
     uvicorn src.main:app --reload --timeout-graceful-shutdown 2 --env-file .env --no-access-log
 
-# Start the FastAPI development server with auto-reload and custom logging
-fastapi-dev-custom-log:
-    LOG_LEVEL=DEBUG uvicorn src.main:app --reload --timeout-graceful-shutdown 2 --env-file .env --log-config=None
-
 # Start the frontend development server
 frontend-dev:
     npm run dev

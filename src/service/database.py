@@ -15,7 +15,7 @@ metadata = MetaData(naming_convention=POSTGRES_INDEXES_NAMING_CONVENTION)
 
 engine = create_async_engine(
     str(config.database_url),
-    echo=config.debug,
+    echo=config.log_level == "DEBUG",
 )
 
 async_session_factory = async_sessionmaker(

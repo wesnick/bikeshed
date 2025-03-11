@@ -19,7 +19,8 @@ class Config(BaseSettings):
     redis_db: int
     
     # Application settings
-    debug: bool
+    log_level: str = "INFO"
+    log_file: str | None = None
     
     class Config:
         env_file = ".env"

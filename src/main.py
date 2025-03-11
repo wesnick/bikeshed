@@ -6,7 +6,6 @@ import json
 import uuid
 import signal
 import threading
-import os
 from config import Config
 from src.service.cache import RedisService
 from src.service.logging import logger, setup_logging

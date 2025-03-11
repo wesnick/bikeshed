@@ -3,6 +3,9 @@ import sys
 import os
 import logging
 from typing import Dict, Any
+from src.config import get_config
+
+config = get_config()
 
 class InterceptHandler(logging.Handler):
     """
@@ -37,19 +40,17 @@ def setup_logging(config: Dict[str, Any] = None) -> None:
     # Remove default handler
     logger.remove()
     
-    # Get log level from environment or use INFO as default
-    log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
-    
+
     # Configure console output
     logger.add(
         sys.stderr,
-        level=log_level,
+        level=config.log_level,
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
         colorize=True,
     )
     
     # Add file logging if LOG_FILE is specified in environment
-    log_file = os.environ.get("LOG_FILE")
+    log_file = config.log_file
     if log_file:
         logger.add(
             log_file,
