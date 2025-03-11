@@ -7,9 +7,18 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-from service.database import metadata
+# Create Base without importing metadata from database to avoid circular imports
+Base = declarative_base()
 
-Base = declarative_base(metadata=metadata)
+# Set naming convention for consistency
+POSTGRES_INDEXES_NAMING_CONVENTION = {
+    "ix": "%(column_0_label)s_idx",
+    "uq": "%(table_name)s_%(column_0_name)s_key",
+    "ck": "%(table_name)s_%(constraint_name)s_check",
+    "fk": "%(table_name)s_%(column_0_name)s_fkey",
+    "pk": "%(table_name)s_pkey",
+}
+Base.metadata.naming_convention = POSTGRES_INDEXES_NAMING_CONVENTION
 
 # Association tables for many-to-many relationships
 artifact_scratchpad = Table(

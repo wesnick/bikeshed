@@ -1,18 +1,10 @@
-from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from src.config import get_config
+from src.models import Base
 
 config = get_config()
 
-POSTGRES_INDEXES_NAMING_CONVENTION = {
-    "ix": "%(column_0_label)s_idx",
-    "uq": "%(table_name)s_%(column_0_name)s_key",
-    "ck": "%(table_name)s_%(constraint_name)s_check",
-    "fk": "%(table_name)s_%(column_0_name)s_fkey",
-    "pk": "%(table_name)s_pkey",
-}
-metadata = MetaData(naming_convention=POSTGRES_INDEXES_NAMING_CONVENTION)
-
+# Create engine with the Base metadata from models
 engine = create_async_engine(
     str(config.database_url),
     echo=config.log_level == "DEBUG",
