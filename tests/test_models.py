@@ -1,6 +1,5 @@
 import uuid
 import pytest
-from faker import Faker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
@@ -12,8 +11,17 @@ from src.models.models import (
     # artifact_scratchpad
 )
 
-# Initialize Faker
-fake = Faker()
+# Import fixtures
+from src.fixtures import (
+    create_flow_template,
+    create_flow,
+    create_session as create_session_obj,
+    create_message,
+    create_artifact,
+    create_scratchpad,
+    create_conversation,
+    create_complete_flow_session
+)
 
 # Test database URL - replace app with app_test
 TEST_DATABASE_URL = "postgresql+asyncpg://app:pass@localhost:5432/app_test"
@@ -42,89 +50,11 @@ async def db_session():
     
     await engine.dispose()
 
-# Helper functions to create test data
-async def create_flow_template(session):
-    template = FlowTemplate(
-        name=fake.word(),
-        description=fake.paragraph(),
-        definition={"steps": [{"name": "step1", "action": "test"}]}
-    )
-    session.add(template)
-    await session.commit()
-    return template
-
-async def create_flow(session, template=None):
-    flow = Flow(
-        name=fake.word(),
-        description=fake.paragraph(),
-        goal=fake.sentence(),
-        strategy="sequential",
-        current_state="initial",
-        workflow_definition={"steps": [{"name": "step1", "action": "test"}]},
-        # template_id=template.id if template else None
-    )
-    session.add(flow)
-    await session.commit()
-    return flow
-
-async def create_session_obj(session, flow=None, template=None):
-    session_obj = Session(
-        summary=fake.paragraph(),
-        goal=fake.sentence(),
-        system_prompt=fake.paragraph(),
-        strategy="task_decomposition",
-        # flow_id=flow.id if flow else None,
-        # template_id=template.id if template else None
-    )
-    session.add(session_obj)
-    await session.commit()
-    return session_obj
-
-async def create_message(session, session_obj, parent=None):
-    message = Message(
-        role=fake.random_element(elements=("user", "assistant", "system")),
-        model="gpt-4",
-        text=fake.paragraph(),
-        status="delivered",
-        mime_type="text/plain",
-        session_id=session_obj.id,
-        parent_id=parent.id if parent else None,
-        extra={"temperature": 0.7}
-    )
-    session.add(message)
-    await session.commit()
-    return message
-
-async def create_artifact(session, message=None, session_obj=None, flow=None):
-    artifact = Artifact(
-        name=fake.file_name(),
-        description=fake.sentence(),
-        mime_type=fake.mime_type(),
-        content_text=fake.paragraph() if fake.boolean() else None,
-        content_path=f"/path/to/{fake.file_name()}" if fake.boolean() else None,
-        # source_message_id=message.id if message else None,
-        # source_session_id=session_obj.id if session_obj else None,
-        # source_flow_id=flow.id if flow else None,
-        extra={"size": fake.random_int(min=1000, max=10000)}
-    )
-    session.add(artifact)
-    await session.commit()
-    return artifact
-
-async def create_scratchpad(session):
-    scratchpad = ScratchPad(
-        name=fake.word(),
-        description=fake.paragraph(),
-        notes=fake.paragraph()
-    )
-    session.add(scratchpad)
-    await session.commit()
-    return scratchpad
-
 # Tests
 @pytest.mark.asyncio
 async def test_flow_template_creation(db_session):
     template = await create_flow_template(db_session)
+    await db_session.commit()
     
     # Fetch from DB to verify
     result = await db_session.get(FlowTemplate, template.id)
@@ -140,7 +70,8 @@ async def test_flow_template_creation(db_session):
 @pytest.mark.asyncio
 async def test_flow_creation_with_template(db_session):
     template = await create_flow_template(db_session)
-    flow = await create_flow(db_session, template)
+    flow = await create_flow(db_session, template=template)
+    await db_session.commit()
     
     # Fetch from DB to verify
     result = await db_session.get(Flow, flow.id)
@@ -154,7 +85,8 @@ async def test_flow_creation_with_template(db_session):
 @pytest.mark.asyncio
 async def test_session_creation(db_session):
     flow = await create_flow(db_session)
-    session_obj = await create_session_obj(db_session, flow)
+    session_obj = await create_session_obj(db_session, flow=flow)
+    await db_session.commit()
     
     # Fetch from DB to verify
     result = await db_session.get(Session, session_obj.id)
@@ -168,6 +100,7 @@ async def test_session_creation(db_session):
 async def test_message_creation(db_session):
     session_obj = await create_session_obj(db_session)
     message = await create_message(db_session, session_obj)
+    await db_session.commit()
     
     # Fetch from DB to verify
     result = await db_session.get(Message, message.id)
@@ -182,22 +115,19 @@ async def test_message_creation(db_session):
 async def test_message_parent_child_relationship(db_session):
     session_obj = await create_session_obj(db_session)
     parent_message = await create_message(db_session, session_obj)
-    child_message = await create_message(db_session, session_obj, parent_message)
+    child_message = await create_message(db_session, session_obj, parent=parent_message)
+    await db_session.commit()
 
     stmt = select(Message).where(Message.id == child_message.id).options(
         selectinload(Message.children)
     )
     parent = await db_session.execute(stmt)
     result = parent.scalar_one()
-
-    # Fetch from DB to verify
-    # result = await db_session.get(Message, child_message.id)
     
     assert result is not None
     assert result.parent_id == parent_message.id
     
     # Check parent's children
-    # parent = await db_session.get(Message, parent_message.id)
     stmt = select(Message).where(Message.id == parent_message.id).options(
         selectinload(Message.children)
     )
@@ -210,7 +140,8 @@ async def test_message_parent_child_relationship(db_session):
 async def test_artifact_creation(db_session):
     session_obj = await create_session_obj(db_session)
     message = await create_message(db_session, session_obj)
-    artifact = await create_artifact(db_session, message, session_obj)
+    artifact = await create_artifact(db_session, source_message=message, source_session=session_obj)
+    await db_session.commit()
     
     # Fetch from DB to verify
     result = await db_session.get(Artifact, artifact.id)
@@ -225,6 +156,7 @@ async def test_scratchpad_with_artifacts(db_session):
     scratchpad = await create_scratchpad(db_session)
     artifact1 = await create_artifact(db_session)
     artifact2 = await create_artifact(db_session)
+    await db_session.commit()
     
     # Add artifacts to scratchpad
     # scratchpad.artifacts.append(artifact1)
@@ -248,7 +180,7 @@ async def test_session_first_message_property(db_session):
     
     message1 = Message(
         role="user",
-        text=fake.paragraph(),
+        text="First message",
         status="delivered",
         session_id=session_obj.id,
         timestamp=now - timedelta(minutes=10)
@@ -256,7 +188,7 @@ async def test_session_first_message_property(db_session):
     
     message2 = Message(
         role="assistant",
-        text=fake.paragraph(),
+        text="Second message",
         status="delivered",
         session_id=session_obj.id,
         timestamp=now - timedelta(minutes=5)
@@ -264,7 +196,7 @@ async def test_session_first_message_property(db_session):
     
     message3 = Message(
         role="user",
-        text=fake.paragraph(),
+        text="Third message",
         status="delivered",
         session_id=session_obj.id,
         timestamp=now
@@ -283,3 +215,31 @@ async def test_session_first_message_property(db_session):
     first = session_obj.first_message
     assert first is not None
     assert first.id == message1.id
+
+@pytest.mark.asyncio
+async def test_create_conversation(db_session):
+    """Test creating a conversation with the fixture."""
+    messages = await create_conversation(db_session, num_messages=4)
+    await db_session.commit()
+    
+    assert len(messages) == 5  # 4 messages + 1 system message
+    assert messages[0].role == "system"
+    
+    # Check alternating user/assistant pattern
+    assert messages[1].role == "user"
+    assert messages[2].role == "assistant"
+    assert messages[3].role == "user"
+    assert messages[4].role == "assistant"
+
+@pytest.mark.asyncio
+async def test_create_complete_flow_session(db_session):
+    """Test creating a complete flow session with all related objects."""
+    result = await create_complete_flow_session(db_session, num_messages=3, num_artifacts=2)
+    await db_session.commit()
+    
+    assert result["template"] is not None
+    assert result["flow"] is not None
+    assert result["session"] is not None
+    assert len(result["messages"]) == 4  # 3 messages + 1 system message
+    assert len(result["artifacts"]) == 2
+    assert result["scratchpad"] is not None
