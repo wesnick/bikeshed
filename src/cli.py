@@ -158,106 +158,106 @@ async def _create_fixtures(templates, flows, sessions, messages_per_session, art
     db_session = await anext(db_generator)
     try:
         with console.status("[bold green]Creating fixtures...") as status:
-                # Create templates
-                status.update("[bold green]Creating flow templates...")
-                created_templates = []
-                for i in range(templates):
-                    template = await create_flow_template(db_session, name=f"Template {i+1}")
-                    created_templates.append(template)
-                
-                # Create flows
-                status.update("[bold green]Creating flows...")
-                created_flows = []
-                for i in range(flows):
-                    # Assign some flows to templates
-                    template = created_templates[i % len(created_templates)] if created_templates else None
-                    flow = await create_flow(
-                        db_session, 
-                        template=template, 
-                        name=f"Flow {i+1}",
-                        strategy=["sequential", "parallel", "adaptive"][i % 3]
-                    )
-                    created_flows.append(flow)
-                
-                # Create sessions
-                status.update("[bold green]Creating sessions...")
-                created_sessions = []
-                for i in range(sessions):
-                    # Assign some sessions to flows
-                    flow = created_flows[i % len(created_flows)] if created_flows else None
-                    template = created_templates[i % len(created_templates)] if created_templates else None
-                    session_obj = await create_session(
-                        db_session, 
-                        flow=flow, 
-                        template=template,
-                        summary=f"Session {i+1} summary"
-                    )
-                    created_sessions.append(session_obj)
-                
-                # Create conversations (messages)
-                status.update("[bold green]Creating messages...")
-                for session_obj in created_sessions:
-                    await create_conversation(
-                        db_session, 
-                        num_messages=messages_per_session,
-                        session_obj=session_obj
-                    )
-                
-                # Create artifacts
-                status.update("[bold green]Creating artifacts...")
-                for i in range(artifacts):
-                    # Distribute artifacts among sessions, flows, etc.
-                    source_type = ["message", "session", "flow"][i % 3]
-                    if source_type == "session" and created_sessions:
-                        await create_artifact(
-                            db_session,
-                            name=f"Artifact {i+1}",
-                            source_session=created_sessions[i % len(created_sessions)]
-                        )
-                    elif source_type == "flow" and created_flows:
-                        await create_artifact(
-                            db_session,
-                            name=f"Artifact {i+1}",
-                            source_flow=created_flows[i % len(created_flows)]
-                        )
-                    else:
-                        await create_artifact(db_session, name=f"Artifact {i+1}")
-                
-                # Create scratchpads
-                status.update("[bold green]Creating scratchpads...")
-                for i in range(scratchpads):
-                    await create_scratchpad(
-                        db_session, 
-                        name=f"Scratchpad {i+1}",
-                        description=f"Notes and ideas for project {i+1}"
-                    )
-                
-                # Create complete flows
-                status.update("[bold green]Creating complete flows...")
-                for i in range(complete_flows):
-                    await create_complete_flow_session(
-                        db_session,
-                        num_messages=messages_per_session,
-                        num_artifacts=3
-                    )
-                
-                await db_session.commit()
-                
-            console.print(f"[bold green]✓[/bold green] Successfully created fixtures:")
-            console.print(f"  • {templates} flow templates")
-            console.print(f"  • {flows} flows")
-            console.print(f"  • {sessions} sessions with {messages_per_session} messages each")
-            console.print(f"  • {artifacts} artifacts")
-            console.print(f"  • {scratchpads} scratchpads")
-            console.print(f"  • {complete_flows} complete flows with all related entities")
+            # Create templates
+            status.update("[bold green]Creating flow templates...")
+            created_templates = []
+            for i in range(templates):
+                template = await create_flow_template(db_session, name=f"Template {i+1}")
+                created_templates.append(template)
             
-        except Exception as e:
-            await db_session.rollback()
-            console.print(f"[bold red]Error creating fixtures:[/bold red] {str(e)}")
-            raise
-        finally:
-            # Close the database session
-            await db_generator.aclose()
+            # Create flows
+            status.update("[bold green]Creating flows...")
+            created_flows = []
+            for i in range(flows):
+                # Assign some flows to templates
+                template = created_templates[i % len(created_templates)] if created_templates else None
+                flow = await create_flow(
+                    db_session, 
+                    template=template, 
+                    name=f"Flow {i+1}",
+                    strategy=["sequential", "parallel", "adaptive"][i % 3]
+                )
+                created_flows.append(flow)
+            
+            # Create sessions
+            status.update("[bold green]Creating sessions...")
+            created_sessions = []
+            for i in range(sessions):
+                # Assign some sessions to flows
+                flow = created_flows[i % len(created_flows)] if created_flows else None
+                template = created_templates[i % len(created_templates)] if created_templates else None
+                session_obj = await create_session(
+                    db_session, 
+                    flow=flow, 
+                    template=template,
+                    summary=f"Session {i+1} summary"
+                )
+                created_sessions.append(session_obj)
+            
+            # Create conversations (messages)
+            status.update("[bold green]Creating messages...")
+            for session_obj in created_sessions:
+                await create_conversation(
+                    db_session, 
+                    num_messages=messages_per_session,
+                    session_obj=session_obj
+                )
+            
+            # Create artifacts
+            status.update("[bold green]Creating artifacts...")
+            for i in range(artifacts):
+                # Distribute artifacts among sessions, flows, etc.
+                source_type = ["message", "session", "flow"][i % 3]
+                if source_type == "session" and created_sessions:
+                    await create_artifact(
+                        db_session,
+                        name=f"Artifact {i+1}",
+                        source_session=created_sessions[i % len(created_sessions)]
+                    )
+                elif source_type == "flow" and created_flows:
+                    await create_artifact(
+                        db_session,
+                        name=f"Artifact {i+1}",
+                        source_flow=created_flows[i % len(created_flows)]
+                    )
+                else:
+                    await create_artifact(db_session, name=f"Artifact {i+1}")
+            
+            # Create scratchpads
+            status.update("[bold green]Creating scratchpads...")
+            for i in range(scratchpads):
+                await create_scratchpad(
+                    db_session, 
+                    name=f"Scratchpad {i+1}",
+                    description=f"Notes and ideas for project {i+1}"
+                )
+            
+            # Create complete flows
+            status.update("[bold green]Creating complete flows...")
+            for i in range(complete_flows):
+                await create_complete_flow_session(
+                    db_session,
+                    num_messages=messages_per_session,
+                    num_artifacts=3
+                )
+            
+            await db_session.commit()
+        
+        console.print(f"[bold green]✓[/bold green] Successfully created fixtures:")
+        console.print(f"  • {templates} flow templates")
+        console.print(f"  • {flows} flows")
+        console.print(f"  • {sessions} sessions with {messages_per_session} messages each")
+        console.print(f"  • {artifacts} artifacts")
+        console.print(f"  • {scratchpads} scratchpads")
+        console.print(f"  • {complete_flows} complete flows with all related entities")
+        
+    except Exception as e:
+        await db_session.rollback()
+        console.print(f"[bold red]Error creating fixtures:[/bold red] {str(e)}")
+        raise
+    finally:
+        # Close the database session
+        await db_generator.aclose()
 
 @click.group()
 def group():
