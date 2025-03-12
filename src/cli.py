@@ -11,7 +11,7 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.service.pulse_mcp_api import PulseMCPAPI, MCPServer
-from src.service.database import get_async_session
+from src.service.database import get_db
 from src.fixtures import (
     create_flow_template, create_flow, create_session, 
     create_message, create_artifact, create_scratchpad,
@@ -154,9 +154,10 @@ def create_fixtures(templates, flows, sessions, messages_per_session, artifacts,
 
 async def _create_fixtures(templates, flows, sessions, messages_per_session, artifacts, scratchpads, complete_flows):
     """Async implementation of fixture creation."""
-    async for db_session in get_async_session():
-        try:
-            with console.status("[bold green]Creating fixtures...") as status:
+    db_generator = get_db()
+    db_session = await anext(db_generator)
+    try:
+        with console.status("[bold green]Creating fixtures...") as status:
                 # Create templates
                 status.update("[bold green]Creating flow templates...")
                 created_templates = []
@@ -255,7 +256,8 @@ async def _create_fixtures(templates, flows, sessions, messages_per_session, art
             console.print(f"[bold red]Error creating fixtures:[/bold red] {str(e)}")
             raise
         finally:
-            await db_session.close()
+            # Close the database session
+            await db_generator.aclose()
 
 @click.group()
 def group():
