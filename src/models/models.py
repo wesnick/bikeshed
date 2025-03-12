@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
 from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, JSON, Table
@@ -40,7 +40,7 @@ class Message(Base):
     text = Column(Text, nullable=False)
     status = Column(String(50), default='created')  # created, pending, delivered, failed, etc.
     mime_type = Column(String(100), default='text/plain')
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=datetime.now(timezone.utc))
     extra = Column(JSONB, nullable=True)  # For LLM parameters, UI customization, etc.
 
     # Relationships
@@ -61,7 +61,7 @@ class Session(Base):
     goal = Column(Text, nullable=True)
     system_prompt = Column(Text, nullable=True)
     strategy = Column(String(100), nullable=True)  # task decomposition, etc.
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
     template_id = Column(UUID(as_uuid=True), ForeignKey('flow_templates.id'), nullable=True)
 
     # Relationships
@@ -94,8 +94,8 @@ class Flow(Base):
     current_state = Column(String(100), nullable=True)
     workflow_definition = Column(JSONB, nullable=True)  # YAML workflow as JSON
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     template_id = Column(UUID(as_uuid=True), ForeignKey('flow_templates.id'), nullable=True)
 
     # Relationships
@@ -120,8 +120,8 @@ class Artifact(Base):
     source_session_id = Column(UUID(as_uuid=True), ForeignKey('sessions.id'), nullable=True)
     source_flow_id = Column(UUID(as_uuid=True), ForeignKey('flows.id'), nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     extra = Column(JSONB, nullable=True)  # For file size, dimensions, etc.
 
     # Relationships
@@ -140,8 +140,8 @@ class FlowTemplate(Base):
     description = Column(Text, nullable=True)
     definition = Column(JSONB, nullable=False)  # Template definition as JSON
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     # Relationships
     # derived_flows = relationship("Flow", back_populates="template")
@@ -157,8 +157,8 @@ class ScratchPad(Base):
     description = Column(Text, nullable=True)
     notes = Column(JSONB, nullable=True)  # Additional free-form notes
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     # Relationships
     # artifacts = relationship("Artifact", secondary=artifact_scratchpad, back_populates="scratchpads")

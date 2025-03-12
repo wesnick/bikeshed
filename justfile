@@ -50,14 +50,6 @@ search-mcp query="":
 test:
     pytest tests/ -v
 
-# Run model tests specifically
-test-models:
-    pytest tests/test_models.py -v
-
-# Generate test data
-generate-test-data:
-    python -c "import asyncio; from src.fixtures import create_complete_flow_session; from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker; async def run(): engine = create_async_engine('postgresql+asyncpg://app:pass@localhost:5432/app'); async_session = async_sessionmaker(engine, expire_on_commit=False); async with async_session() as session: result = await create_complete_flow_session(session); await session.commit(); print('Test data generated successfully!'); asyncio.run(run())"
-
 # Set up test database
 setup-test-db:
     PGPASSWORD=postgres createdb -U postgres app_test || echo "Test database already exists"

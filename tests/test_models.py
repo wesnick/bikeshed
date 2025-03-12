@@ -176,7 +176,7 @@ async def test_session_first_message_property(db_session):
     session_obj = await create_session_obj(db_session)
     
     # Create messages with different timestamps
-    now = datetime.utcnow()
+    now = datetime.now()
     
     message1 = Message(
         role="user",
