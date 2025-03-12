@@ -155,7 +155,7 @@ class ScratchPad(Base):
 
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    notes = Column(Text, nullable=True)  # Additional free-form notes
+    notes = Column(JSONB, nullable=True)  # Additional free-form notes
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
