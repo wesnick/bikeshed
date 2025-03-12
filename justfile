@@ -46,6 +46,14 @@ alembic-current:
 search-mcp query="":
     python -m src.cli search-mcp {{query}}
 
+# Create database fixtures for development
+create-fixtures:
+    python -m src.cli create-fixtures
+
+# Create database fixtures with custom parameters
+create-fixtures-custom:
+    python -m src.cli create-fixtures --templates=3 --flows=5 --sessions=10 --messages-per-session=8 --artifacts=15 --scratchpads=3 --complete-flows=2
+
 # Run all tests
 test:
     pytest tests/ -v
