@@ -7,8 +7,10 @@ import uuid
 import signal
 import threading
 
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Depends
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import select, desc
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fasthx import Jinja
@@ -18,6 +20,8 @@ from src.service.logging import logger, setup_logging
 from src.service.mcp_client import MCPClient
 from src.http.middleware import HTMXRedirectMiddleware
 from src.dependencies import markdown2html
+from src.models import Session
+from src.dependencies import get_db
 
 
 @asynccontextmanager
@@ -48,13 +52,13 @@ def setup_signal_handlers():
     # Store original signal handlers to chain to them
     original_term_handler = signal.getsignal(signal.SIGTERM)
     original_int_handler = signal.getsignal(signal.SIGINT)
-    
+
     def signal_handler(sig, frame):
         logger.warning(f"Received signal {sig}, initiating graceful shutdown...")
 
         # Schedule the shutdown task without blocking
         asyncio.create_task(shutdown_sse_connections())
-        
+
         # Chain to the original handler after a short delay
         # This allows our shutdown_sse_connections to start running
         def chain_to_original():
@@ -64,17 +68,17 @@ def setup_signal_handlers():
                 original_term_handler(sig, frame)
             elif sig == signal.SIGINT and original_int_handler and callable(original_int_handler):
                 original_int_handler(sig, frame)
-        
+
         # Schedule the original handler to run after a short delay
         # This gives our shutdown_sse_connections time to start
         timer = threading.Timer(0.5, chain_to_original)
         timer.daemon = True  # Make sure this doesn't block process exit
         timer.start()
-    
+
     # Register our handlers
     signal.signal(signal.SIGTERM, signal_handler)  # Signal 15, sent by uvicorn --reload
     signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
-    
+
     logger.info("Signal handlers registered for graceful shutdown")
 
 async def shutdown_sse_connections():
@@ -117,7 +121,7 @@ def index() -> dict:
 async def settings_component() -> None:
     """This route serves just the settings component for htmx requests."""
 
-@app.get("/session")
+@app.get("/session/{session_id}")
 @jinja.hx('components/session.html.j2')
 async def session_component() -> dict:
     """This route serves just the chat component for htmx requests."""
@@ -125,9 +129,16 @@ async def session_component() -> dict:
 
 @app.get("/components/left-sidebar")
 @jinja.hx('components/left_sidebar.html.j2')
-async def left_sidebar_component(request: Request):
+async def left_sidebar_component(db: AsyncSession = Depends(get_db)):
     """This route serves the left sidebar component for htmx requests."""
-    return {"manifest": {}}
+    query = select(Session).order_by(desc(Session.created_at)).limit(40)
+    sessions = await db.execute(query)
+    sessions = sessions.scalars().all()
+    return {
+        "sessions": sessions,
+        "tools": [],
+        "prompts": [],
+    }
 
 @app.get("/components/right-drawer")
 @jinja.hx('components/right_drawer.html.j2', no_data=True)
@@ -222,23 +233,23 @@ async def tool_form(request: Request, tool_id: str) -> dict:
     parts = tool_id.split('.')
     if len(parts) != 2:
         return {"error": "Invalid tool ID format"}
-    
+
     server_name, tool_name = parts
-    
+
     # Get the MCP client from app state
     mcp_client: MCPClient = request.app.state.mcp_client
-    
+
     # Get the manifest to find the tool
     manifest = await mcp_client.get_manifest()
-    
+
     # Find the tool in the manifest
     tool = manifest.get('tools', {}).get(tool_id)
     if not tool:
         return {"error": f"Tool {tool_id} not found"}
-    
+
     # Create a dynamic form from the tool's input schema
     from models.form_models import DynamicForm
-    
+
     form = DynamicForm.from_json_schema(
         schema=tool['schema'],
         form_id=f"tool-form-{tool_id.replace('.', '-')}",
@@ -246,7 +257,7 @@ async def tool_form(request: Request, tool_id: str) -> dict:
         description=tool['description'],
         submit_label="Execute Tool"
     )
-    
+
     # Return the form data for rendering
     return {
         "tool": tool,
@@ -256,7 +267,7 @@ async def tool_form(request: Request, tool_id: str) -> dict:
 
 @app.post("/tool/{tool_id}/execute")
 async def execute_tool(
-    request: Request, 
+    request: Request,
     tool_id: str,
 ):
     """Execute a tool with the provided parameters."""
@@ -264,9 +275,9 @@ async def execute_tool(
     parts = tool_id.split('.')
     if len(parts) != 2:
         return {"error": "Invalid tool ID format"}
-    
+
     server_name, tool_name = parts
-    
+
     # Get the MCP client from app state
     mcp_client: MCPClient = request.app.state.mcp_client
 
@@ -277,10 +288,10 @@ async def execute_tool(
     session = await mcp_client.get_session(server_name)
     if not session:
         return {"error": f"Server {server_name} not connected"}
-    
+
     # Parse the form data
     form_data = await request.form()
-    
+
     # Convert form data to a dictionary for the tool
     tool_params = dict(form_data)
 
@@ -303,10 +314,10 @@ async def execute_tool(
             elif prop_type == 'boolean':
                 tool_params[key] = (value.lower() == 'true' or value.lower() == 'on')
 
-    
+
     # Process in background (non-blocking)
     asyncio.create_task(process_tool_execution(tool_id, tool_name, session, tool_params))
-    
+
     # Return empty response as we'll update via SSE
     return ""
 
@@ -314,7 +325,7 @@ async def process_tool_execution(tool_id: str, tool_name: str, session, params: 
     """Process the tool execution and send response via SSE."""
     # Add user message to the database
     user_message_data = {
-        "role": "user", 
+        "role": "user",
         "content": f"Executing tool: {tool_id} with parameters: {params}",
         "model": None,
         "extra": {"tool_id": tool_id, "params": params}
@@ -322,17 +333,17 @@ async def process_tool_execution(tool_id: str, tool_name: str, session, params: 
 
     # Notify all clients to update the session component
     await broadcast_event("session_update", "update")
-    
+
     try:
         from mcp import ClientSession
         session: ClientSession
 
         # Execute the tool
         result = await session.call_tool(tool_name, params)
-        
+
         # Add system response to the database
         system_response_data = {
-            "role": "assistant", 
+            "role": "assistant",
             "content": f"Tool execution result: {result.content}",
             "model": None,
             "extra": {"tool_id": tool_id, "result": result.content}
@@ -340,7 +351,7 @@ async def process_tool_execution(tool_id: str, tool_name: str, session, params: 
     except Exception as e:
         # Handle errors
         system_response_data = {
-            "role": "assistant", 
+            "role": "assistant",
             "content": f"Error executing tool: {str(e)}",
             "model": None,
             "extra": {"tool_id": tool_id, "error": str(e)}
@@ -418,7 +429,7 @@ async def process_message(message: str, model: str, strategy: str):
     """Process the message and send response via SSE"""
     # Add user message to the database
     user_message_data = {
-        "role": "user", 
+        "role": "user",
         "content": message,
         "model": None,  # User messages don't have a model
         "extra": {"strategy": strategy}  # Store strategy in extra
@@ -432,7 +443,7 @@ async def process_message(message: str, model: str, strategy: str):
 
     # Add system response to the database
     system_response_data = {
-        "role": "assistant", 
+        "role": "assistant",
         "content": f"Processed message using {model} with {strategy} strategy: {message}",
         "model": model,
         "extra": {"strategy": strategy}

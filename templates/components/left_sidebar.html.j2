@@ -1,43 +1,73 @@
 <!-- Left Sidebar -->
+<div>
+  <aside class="menu">
+    <h3 class="menu-label">Navigation</h3>
 
-  <div>
-      <aside class="menu">
-        <p class="menu-label">Navigation</p>
-        <ul class="menu-list">
-          <li><a href="/session" hx-get="/session" hx-target="#dashboard" hx-push-url="true">Dashboard</a></li>
-          <li><a href="#">Sessions</a></li>
-          <li><a href="/settings" hx-get="/settings" hx-target="#dashboard" hx-push-url="true">Settings</a></li>
-          <li><a href="/kitchen-sink" hx-get="/kitchen-sink" hx-target="#dashboard" hx-push-url="true">Kitchen Sink</a></li>
-        </ul>
-          {% if manifest['tools'] | length %}
-            <p class="menu-label">Tools</p>
-            <ul class="menu-list">
-            {% for key, item in manifest['tools'].items() %}
-                <li>
-                  <a href="/tool/{{ key }}" 
-                     hx-get="/tool/{{ key }}" 
-                     hx-target="#session-form-container">
-                    {{ item.name }}
-                  </a>
-                  <span class="is-small">{{ item.description }}</span>
-                </li>
-            {% endfor %}
-            </ul>
-          {% endif %}
-          {% if manifest['prompts'] | length %}
-             <p class="menu-label">Prompts</p>
-             <ul class="menu-list">
-             {% for key, item in manifest['prompts'].items() %}
-                 <li>
-                   <a href="/prompt/{{ key }}"
-                      hx-get="/prompt/{{ key }}"
-                      hx-target="#session-form-container">
-                     {{ item.name }}
-                   </a>
-                   <span class="is-small">{{ item.description }}</span>
-                 </li>
-             {% endfor %}
-             </ul>
-           {% endif %}
-      </aside>
-  </div>
+    <details>
+      <summary class="is-size-5">Flows</summary>
+    </details>
+  {% if sessions %}
+    <details>
+      <summary class="is-size-5">Sessions</summary>
+<ul class="menu-list">
+      {% for session in sessions %}
+
+    <li><a>{{ session.summary }}</a></li>
+{#    <li>#}
+{#      <a class="is-active">Manage Your Team</a>#}
+{#      <ul>#}
+{#        <li><a>Members</a></li>#}
+{#        <li><a>Plugins</a></li>#}
+{#        <li><a>Add a member</a></li>#}
+{#      </ul>#}
+{#    </li>#}
+{#    <li><a>Invitations</a></li>#}
+{#    <li><a>Cloud Storage Environment Settings</a></li>#}
+{#    <li><a>Authentication</a></li>#}
+
+      {% endfor %}
+</ul>
+    </details>
+  {% endif %}
+
+
+{#    <ul class="menu-list">#}
+{#      <li><a href="/session" hx-get="/session" hx-target="#dashboard" hx-push-url="true">Sessions</a></li>#}
+{#      <li><a href="#">Flows</a></li>#}
+{##}
+{#      <li><a href="#">Flows</a></li>#}
+{#      <li><a href="/settings" hx-get="/settings" hx-target="#dashboard" hx-push-url="true">Settings</a></li>#}
+{#      <li><a href="/kitchen-sink" hx-get="/kitchen-sink" hx-target="#dashboard" hx-push-url="true">Kitchen Sink</a></li>#}
+{#    </ul>#}
+    {% if tools %}
+      <p class="menu-label">Tools</p>
+      <ul class="menu-list">
+        {% for key, item in manifest['tools'].items() %}
+          <li>
+            <a href="/tool/{{ key }}"
+               hx-get="/tool/{{ key }}"
+               hx-target="#session-form-container">
+              {{ item.name }}
+            </a>
+            <span class="is-small">{{ item.description }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% if prompts %}
+      <p class="menu-label">Prompts</p>
+      <ul class="menu-list">
+        {% for key, item in manifest['prompts'].items() %}
+          <li>
+            <a href="/prompt/{{ key }}"
+               hx-get="/prompt/{{ key }}"
+               hx-target="#session-form-container">
+              {{ item.name }}
+            </a>
+            <span class="is-small">{{ item.description }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </aside>
+</div>
