@@ -13,6 +13,7 @@ Python (3.12):
 Frontend:
  - build system is vite
  - HTMX v2
+   - extension: SSE, json-form
  - Bulma v2
 
 Whenever you make a fundamental change to architectural approach or establish a new pattern that should be followed through the whole application, be sure to update this document.

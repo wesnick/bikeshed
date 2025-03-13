@@ -400,11 +400,11 @@ async def sse(request: Request):
 
 @app.post("/session-submit", response_class=HTMLResponse)
 async def session(
-    request: Request, 
-    message: str = Form(...),
+    request: Request,
 ):
     # Get model and strategy from form data
-    form_data = await request.form()
+    form_data = await request.json()
+    logger.info(f"Form data: {form_data}")
     model = form_data.get("model", "default-model")
     strategy = form_data.get("strategy", "default-strategy")
 

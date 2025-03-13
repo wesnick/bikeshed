@@ -1,6 +1,7 @@
 import {defineConfig} from 'vite';
 import {resolve} from 'path';
 import {cpSync, existsSync, mkdirSync} from 'fs';
+import inject from '@rollup/plugin-inject';
 
 export default defineConfig({
     build: {
@@ -19,6 +20,9 @@ export default defineConfig({
         sourcemap: true
     },
     plugins: [
+        inject({
+           htmx: 'htmx.org'
+        }),
         {
             name: 'prepare-build-dir',
             apply: 'build',

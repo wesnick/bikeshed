@@ -1,14 +1,15 @@
 <form id="session-form"
+      hx-ext="form-json"
       hx-post="/session-submit"
       hx-swap="none"
       hx-on::after-request="this.reset();"
 >
-    <input type="hidden" name="default_message_used" value="{{ 'true' if default_message else 'false' }}">
-    <div class="session-input-container">
+
+<div class="session-input-container">
   <div class="columns m-0">
     <div class="column is-3">
       <div class="field">
-        <label class="label">Model</label>
+        <label for="model-selector" class="label">Model</label>
         <div class="control">
           <div class="select is-fullwidth">
             <select id="model-selector" name="model">
@@ -22,7 +23,7 @@
     </div>
     <div class="column is-3">
       <div class="field">
-        <label class="label">Strategy</label>
+        <label for="strategy-selector" class="label">Strategy</label>
         <div class="control">
           <div class="select is-fullwidth">
             <select id="strategy-selector" name="strategy">

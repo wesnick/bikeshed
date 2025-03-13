@@ -8,10 +8,9 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.prompt import Prompt
 from typing import List, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.service.pulse_mcp_api import PulseMCPAPI, MCPServer
-from src.service.database import get_db
+from src.dependencies import get_db
 from src.fixtures import (
     create_flow_template, create_flow, create_session, 
     create_message, create_artifact, create_scratchpad,

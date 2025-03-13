@@ -7,7 +7,8 @@
     <p class="subtitle is-6">{{ form.description }}</p>
   {% endif %}
   
-  <form id="{{ form.id }}" 
+  <form id="{{ form.id }}"
+        hx-ext="form-json"
         hx-post="/tool/{{ tool_id }}/execute" 
         hx-swap="none">
     

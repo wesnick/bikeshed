@@ -1,0 +1,206 @@
+# config/packages/workflow.yaml
+
+framework:
+    workflows:
+        # 1. Prompt Chaining Workflow
+        prompt_chain:
+            type: 'state_machine'
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: 'method'
+                property: 'currentState'
+            supports:
+                - App\Entity\PromptTask
+            initial_marking: initial
+            places:
+                - initial
+                - llm_call_1
+                - gate_check
+                - llm_call_2
+                - llm_call_3
+                - completed
+                - failed
+            transitions:
+                start_process:
+#                    guard: Some check
+#                    metadata:
+#                      some: dictionary
+                    from: initial
+                    to: llm_call_1
+                check_gate:
+                    from: llm_call_1
+                    to: gate_check
+                proceed_to_next:
+                    from: gate_check
+                    to: llm_call_2
+                fail_process:
+                    from: gate_check
+                    to: failed
+                continue_chain:
+                    from: llm_call_2
+                    to: llm_call_3
+                complete:
+                    from: llm_call_3
+                    to: completed
+
+        # 2. Routing Workflow
+        routing:
+            type: 'state_machine'
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: 'method'
+                property: 'currentState'
+            supports:
+                - App\Entity\RoutingTask
+            initial_marking: input
+            places:
+                - input
+                - router
+                - llm_call_1
+                - llm_call_2
+                - llm_call_3
+                - output
+            transitions:
+                route_input:
+                    from: input
+                    to: router
+                route_to_call_1:
+                    from: router
+                    to: llm_call_1
+                route_to_call_2:
+                    from: router
+                    to: llm_call_2
+                route_to_call_3:
+                    from: router
+                    to: llm_call_3
+                complete_1:
+                    from: llm_call_1
+                    to: output
+                complete_2:
+                    from: llm_call_2
+                    to: output
+                complete_3:
+                    from: llm_call_3
+                    to: output
+
+        # 3. Parallelization Workflow
+        parallel_processing:
+            type: 'state_machine'
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: 'method'
+                property: 'currentState'
+            supports:
+                - App\Entity\ParallelTask
+            initial_marking: input
+            places:
+                - input
+                - processing
+                - llm_call_1
+                - llm_call_2
+                - llm_call_3
+                - aggregation
+                - output
+            transitions:
+                start_parallel:
+                    from: input
+                    to: processing
+                dispatch_1:
+                    from: processing
+                    to: llm_call_1
+                dispatch_2:
+                    from: processing
+                    to: llm_call_2
+                dispatch_3:
+                    from: processing
+                    to: llm_call_3
+                aggregate_1:
+                    from: llm_call_1
+                    to: aggregation
+                aggregate_2:
+                    from: llm_call_2
+                    to: aggregation
+                aggregate_3:
+                    from: llm_call_3
+                    to: aggregation
+                complete:
+                    from: aggregation
+                    to: output
+
+        # 4. Orchestrator-Workers Workflow
+        orchestrator_workers:
+            type: 'state_machine'
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: 'method'
+                property: 'currentState'
+            supports:
+                - App\Entity\OrchestratorTask
+            initial_marking: input
+            places:
+                - input
+                - orchestrator
+                - worker_1
+                - worker_2
+                - worker_3
+                - synthesis
+                - output
+            transitions:
+                start_orchestration:
+                    from: input
+                    to: orchestrator
+                assign_worker_1:
+                    from: orchestrator
+                    to: worker_1
+                assign_worker_2:
+                    from: orchestrator
+                    to: worker_2
+                assign_worker_3:
+                    from: orchestrator
+                    to: worker_3
+                synthesize_1:
+                    from: worker_1
+                    to: synthesis
+                synthesize_2:
+                    from: worker_2
+                    to: synthesis
+                synthesize_3:
+                    from: worker_3
+                    to: synthesis
+                complete:
+                    from: synthesis
+                    to: output
+
+        # 5. Evaluator-Optimizer Workflow
+        evaluator_optimizer:
+            type: 'state_machine'
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: 'method'
+                property: 'currentState'
+            supports:
+                - App\Entity\EvaluatorTask
+            initial_marking: input
+            places:
+                - input
+                - generator
+                - evaluator
+                - output
+            transitions:
+                start_generation:
+                    from: input
+                    to: generator
+                evaluate:
+                    from: generator
+                    to: evaluator
+                accept:
+                    from: evaluator
+                    to: output
+                regenerate:
+                    from: evaluator
+                    to: generator

@@ -4,6 +4,8 @@ import Bulma from '@vizuaalog/bulmajs';
 // Import HTMX and extensions
 import htmx from 'htmx.org';
 import 'htmx-ext-sse';
+import 'htmx-ext-form-json';
+
 
 // Import highlight.js for code syntax highlighting
 import hljs from 'highlight.js';

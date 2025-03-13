@@ -1,6 +1,10 @@
 {% from 'form_macros.html.j2' import render_field %}
 
-<form id="{{ form.id }}" method="post" class="dynamic-form">
+<form id="{{ form.id }}"
+      method="post"
+      class="dynamic-form"
+      hx-ext="form-json"
+>
   {% if form.title %}
     <h3 class="title is-4">{{ form.title }}</h3>
   {% endif %}

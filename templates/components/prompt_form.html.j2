@@ -2,7 +2,8 @@
   <h3 class="title is-4">{{ prompt.name }}</h3>
   <p class="subtitle is-6">{{ prompt.description }}</p>
 
-  <form id="prompt-form-{{ prompt_id | replace('.', '-') }}" 
+  <form id="prompt-form-{{ prompt_id | replace('.', '-') }}"
+        hx-ext="form-json"
         hx-post="/prompt/{{ prompt_id }}/interpolate" 
         hx-target="#session-form-container">
     
