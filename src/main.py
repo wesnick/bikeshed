@@ -9,7 +9,6 @@ import threading
 
 from fastapi import FastAPI, Request, Depends
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -20,8 +19,10 @@ from src.service.logging import logger, setup_logging
 from src.service.mcp_client import MCPClient
 from src.http.middleware import HTMXRedirectMiddleware
 from src.dependencies import markdown2html
-from src.models import Session
+from src.models.models import Session
 from src.dependencies import get_db
+from src.routes import api_router
+from src.repository import session_repository
 
 
 @asynccontextmanager
@@ -40,6 +41,9 @@ app.mount("/build", StaticFiles(directory="build"), name="build")
 jinja_templates = Jinja2Templates(directory="templates")
 jinja_templates.env.filters['markdown2html'] = markdown2html
 jinja = Jinja(jinja_templates)
+
+# Include API routes
+app.include_router(api_router)
 
 # Store active session tasks
 ACTIVE_SESSIONS = {}
@@ -131,9 +135,7 @@ async def session_component() -> dict:
 @jinja.hx('components/left_sidebar.html.j2')
 async def left_sidebar_component(db: AsyncSession = Depends(get_db)):
     """This route serves the left sidebar component for htmx requests."""
-    query = select(Session).order_by(desc(Session.created_at)).limit(40)
-    sessions = await db.execute(query)
-    sessions = sessions.scalars().all()
+    sessions = await session_repository.get_recent_sessions(db)
     return {
         "sessions": sessions,
         "tools": [],

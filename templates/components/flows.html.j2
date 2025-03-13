@@ -1,0 +1,72 @@
+<!-- Flows List -->
+<div class="container">
+  <h1 class="title">Flows</h1>
+  
+  <div class="box">
+    <h2 class="subtitle">Create New Flow</h2>
+    <form hx-post="/flow/" hx-target="#dashboard">
+      <div class="field">
+        <label class="label">Name</label>
+        <div class="control">
+          <input class="input" type="text" name="name" required placeholder="Flow name">
+        </div>
+      </div>
+      
+      <div class="field">
+        <label class="label">Description</label>
+        <div class="control">
+          <textarea class="textarea" name="description" placeholder="Flow description"></textarea>
+        </div>
+      </div>
+      
+      <div class="field">
+        <label class="label">Goal</label>
+        <div class="control">
+          <input class="input" type="text" name="goal" placeholder="Flow goal">
+        </div>
+      </div>
+      
+      <div class="field">
+        <div class="control">
+          <button class="button is-primary" type="submit">Create Flow</button>
+        </div>
+      </div>
+    </form>
+  </div>
+  
+  <div class="box">
+    <h2 class="subtitle">Existing Flows</h2>
+    {% if flows %}
+      <div class="table-container">
+        <table class="table is-fullwidth">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>State</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for flow in flows %}
+              <tr>
+                <td>{{ flow.name }}</td>
+                <td>{{ flow.description or "" }}</td>
+                <td>{{ flow.current_state or "initial" }}</td>
+                <td>{{ flow.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                  <a class="button is-small is-info" 
+                     hx-get="/flow/{{ flow.id }}" 
+                     hx-target="#dashboard">View</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>No flows found. Create one to get started!</p>
+    {% endif %}
+  </div>
+</div>

@@ -3,8 +3,13 @@
   <aside class="menu">
     <h3 class="menu-label">Navigation</h3>
 
-    <details>
+    <details open>
       <summary class="is-size-5">Flows</summary>
+      <ul class="menu-list">
+        <li>
+          <a hx-get="/flow/" hx-target="#dashboard">All Flows</a>
+        </li>
+      </ul>
     </details>
   {% if sessions %}
     <details>
