@@ -3,21 +3,40 @@
   <aside class="menu">
     <h3 class="menu-label">Navigation</h3>
 
-    <details open>
-      <summary class="is-size-5">Flows</summary>
+    <details>
+      <summary class="is-size-5">
+        Flows
+        [<a
+            hx-get="/flow"
+            hx-target="#dashboard"
+            hx-push-url="true"
+          >view all</a>]
+        [create]
+      </summary>
       <ul class="menu-list">
         <li>
-          <a hx-get="/flow/" hx-target="#dashboard">All Flows</a>
         </li>
       </ul>
     </details>
   {% if sessions %}
     <details>
-      <summary class="is-size-5">Sessions</summary>
+      <summary class="is-size-5">
+        Sessions
+        [<a
+            hx-get="/session"
+            hx-target="#dashboard"
+            hx-push-url="true"
+          >view all</a>]
+        [create]
+      </summary>
 <ul class="menu-list">
       {% for session in sessions %}
 
-    <li><a>{{ session.summary }}</a></li>
+    <li><a
+      hx-get="/session/{{ session.id }}"
+      hx-target="#dashboard"
+      hx-push-url="true"
+    >{{ session.summary }}</a></li>
 {#    <li>#}
 {#      <a class="is-active">Manage Your Team</a>#}
 {#      <ul>#}

@@ -1,10 +1,10 @@
-<div class="message-container m-2">
+<div class="message-container m-5">
     <div class="message-bubble p-3 {% if message.role == 'user' %}is-primary{% else %}is-light{% endif %} box">
         <div class="message-header">
             <strong>{{ message.role|title }}</strong>
         </div>
         <div class="message-content mt-2">
-            {{ message.content | markdown2html | safe }}
+            {{ message.text | markdown2html | safe }}
         </div>
     </div>
 </div>

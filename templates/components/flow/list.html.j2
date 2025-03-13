@@ -1,0 +1,42 @@
+<!-- Flows List -->
+<div class="container">
+  <h1 class="title">Flows</h1>
+
+  <div class="box">
+    <h2 class="subtitle">Existing Flows</h2>
+    {% if flows %}
+      <div class="table-container">
+        <table class="table is-fullwidth">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>State</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for flow in flows %}
+              <tr>
+                <td>{{ flow.name }}</td>
+                <td>{{ flow.description or "" }}</td>
+                <td>{{ flow.current_state or "initial" }}</td>
+                <td>{{ flow.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                  <a class="button is-small is-info"
+                     hx-get="/flow/{{ flow.id }}"
+                     hx-target="#dashboard"
+                     hx-push-url="true"
+                  >View</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>No flows found. Create one to get started!</p>
+    {% endif %}
+  </div>
+</div>

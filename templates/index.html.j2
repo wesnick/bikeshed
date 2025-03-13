@@ -21,8 +21,8 @@
         <div class="main-content columns">
             <!-- Sidebar -->
             <aside class="sidebar menu column is-2 is-narrow-mobile section p-4 is-flex is-flex-direction-column">
-                <div class="sidebar-navigation is-flex-grow-1 overflow-y-auto" 
-                     hx-get="/components/left-sidebar" 
+                <div class="sidebar-navigation is-flex-grow-1 overflow-y-auto"
+                     hx-get="/components/left-sidebar"
                      hx-trigger="load, sse:sidebar_update from:body">
                    {% include 'components/skeleton.html.j2' %}
                 </div>
@@ -42,8 +42,6 @@
             <!-- Main Dashboard Area -->
             <div class="column is-7 section m-2 p-0 is-flex is-flex-direction-column">
                 <div id="dashboard"
-                     hx-get="/session"
-                     hx-trigger="load, sse:session_update from:body"
                      class="is-flex-grow-1 overflow-y-auto"
                 >
                 </div>
@@ -51,7 +49,7 @@
 
             <!-- Drawer Section -->
             <div class="column is-3 section p-5"
-                 hx-get="/components/right-drawer" 
+                 hx-get="/components/right-drawer"
                  hx-trigger="load, sse:drawer_update from:body">
             </div>
         </div>

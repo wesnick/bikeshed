@@ -1,6 +1,8 @@
 from typing import AsyncGenerator, Annotated
 
 from fastapi import Depends
+from fastapi.templating import Jinja2Templates
+from fasthx import Jinja
 from markdown2 import markdown
 from sqlalchemy.ext.asyncio import  AsyncSession
 
@@ -26,8 +28,17 @@ async def get_mcp_client(cache: Annotated[RedisService, Depends(get_cache)]) -> 
 
 
 def markdown2html(text: str):
+    from src.main import logger
+    logger.debug(f"Converting markdown to html: {text}")
     return markdown(text, extras={
         'breaks': {'on_newline': True},
         'fenced-code-blocks': {},
         'highlightjs-lang': {},
     })
+
+
+def get_jinja() -> Jinja:
+    jinja_templates = Jinja2Templates(directory="templates")
+    jinja_templates.env.filters['markdown2html'] = markdown2html
+
+    return Jinja(jinja_templates)

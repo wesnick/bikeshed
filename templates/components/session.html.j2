@@ -1,14 +1,19 @@
+{#
+
+
+#}
 <!-- Workspace -->
 <div class="is-flex is-flex-direction-column p-2">
     {% if session %}
     <div class="box mb-3">
+
         <h1 class="title">{{ session.summary or "Untitled Session" }}</h1>
         {% if session.goal %}
         <p class="subtitle">Goal: {{ session.goal }}</p>
         {% endif %}
     </div>
     {% endif %}
-    
+
     <div class="box p-0 mb-3 is-overflow-y-scroll">
         <div id="messages-container" class="messages">
             {% for message in messages %}

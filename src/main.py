@@ -8,21 +8,17 @@ import signal
 import threading
 
 from fastapi import FastAPI, Request, Depends
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-from fasthx import Jinja
 from sse_starlette.sse import EventSourceResponse
 
 from src.service.logging import logger, setup_logging
 from src.service.mcp_client import MCPClient
 from src.http.middleware import HTMXRedirectMiddleware
-from src.dependencies import markdown2html
-from src.models.models import Session
-from src.dependencies import get_db
+from src.dependencies import get_db, get_jinja
 from src.routes import api_router
-from src.repository import session_repository
+from src.repository import session_repository, flow_repository
 
 
 @asynccontextmanager
@@ -38,9 +34,7 @@ app.add_middleware(HTMXRedirectMiddleware)
 # static asset mount
 app.mount("/build", StaticFiles(directory="build"), name="build")
 
-jinja_templates = Jinja2Templates(directory="templates")
-jinja_templates.env.filters['markdown2html'] = markdown2html
-jinja = Jinja(jinja_templates)
+jinja = get_jinja()
 
 # Include API routes
 app.include_router(api_router)
@@ -135,8 +129,10 @@ async def session_component() -> dict:
 @jinja.hx('components/left_sidebar.html.j2')
 async def left_sidebar_component(db: AsyncSession = Depends(get_db)):
     """This route serves the left sidebar component for htmx requests."""
+    flows = await flow_repository.get_recent_flows(db)
     sessions = await session_repository.get_recent_sessions(db)
     return {
+        "flows": flows,
         "sessions": sessions,
         "tools": [],
         "prompts": [],
