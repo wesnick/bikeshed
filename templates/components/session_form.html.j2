@@ -5,69 +5,70 @@
       hx-on::after-request="this.reset();"
 >
 
-<div class="session-input-container">
-  <div class="columns m-0">
-    <div class="column is-3">
-      <div class="field">
-        <label for="model-selector" class="label">Model</label>
-        <div class="control">
-          <div class="select is-fullwidth">
-            <select id="model-selector" name="model">
-              <option value="gpt-4">GPT-4</option>
-              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-              <option value="claude-3">Claude 3</option>
-            </select>
+  <div class="session-input-container">
+    <div class="columns m-0">
+      <div class="column is-3">
+        <div class="field">
+          <label for="model-selector" class="label">Model</label>
+          <div class="control">
+            <div class="select is-fullwidth">
+              <select id="model-selector" name="model">
+                <option value="gpt-4">GPT-4</option>
+                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                <option value="claude-3">Claude 3</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="column is-3">
-      <div class="field">
-        <label for="strategy-selector" class="label">Strategy</label>
-        <div class="control">
-          <div class="select is-fullwidth">
-            <select id="strategy-selector" name="strategy">
-              <option value="default">Default</option>
-              <option value="creative">Creative</option>
-              <option value="precise">Precise</option>
-            </select>
+      <div class="column is-3">
+        <div class="field">
+          <label for="strategy-selector" class="label">Strategy</label>
+          <div class="control">
+            <div class="select is-fullwidth">
+              <select id="strategy-selector" name="strategy">
+                <option value="default">Default</option>
+                <option value="creative">Creative</option>
+                <option value="precise">Precise</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="column is-6">
-      <div class="field utility-buttons">
-        <label class="label">Utilities</label>
-        <div class="buttons">
-          <button class="button is-small" title="Clear session">
+      <div class="column is-6">
+        <div class="field utility-buttons">
+          <label class="label">Utilities</label>
+          <div class="buttons">
+            <button class="button is-small" title="Clear session">
             <span class="icon">
               <i class="fas fa-trash-alt"></i>
             </span>
-          </button>
-          <button class="button is-small" title="Save conversation">
+            </button>
+            <button class="button is-small" title="Save conversation">
             <span class="icon">
               <i class="fas fa-save"></i>
             </span>
-          </button>
-          <button class="button is-small" title="Export as PDF">
+            </button>
+            <button class="button is-small" title="Export as PDF">
             <span class="icon">
               <i class="fas fa-file-pdf"></i>
             </span>
-          </button>
-          <button class="button is-small" title="Settings">
+            </button>
+            <button class="button is-small" title="Settings">
             <span class="icon">
               <i class="fas fa-cog"></i>
             </span>
-          </button>
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
   <div class="field">
     <div class="control">
-        <label for="session-input">Magic</label>
-        <textarea id="session-input" name="message" class="textarea" placeholder="Type your message here..." rows="3" required>{{ default_message if default_message else "" }}</textarea>
+      <label for="session-input">Magic</label>
+      <textarea id="session-input" name="message" class="textarea" placeholder="Type your message here..." rows="3"
+                required>{{ default_message if default_message else "" }}</textarea>
     </div>
   </div>
   <div class="field is-grouped is-grouped-right">

@@ -7,10 +7,10 @@
       <summary class="is-size-5">
         Flows
         [<a
-            hx-get="/flow"
-            hx-target="#dashboard"
-            hx-push-url="true"
-          >view all</a>]
+        hx-get="/flow"
+        hx-target="#dashboard"
+        hx-push-url="true"
+      >view all</a>]
         [create]
       </summary>
       <ul class="menu-list">
@@ -18,51 +18,51 @@
         </li>
       </ul>
     </details>
-  {% if sessions %}
-    <details>
-      <summary class="is-size-5">
-        Sessions
-        [<a
-            hx-get="/session"
-            hx-target="#dashboard"
-            hx-push-url="true"
-          >view all</a>]
-        [create]
-      </summary>
-<ul class="menu-list">
-      {% for session in sessions %}
+    {% if sessions %}
+      <details>
+        <summary class="is-size-5">
+          Sessions
+          [<a
+          hx-get="/session"
+          hx-target="#dashboard"
+          hx-push-url="true"
+        >view all</a>]
+          [create]
+        </summary>
+        <ul class="menu-list">
+          {% for session in sessions %}
 
-    <li><a
-      hx-get="/session/{{ session.id }}"
-      hx-target="#dashboard"
-      hx-push-url="true"
-    >{{ session.summary }}</a></li>
-{#    <li>#}
-{#      <a class="is-active">Manage Your Team</a>#}
-{#      <ul>#}
-{#        <li><a>Members</a></li>#}
-{#        <li><a>Plugins</a></li>#}
-{#        <li><a>Add a member</a></li>#}
-{#      </ul>#}
-{#    </li>#}
-{#    <li><a>Invitations</a></li>#}
-{#    <li><a>Cloud Storage Environment Settings</a></li>#}
-{#    <li><a>Authentication</a></li>#}
+            <li><a
+              hx-get="/session/{{ session.id }}"
+              hx-target="#dashboard"
+              hx-push-url="true"
+            >{{ session.summary }}</a></li>
+            {#    <li>#}
+            {#      <a class="is-active">Manage Your Team</a>#}
+            {#      <ul>#}
+            {#        <li><a>Members</a></li>#}
+            {#        <li><a>Plugins</a></li>#}
+            {#        <li><a>Add a member</a></li>#}
+            {#      </ul>#}
+            {#    </li>#}
+            {#    <li><a>Invitations</a></li>#}
+            {#    <li><a>Cloud Storage Environment Settings</a></li>#}
+            {#    <li><a>Authentication</a></li>#}
 
-      {% endfor %}
-</ul>
-    </details>
-  {% endif %}
+          {% endfor %}
+        </ul>
+      </details>
+    {% endif %}
 
 
-{#    <ul class="menu-list">#}
-{#      <li><a href="/session" hx-get="/session" hx-target="#dashboard" hx-push-url="true">Sessions</a></li>#}
-{#      <li><a href="#">Flows</a></li>#}
-{##}
-{#      <li><a href="#">Flows</a></li>#}
-{#      <li><a href="/settings" hx-get="/settings" hx-target="#dashboard" hx-push-url="true">Settings</a></li>#}
-{#      <li><a href="/kitchen-sink" hx-get="/kitchen-sink" hx-target="#dashboard" hx-push-url="true">Kitchen Sink</a></li>#}
-{#    </ul>#}
+    {#    <ul class="menu-list">#}
+    {#      <li><a href="/session" hx-get="/session" hx-target="#dashboard" hx-push-url="true">Sessions</a></li>#}
+    {#      <li><a href="#">Flows</a></li>#}
+    {##}
+    {#      <li><a href="#">Flows</a></li>#}
+    {#      <li><a href="/settings" hx-get="/settings" hx-target="#dashboard" hx-push-url="true">Settings</a></li>#}
+    {#      <li><a href="/kitchen-sink" hx-get="/kitchen-sink" hx-target="#dashboard" hx-push-url="true">Kitchen Sink</a></li>#}
+    {#    </ul>#}
     {% if tools %}
       <p class="menu-label">Tools</p>
       <ul class="menu-list">

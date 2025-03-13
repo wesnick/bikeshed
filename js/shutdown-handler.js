@@ -1,9 +1,41 @@
 import Bulma from "@vizuaalog/bulmajs";
+import htmx from "htmx.org";
+
+
+document.addEventListener('DOMContentLoaded', function() {
+        // Check if we have a target path from redirect
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetPath = urlParams.get('target_path');
+
+        if (targetPath) {
+            // Clean up the URL by removing the query parameter
+            history.replaceState({}, '', targetPath);
+
+            // Create a temporary element with HTMX attributes
+            const tempEl = document.createElement('div');
+            tempEl.setAttribute('hx-get', targetPath);
+            tempEl.setAttribute('hx-target', '#dashboard');
+            tempEl.setAttribute('hx-push-url', 'true');
+            tempEl.setAttribute('hx-trigger', 'load');
+
+            // Add it to the DOM temporarily
+            document.body.appendChild(tempEl);
+
+            // Force HTMX to process it
+            htmx.process(tempEl);
+
+            // Remove it after processing
+            setTimeout(() => {
+                document.body.removeChild(tempEl);
+            }, 100);
+        }
+    });
 
 /**
  * Handles server shutdown events from SSE
  */
 document.addEventListener('DOMContentLoaded', function() {
+
 
     document.body.addEventListener('htmx:sseClose', function (e) {
         const reason = e.detail.type
@@ -37,7 +69,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 2000);
         }
     })
-
 
     // Listen for the custom SSE event
     document.body.addEventListener('htmx:sseMessage', function(event) {

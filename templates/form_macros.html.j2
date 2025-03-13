@@ -3,35 +3,35 @@
   {% set field_id = field.name|replace('_', '-') %}
   {% set field_value = value if value is not none else (field.default_value if field.default_value is not none else '') %}
   {% set is_required = field.required %}
-  
+
   <div class="field">
     <label class="label" for="{{ field_id }}">
       {{ field.label }}
       {% if is_required %}<span class="has-text-danger">*</span>{% endif %}
     </label>
-    
+
     <div class="control{% if field.field_type == 'email' %} has-icons-left{% endif %}">
       {% if field.field_type == 'textarea' %}
-        <textarea 
-          id="{{ field_id }}" 
-          name="{{ field.name }}" 
+        <textarea
+          id="{{ field_id }}"
+          name="{{ field.name }}"
           class="textarea {{ field.css_class or '' }}"
           placeholder="{{ field.placeholder or '' }}"
           {% if is_required %}required{% endif %}
         >{{ field_value }}</textarea>
-      
+
       {% elif field.field_type == 'select' %}
         <div class="select">
-          <select 
-            id="{{ field_id }}" 
+          <select
+            id="{{ field_id }}"
             name="{{ field.name }}"
             class="{{ field.css_class or '' }}"
             {% if is_required %}required{% endif %}
           >
             <option value="">-- Select --</option>
             {% for option in field.options or [] %}
-              <option 
-                value="{{ option.value }}" 
+              <option
+                value="{{ option.value }}"
                 {% if field_value == option.value %}selected{% endif %}
               >
                 {{ option.label }}
@@ -39,24 +39,24 @@
             {% endfor %}
           </select>
         </div>
-        
+
       {% elif field.field_type == 'checkbox' %}
         <label class="checkbox">
-          <input 
-            type="checkbox" 
-            id="{{ field_id }}" 
+          <input
+            type="checkbox"
+            id="{{ field_id }}"
             name="{{ field.name }}"
             {% if field_value %}checked{% endif %}
           >
           {{ field.help_text or '' }}
         </label>
-        
+
       {% elif field.field_type == 'radio' %}
         {% for option in field.options or [] %}
           <label class="radio">
-            <input 
-              type="radio" 
-              name="{{ field.name }}" 
+            <input
+              type="radio"
+              name="{{ field.name }}"
               value="{{ option.value }}"
               {% if field_value == option.value %}checked{% endif %}
               {% if is_required %}required{% endif %}
@@ -64,12 +64,12 @@
             {{ option.label }}
           </label>
         {% endfor %}
-        
+
       {% else %}
-        <input 
-          type="{{ field.field_type }}" 
-          id="{{ field_id }}" 
-          name="{{ field.name }}" 
+        <input
+          type="{{ field.field_type }}"
+          id="{{ field_id }}"
+          name="{{ field.name }}"
           value="{{ field_value }}"
           class="input {{ field.css_class or '' }}"
           placeholder="{{ field.placeholder or '' }}"
@@ -84,7 +84,7 @@
         {% endif %}
       {% endif %}
     </div>
-    
+
     {% if field.help_text and field.field_type != 'checkbox' %}
       <p class="help">{{ field.help_text }}</p>
     {% endif %}

@@ -8,26 +8,26 @@
       <div class="table-container">
         <table class="table is-fullwidth">
           <thead>
-            <tr>
-              <th>Summary</th>
-              <th>Goal</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
+          <tr>
+            <th>Summary</th>
+            <th>Goal</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
           </thead>
           <tbody>
-            {% for session in sessions %}
-              <tr>
-                <td>{{ session.summary or "Untitled Session" }}</td>
-                <td>{{ session.goal or "" }}</td>
-                <td>{{ session.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                <td>
-                  <a class="button is-small is-info"
-                     hx-get="/session/{{ session.id }}"
-                     hx-target="#dashboard">View</a>
-                </td>
-              </tr>
-            {% endfor %}
+          {% for session in sessions %}
+            <tr>
+              <td>{{ session.summary or "Untitled Session" }}</td>
+              <td>{{ session.goal or "" }}</td>
+              <td>{{ session.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>
+                <a class="button is-small is-info"
+                   hx-get="/session/{{ session.id }}"
+                   hx-target="#dashboard">View</a>
+              </td>
+            </tr>
+          {% endfor %}
           </tbody>
         </table>
       </div>
