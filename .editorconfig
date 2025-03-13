@@ -12,8 +12,8 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
 
-# HTML files
-[*.{html,htm}]
+# HTML files and Jinja templates
+[*.{html,htm,html.j2,j2}]
 indent_size = 2
 
 # JavaScript files
