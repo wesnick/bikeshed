@@ -1,27 +1,23 @@
-// Import Bulma
-import Bulma from '@vizuaalog/bulmajs';
-
 // Import HTMX and extensions
 import htmx from 'htmx.org';
 import 'htmx-ext-sse';
 import 'htmx-ext-form-json';
 
-
-// Import highlight.js for code syntax highlighting
-import hljs from 'highlight.js';
-
+import {initializeEditor} from './prosemirror';
 
 // Import custom handlers
-import './shutdown-handler.js';
+import './shutdown-handler';
+import {highlightCodeBlocks} from "./code_highlight";
+
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', () => {
   console.log('BikeShed application initialized');
-  
+
   // Ensure SSE extension is properly initialized
   if (typeof htmx !== 'undefined') {
     console.log('HTMX loaded successfully');
-    
+
     // Log SSE connection events
     document.body.addEventListener('sse:connected', function(event) {
       console.log('SSE Connected:', event.detail);
@@ -39,9 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize theme from localStorage
   initializeTheme();
-  
-  // Initialize syntax highlighting
-  highlightCodeBlocks();
+
 });
 
 // Function to initialize theme
@@ -58,20 +52,30 @@ document.body.addEventListener('htmx:afterSettle', function(event) {
   if (event.detail.elt.querySelector && event.detail.elt.querySelector('.theme-toggle')) {
     setupThemeToggle();
   }
-  
+
+  if (event.detail.elt.querySelector && event.detail.elt.querySelector('#editor')) {
+    initializeEditor();
+  }
+
+  if (event.detail.elt.querySelector && event.detail.elt.querySelector('pre code')) {
+    for (const elem of event.detail.elt.querySelectorAll('pre code')) {
+      highlightCodeBlocks(elem);
+    }
+  }
+
   // Apply syntax highlighting to any new code blocks
-  highlightCodeBlocks(event.detail.elt);
+
 });
 
 // Function to set up theme toggle
 function setupThemeToggle() {
   const themeToggle = document.querySelector('.theme-toggle');
   if (!themeToggle) return;
-  
+
   // Remove any existing event listeners by cloning and replacing
   const newThemeToggle = themeToggle.cloneNode(true);
   themeToggle.parentNode.replaceChild(newThemeToggle, themeToggle);
-  
+
   // Add click event listener
   newThemeToggle.addEventListener('click', function(e) {
     e.preventDefault();
@@ -111,11 +115,11 @@ function updateThemeToggleAppearance(themeToggle) {
     themeToggle = document.querySelector('.theme-toggle');
     if (!themeToggle) return;
   }
-  
+
   const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
   const icon = themeToggle.querySelector('i');
   const text = themeToggle.querySelector('.theme-text');
-  
+
   if (currentTheme === 'dark') {
     icon.classList.remove('fa-moon');
     icon.classList.add('fa-sun');
@@ -127,19 +131,3 @@ function updateThemeToggleAppearance(themeToggle) {
   }
 }
 
-// Function to apply syntax highlighting to code blocks
-function highlightCodeBlocks(container = document) {
-  // Find all code elements within the container
-  const codeBlocks = container.querySelectorAll('pre code');
-  
-  if (codeBlocks.length > 0) {
-    console.log(`Highlighting ${codeBlocks.length} code blocks`);
-    
-    // Apply highlighting to each code block
-    codeBlocks.forEach(block => {
-      if (!block.classList.contains('hljs')) {
-        hljs.highlightElement(block);
-      }
-    });
-  }
-}

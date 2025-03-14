@@ -13,10 +13,15 @@
       >view all</a>]
         [create]
       </summary>
-      <ul class="menu-list">
-        <li>
-        </li>
-      </ul>
+        <ul class="menu-list">
+          {% for flow in flows %}
+            <li><a
+              hx-get="/flow/{{ flow.id }}"
+              hx-target="#dashboard"
+              hx-push-url="true"
+            >{{ flow.goal }}</a></li>
+          {% endfor %}
+        </ul>
     </details>
     {% if sessions %}
       <details>
@@ -31,24 +36,11 @@
         </summary>
         <ul class="menu-list">
           {% for session in sessions %}
-
             <li><a
               hx-get="/session/{{ session.id }}"
               hx-target="#dashboard"
               hx-push-url="true"
             >{{ session.summary }}</a></li>
-            {#    <li>#}
-            {#      <a class="is-active">Manage Your Team</a>#}
-            {#      <ul>#}
-            {#        <li><a>Members</a></li>#}
-            {#        <li><a>Plugins</a></li>#}
-            {#        <li><a>Add a member</a></li>#}
-            {#      </ul>#}
-            {#    </li>#}
-            {#    <li><a>Invitations</a></li>#}
-            {#    <li><a>Cloud Storage Environment Settings</a></li>#}
-            {#    <li><a>Authentication</a></li>#}
-
           {% endfor %}
         </ul>
       </details>

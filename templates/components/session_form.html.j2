@@ -66,9 +66,10 @@
   </div>
   <div class="field">
     <div class="control">
-      <label for="session-input">Magic</label>
-      <textarea id="session-input" name="text" class="textarea" placeholder="Type your message here..." rows="3"
-                required>{{ default_message if default_message else "" }}</textarea>
+      <label for="editor">Magic</label>
+      <div id="editor" class="editor"></div>
+      <textarea id="preview" name="text" class="textarea" rows="3"></textarea>
+      <div id="preview"></div>
     </div>
   </div>
   <div class="field is-grouped is-grouped-right">
