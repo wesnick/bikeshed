@@ -62,8 +62,6 @@ html, body {
 }
 
 #dashboard {
-    display: flex;
-    flex-direction: column;
     height: 100%;
     overflow: hidden;
 }
@@ -72,16 +70,7 @@ html, body {
     position: sticky;
     bottom: 0;
     width: 100%;
-    background-color: white;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
     z-index: 10;
-}
-
-.messages {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    overflow-y: auto;
 }
 
 #sidebar-navigation {
@@ -89,7 +78,4 @@ html, body {
     padding-right: 0.5rem;
 }
 
-#sidebar-settings {
-    margin-top: auto;
-}
 
