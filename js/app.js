@@ -2,8 +2,11 @@
 import htmx from 'htmx.org';
 import 'htmx-ext-sse';
 import 'htmx-ext-form-json';
+import hljs from 'highlight.js';
 
 import {initializeEditor} from './prosemirror';
+
+
 
 // Import custom handlers
 import './shutdown-handler';
@@ -59,7 +62,7 @@ document.body.addEventListener('htmx:afterSettle', function(event) {
 
   if (event.detail.elt.querySelector && event.detail.elt.querySelector('pre code')) {
     for (const elem of event.detail.elt.querySelectorAll('pre code')) {
-      highlightCodeBlocks(elem);
+      hljs.highlightElement(elem);
     }
   }
 

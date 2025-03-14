@@ -12,7 +12,7 @@ import {
   splitBlock
 } from "prosemirror-commands";
 import {history, redo, undo} from "prosemirror-history";
-import {highlightCodeBlocks} from './code_highlight';
+import hljs from 'highlight.js';
 
 export function initializeEditor() {
     // Create and mount the editor
@@ -474,7 +474,7 @@ export function initializeEditor() {
           const language = parent.querySelector('.code-language').textContent;
           if (language && !node.classList.contains(`language-${language}`)) {
             node.className = `language-${language}`;
-            highlightCodeBlocks(node);
+            hljs.highlightElement(node);
           }
         }
       });
