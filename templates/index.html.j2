@@ -15,22 +15,27 @@
 <body hx-ext="sse" sse-connect="/sse" sse-close="server_shutdown">
 <div class="dashboard-container">
   <!-- Navbar/Header -->
-  <nav class="navbar has-shadow" role="navigation" aria-label="main navigation" hx-get="/components/navbar"
-       hx-trigger="load">
+  <nav
+    class="navbar has-shadow"
+    role="navigation"
+    aria-label="main navigation"
+    hx-get="/components/navbar"
+    hx-trigger="load"
+  >
     {% include 'components/skeleton.html.j2' %}
   </nav>
 
   <!-- Main Content Area -->
-  <div class="main-content columns">
+  <div id="main-content" class="columns mt-2">
     <!-- Sidebar -->
-    <aside class="sidebar menu column is-2 is-narrow-mobile section p-4 is-flex is-flex-direction-column">
-      <div class="sidebar-navigation is-flex-grow-1 overflow-y-auto"
+    <aside id="sidebar" class="menu column is-2 is-narrow-mobile section p-4 is-flex is-flex-direction-column">
+      <div id="sidebar-navigation" class="is-flex-grow-1 overflow-y-auto"
            hx-get="/components/left-sidebar"
            hx-trigger="load, sse:sidebar_update from:body">
         {% include 'components/skeleton.html.j2' %}
       </div>
 
-      <div class="sidebar-settings">
+      <div id="sidebar-settings">
         <!-- Misc Items -->
         <p class="menu-label mt-6">
           Misc
@@ -44,9 +49,7 @@
 
     <!-- Main Dashboard Area -->
     <div class="column is-7 section m-2 p-0 is-flex is-flex-direction-column">
-      <div id="dashboard"
-           class="is-flex-grow-1 overflow-y-auto"
-      >
+      <div id="dashboard">
       </div>
     </div>
 

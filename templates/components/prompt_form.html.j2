@@ -5,7 +5,7 @@
   <form id="prompt-form-{{ prompt_id | replace('.', '-') }}"
         hx-ext="form-json"
         hx-post="/prompt/{{ prompt_id }}/interpolate"
-        hx-target="#session-form-container">
+        hx-target="#dashboard-dock">
 
     {% for arg in prompt.arguments %}
       <div class="field">

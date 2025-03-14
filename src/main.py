@@ -13,6 +13,8 @@ from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from sse_starlette.sse import EventSourceResponse
 
+from src.schemas import MessageCreate
+from src.models import Message
 from src.service.logging import logger, setup_logging
 from src.service.mcp_client import MCPClient
 from src.http.middleware import HTMXRedirectMiddleware
@@ -115,9 +117,11 @@ def index() -> dict:
     return {}
 
 @app.get("/settings")
-@jinja.hx('components/settings.html.j2', no_data=True)
-async def settings_component() -> None:
+@jinja.hx('components/settings.html.j2')
+async def settings_component() -> dict:
     """This route serves just the settings component for htmx requests."""
+    return {}
+
 
 @app.get("/session/{session_id}")
 @jinja.hx('components/session.html.j2')
@@ -127,7 +131,7 @@ async def session_component() -> dict:
 
 @app.get("/components/left-sidebar")
 @jinja.hx('components/left_sidebar.html.j2')
-async def left_sidebar_component(db: AsyncSession = Depends(get_db)):
+async def left_sidebar_component(db: AsyncSession = Depends(get_db)) -> dict:
     """This route serves the left sidebar component for htmx requests."""
     flows = await flow_repository.get_recent_flows(db)
     sessions = await session_repository.get_recent_sessions(db)
@@ -148,10 +152,11 @@ async def right_drawer_component() -> None:
 async def navbar_component() -> None:
     """This route serves the navbar component for htmx requests."""
 
-@app.get("/components/session-form")
-@jinja.hx('components/session_form.html.j2', no_data=True)
-async def session_form_component() -> None:
+@app.get("/components/session-form/{session_id}")
+@jinja.hx('components/session_form.html.j2')
+async def session_form_component(session_id: str):
     """This route serves the session form component for htmx requests."""
+    return {"session_id": session_id}
 
 
 @app.get("/prompt/{prompt_id}")
@@ -409,46 +414,59 @@ async def sse(request: Request):
 
 @app.post("/session-submit", response_class=HTMLResponse)
 async def session(
-    request: Request,
+    message: MessageCreate,
 ):
     # Get model and strategy from form data
-    form_data = await request.json()
-    logger.info(f"Form data: {form_data}")
-    model = form_data.get("model", "default-model")
-    strategy = form_data.get("strategy", "default-strategy")
+    # form_data = await request.json()
+    logger.info(f"Form data: {message.model_dump()}")
+    # model = form_data.get("model", "default-model")
+    # strategy = form_data.get("strategy", "default-strategy")
 
     # Process in background (non-blocking)
-    asyncio.create_task(process_message(message, model, strategy))
+    asyncio.create_task(process_message(message))
 
     # Return empty response as we'll update via SSE
     return ""
 
-async def process_message(message: str, model: str, strategy: str):
+async def process_message(message: MessageCreate):
     """Process the message and send response via SSE"""
+
     # Add user message to the database
-    user_message_data = {
-        "role": "user",
-        "content": message,
-        "model": None,  # User messages don't have a model
-        "extra": {"strategy": strategy}  # Store strategy in extra
-    }
+    db_message = Message(
+        role=message.role,
+        model=message.model,
+        text=message.text,
+        mime_type=message.mime_type,
+        session_id=message.session_id,
+        parent_id=message.parent_id,
+        extra=message.extra
+    )
+    async for db in get_db():
+        db.add(db_message)
+        await db.commit()
 
-    # Notify all clients to update the session component
-    await broadcast_event("session_update", "update")
 
-    # Simulate processing time
-    await asyncio.sleep(randint(1, 5))
+        # Notify all clients to update the session component
+        await broadcast_event("session_update", "update")
 
-    # Add system response to the database
-    system_response_data = {
-        "role": "assistant",
-        "content": f"Processed message using {model} with {strategy} strategy: {message}",
-        "model": model,
-        "extra": {"strategy": strategy}
-    }
+        # Simulate processing time
+        await asyncio.sleep(randint(1, 5))
 
-    # Notify all clients to update the session component again
-    await broadcast_event("session_update", "update")
+        # Add system response to the database
+        await db.refresh(db_message)
+        db_message = Message(
+            role="assistant",
+            model=message.model,
+            text=f"Processed message using {message.model} with {message.extra} strategy: {message.text}",
+            mime_type=message.mime_type,
+            session_id=message.session_id,
+            parent_id=db_message.id,
+        )
+        db.add(db_message)
+        await db.commit()
+
+        # Notify all clients to update the session component again
+        await broadcast_event("session_update", "update")
 
 async def broadcast_event(event_name, data):
     """Send an event to all connected SSE clients"""

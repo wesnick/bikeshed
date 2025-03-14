@@ -3,7 +3,7 @@
 
 #}
 <!-- Workspace -->
-<div class="is-flex is-flex-direction-column p-2">
+<div id="dashboard-top" class="p-2">
   {% if session %}
     <div class="box mb-3">
 
@@ -21,8 +21,8 @@
       {% endfor %}
     </div>
   </div>
-  <div id="session-form-container"
-       hx-get="/components/session-form"
-       hx-trigger="load, sse:form_update from:body">
-  </div>
+</div>
+<div id="dashboard-dock"
+     hx-get="/components/session-form/{{ session.id }}"
+     hx-trigger="load, sse:form_update from:body">
 </div>
