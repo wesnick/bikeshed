@@ -14,3 +14,15 @@ class MessageBase(BaseModel):
 class MessageCreate(MessageBase):
     session_id: UUID
     parent_id: Optional[UUID] = None
+
+
+class ProjectSpecification(BaseModel):
+    name: str
+    overview: str
+    duration_weeks: Optional[int]
+    core_feature_details: list[str]
+
+
+
+class ProjectMilestones(BaseModel):
+    milestones: List[str] = []
