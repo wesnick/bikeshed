@@ -1,23 +1,26 @@
 from pydantic import BaseModel, ValidationError, Field
 from mcp.server.fastmcp.resources import ResourceManager
-from mcp.server.fastmcp.prompts import PromptManager
+from mcp.server.fastmcp.prompts import (
+    PromptManager,
+    Prompt as BasePrompt,
+)
 from mcp.server.fastmcp.tools import ToolManager
-from fastapi_events.registry.payload_schema import registry
+from fastapi_events.registry.payload_schema import registry as event_registry
 
 from src.service.logging import logger
 
-from src.core.config_types import (
-    SessionTemplate,
-    Step,
-    MessageStep,
-    PromptStep,
-    UserInputStep,
-    InvokeStep
-)
+class Prompt(BasePrompt):
+    """A prompt that can be rendered with arguments."""
+    template: str = Field(description="Path to template, prefixed with alias")
+
 
 
 class Schema(BaseModel):
     """A schema that describes an input or output structure."""
+    name: str
+    json_schema: dict
+    description: str = ""
+    source_class: str = ""
 
 
 class SchemaManager:
@@ -55,8 +58,16 @@ class Registry:
         self.resource_manager = ResourceManager()
         self.prompt_manager = PromptManager()
         self.tool_manager = ToolManager()
-        self.registry = registry
+        self.event_registry = event_registry
         self.schema_manager = SchemaManager()
+
+    def get_schema(self, name: str) -> Schema | None:
+        """Get a schema by name."""
+        return self.schema_manager.schema(name)
+
+    def list_schemas(self) -> list[Schema]:
+        """List all registered schemas."""
+        return self.schema_manager.list_schemas()
 
 
 

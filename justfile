@@ -74,3 +74,11 @@ test-watch:
 # Start both frontend and backend development servers
 dev:
     just frontend-dev & just fastapi-dev
+    
+# Load schemas from modules
+load-schemas:
+    python -m src.cli load-schemas
+
+# Load all schemas (including non-decorated ones)
+load-all-schemas:
+    python -m src.cli load-schemas --scan-all

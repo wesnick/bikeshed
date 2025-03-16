@@ -13,17 +13,30 @@ session_templates:
     resources: []
 
     # Schema validation (optional)
-    input_schema: string          # Registered schema name for session input
-    output_schema: string         # Registered schema name for session output
+#    input_schema: string          # Registered schema name for session input
+#    output_schema: string         # Registered schema name for session output
 
     # Execution behavior
-    error_handling: # Default error handling strategy
-      strategy: string            # One of: "fail", "retry", "continue", "fallback"
-      max_retries: integer        # Maximum number of retry attempts
-      fallback_step: string       # Step ID to jump to on failure
+#    error_handling: # Default error handling strategy
+#      strategy: string            # One of: "fail", "retry", "continue", "fallback"
+#      max_retries: integer        # Maximum number of retry attempts
+#      fallback_step: string       # Step ID to jump to on failure
 
     # Execution flow
-    steps: list[step]             # Ordered list of execution steps
+    steps:
+      - name: System setup
+        type: message
+        role: system
+        content: |
+          You are an AI business consultant tasked with helping an entrepreneur refine their business idea
+          through an interactive conversation. Your goal is to guide the conversation to determine
+          project duration, concrete outcomes, constraints, desired approach, and create a
+          detailed specification.
+
+      - name: Seed the idea
+        type: message
+        role: user
+        content: I
 
 
     # Detailed documentation of available step types

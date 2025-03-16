@@ -1,0 +1,6 @@
+# Scan these modules for pydantic classes for input/output schemas
+schema_modules:
+  - src.types
+
+template_path:
+  '@system': templates

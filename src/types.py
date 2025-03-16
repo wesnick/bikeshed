@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 from uuid import UUID
 from pydantic import BaseModel, Field
+from src.core.schema_loader import register_schema
 
 
 class MessageBase(BaseModel):
@@ -16,6 +17,7 @@ class MessageCreate(MessageBase):
     parent_id: Optional[UUID] = None
 
 
+@register_schema("Project specification with core features and overview")
 class ProjectSpecification(BaseModel):
     name: str
     overview: str
@@ -24,5 +26,6 @@ class ProjectSpecification(BaseModel):
 
 
 
+@register_schema("Project milestones tracking")
 class ProjectMilestones(BaseModel):
     milestones: List[str] = []
