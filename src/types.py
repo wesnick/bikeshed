@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 from uuid import UUID
 from pydantic import BaseModel, Field
-from src.core.schema_loader import register_schema
+from src.core.config_loader import register_schema
 
 
 class MessageBase(BaseModel):

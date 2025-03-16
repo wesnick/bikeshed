@@ -266,7 +266,7 @@ def display_server_details(server: MCPServer):
 def load_schemas(modules, scan_all):
     """Load schemas from specified modules into the registry."""
     from src.core.registry import Registry
-    from src.core.schema_loader import SchemaLoader
+    from src.core.config_loader import SchemaLoader
 
     registry = Registry()
     loader = SchemaLoader(registry)
