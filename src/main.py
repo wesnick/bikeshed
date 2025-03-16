@@ -13,7 +13,7 @@ from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from sse_starlette.sse import EventSourceResponse
 
-from src.schemas import MessageCreate
+from src.types import MessageCreate
 from src.models import Message
 from src.service.logging import logger, setup_logging
 from src.service.mcp_client import MCPClient

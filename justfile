@@ -70,3 +70,7 @@ test-cov:
 # Run tests and watch for changes
 test-watch:
     pytest-watch -- tests/ -v
+    
+# Start both frontend and backend development servers
+dev:
+    just frontend-dev & just fastapi-dev

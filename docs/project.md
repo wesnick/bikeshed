@@ -36,6 +36,7 @@ There will only ever be a single instance of the server and a lone user.  So the
 ### Javascript
 
 - Use plain old javascript.  When adding custom javascript, prefer to add it to a `component/mycomponent.js` file in the `js` folder, and be sure to import it in `js/app.js`
+- The ProseMirror editor converts content to Markdown in the preview element using a custom serializer and the marked library for rendering
 
 ### CSS Styling
 

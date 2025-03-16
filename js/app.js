@@ -6,11 +6,8 @@ import hljs from 'highlight.js';
 
 import {initializeEditor} from './prosemirror';
 
-
-
 // Import custom handlers
 import './shutdown-handler';
-import {highlightCodeBlocks} from "./code_highlight";
 
 
 // Initialize application

@@ -1,7 +1,9 @@
 // Import ProseMirror modules
 import {EditorState} from "prosemirror-state";
 import {EditorView} from "prosemirror-view";
-import {Schema} from "prosemirror-model";
+import {Schema, DOMSerializer} from "prosemirror-model";
+import {schema, defaultMarkdownParser,
+        defaultMarkdownSerializer} from "prosemirror-markdown";
 import {keymap} from "prosemirror-keymap";
 import {
   baseKeymap,
@@ -19,7 +21,6 @@ export function initializeEditor() {
   const editorElement = document.getElementById('editor');
   const previewElement = document.getElementById('preview');
 
-  console.log('trying to load prosemirror');
   // Define a custom schema extending the basic schema
   const bsSchema = new Schema({
     nodes: {
@@ -512,6 +513,7 @@ export function initializeEditor() {
 
   // Set up the editor state
   const state = EditorState.create({
+    doc: defaultMarkdownParser.parse(editorElement.innerHTML),
     schema: bsSchema,
     plugins: [
       history(),
@@ -555,18 +557,18 @@ export function initializeEditor() {
 
   // Function to update the preview
   function updatePreview() {
-    console.log(previewElement);
-    previewElement.innerHTML = view.dom.innerHTML;
+    // Convert the document to Markdown
+    const markdown = defaultMarkdownSerializer.serialize(view.state.doc);
+
+    // Convert markdown to HTML and update the preview
+    previewElement.innerHTML = markdown;
 
     // Update plugins
     slashPlugin.update(view, view.state);
     codeBlockPlugin.update(view, view.state);
 
-    // Apply syntax highlighting to the preview
-    const codeBlocks = previewElement.querySelectorAll('pre code');
-    codeBlocks.forEach(block => {
-      console.log('code highlight now');
-    });
+    // For debugging
+    console.log("Generated Markdown:", markdown);
   }
 
 
@@ -598,3 +600,41 @@ export function initializeEditor() {
   // Initialize the preview
   updatePreview();
 }
+
+class ProseMirrorView {
+  constructor(target, content) {
+    this.view = new EditorView(target, {
+      state: EditorState.create({
+        doc: defaultMarkdownParser.parse(content),
+        plugins: exampleSetup({schema})
+      })
+    })
+  }
+
+  get content() {
+    return defaultMarkdownSerializer.serialize(this.view.state.doc)
+  }
+  focus() { this.view.focus() }
+  destroy() { this.view.destroy() }
+}
+
+
+class MarkdownView {
+  constructor(target, content) {
+    this.textarea = target; // target.appendChild(document.createElement("textarea"))
+    this.textarea.value = content;
+  }
+
+  get content() {
+    return this.textarea.value
+  }
+
+  focus() {
+    this.textarea.focus()
+  }
+  destroy() {
+    this.textarea.remove()
+  }
+}
+
+

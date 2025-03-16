@@ -6,7 +6,6 @@ from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, JSON
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import declarative_base, relationship, mapped_column
 
-# Create Base without importing metadata from database to avoid circular imports
 Base = declarative_base()
 
 # Set naming convention for consistency
@@ -55,14 +54,14 @@ class Session(Base):
     __tablename__ = 'sessions'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    flow_id = Column(UUID(as_uuid=True), ForeignKey('flows.id'), nullable=True)
+    # flow_id = Column(UUID(as_uuid=True), ForeignKey('flows.id'), nullable=True)
 
     summary = Column(Text, nullable=True)
     goal = Column(Text, nullable=True)
     system_prompt = Column(Text, nullable=True)
     strategy = Column(String(100), nullable=True)  # task decomposition, etc.
     created_at = Column(DateTime, default=datetime.now)
-    template_id = Column(UUID(as_uuid=True), ForeignKey('flow_templates.id'), nullable=True)
+    # template_id = Column(UUID(as_uuid=True), ForeignKey('flow_templates.id'), nullable=True)
 
     # Relationships
     messages = relationship("Message", back_populates="session")
@@ -104,61 +103,61 @@ class Flow(Base):
     # template = relationship("FlowTemplate", back_populates="derived_flows")
 
 
-class Artifact(Base):
-    __tablename__ = 'artifacts'
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-
-    name = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
-    mime_type = Column(String(100), nullable=False)
-    content_path = Column(String(255), nullable=True)  # Path to stored content if binary
-    content_text = Column(Text, nullable=True)  # Direct content if text
-
-    # Can be linked to any source
-    source_message_id = Column(UUID(as_uuid=True), ForeignKey('messages.id'), nullable=True)
-    source_session_id = Column(UUID(as_uuid=True), ForeignKey('sessions.id'), nullable=True)
-    source_flow_id = Column(UUID(as_uuid=True), ForeignKey('flows.id'), nullable=True)
-
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-    extra = Column(JSONB, nullable=True)  # For file size, dimensions, etc.
-
-    # Relationships
-    # source_message = relationship("Message", back_populates="artifacts")
-    # source_session = relationship("Session", back_populates="artifacts")
-    # source_flow = relationship("Flow", back_populates="artifacts")
-    # scratchpads = relationship("ScratchPad", secondary=artifact_scratchpad, back_populates="scratchpads")
-
-
-class FlowTemplate(Base):
-    __tablename__ = 'flow_templates'
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-
-    name = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
-    definition = Column(JSONB, nullable=False)  # Template definition as JSON
-
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-
-    # Relationships
-    # derived_flows = relationship("Flow", back_populates="template")
-    # derived_sessions = relationship("Session", back_populates="template")
-
-
-class ScratchPad(Base):
-    __tablename__ = 'scratchpads'
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-
-    name = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
-    notes = Column(JSONB, nullable=True)  # Additional free-form notes
-
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-
-    # Relationships
-    # artifacts = relationship("Artifact", secondary=artifact_scratchpad, back_populates="scratchpads")
+# class Artifact(Base):
+#     __tablename__ = 'artifacts'
+#
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+#
+#     name = Column(String(255), nullable=False)
+#     description = Column(Text, nullable=True)
+#     mime_type = Column(String(100), nullable=False)
+#     content_path = Column(String(255), nullable=True)  # Path to stored content if binary
+#     content_text = Column(Text, nullable=True)  # Direct content if text
+#
+#     # Can be linked to any source
+#     source_message_id = Column(UUID(as_uuid=True), ForeignKey('messages.id'), nullable=True)
+#     source_session_id = Column(UUID(as_uuid=True), ForeignKey('sessions.id'), nullable=True)
+#     source_flow_id = Column(UUID(as_uuid=True), ForeignKey('flows.id'), nullable=True)
+#
+#     created_at = Column(DateTime, default=datetime.now)
+#     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+#     extra = Column(JSONB, nullable=True)  # For file size, dimensions, etc.
+#
+#     # Relationships
+#     # source_message = relationship("Message", back_populates="artifacts")
+#     # source_session = relationship("Session", back_populates="artifacts")
+#     # source_flow = relationship("Flow", back_populates="artifacts")
+#     # scratchpads = relationship("ScratchPad", secondary=artifact_scratchpad, back_populates="scratchpads")
+#
+#
+# class FlowTemplate(Base):
+#     __tablename__ = 'flow_templates'
+#
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+#
+#     name = Column(String(255), nullable=False)
+#     description = Column(Text, nullable=True)
+#     definition = Column(JSONB, nullable=False)  # Template definition as JSON
+#
+#     created_at = Column(DateTime, default=datetime.now)
+#     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+#
+#     # Relationships
+#     # derived_flows = relationship("Flow", back_populates="template")
+#     # derived_sessions = relationship("Session", back_populates="template")
+#
+#
+# class ScratchPad(Base):
+#     __tablename__ = 'scratchpads'
+#
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+#
+#     name = Column(String(255), nullable=False)
+#     description = Column(Text, nullable=True)
+#     notes = Column(JSONB, nullable=True)  # Additional free-form notes
+#
+#     created_at = Column(DateTime, default=datetime.now)
+#     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+#
+#     # Relationships
+#     # artifacts = relationship("Artifact", secondary=artifact_scratchpad, back_populates="scratchpads")

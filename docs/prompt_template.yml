@@ -1,0 +1,175 @@
+session_structure:
+  metadata: # metadata will be persisted on executions
+    tags: list of tags
+    ...additional: any other fields
+  description: Describes the purpose of the session
+  model: Default model to use
+  temperature: Default temperature to use, optional
+  tools: List of tools to use, optional
+  resources: List of resources to make available, optional
+  input_schema: Registered schema for input, optional
+  output_schema: Registered schema for output, optional
+  steps: list of steps
+
+
+step_types:
+  - message: print message as role
+    fields: [role, content]
+  - prompt: prompt for a completion
+    fields: [content, template, input_schema, config, output_schema, error_handling]
+  - user_input: wait for manual input from user
+    fields: [template, input_schema, config, output_schema, error_handling]
+  - invoke: call code
+    fields: [callable, input_schema, config, output_schema, error_handling]
+
+step_structure:
+  name: concise name of the step
+  type: {step_type}
+  role: user, assistant, system
+  content: actual text to be used
+  template: registered template name
+  input_schema: registered input schema name
+  output_schema: registered output schema name
+  metadata: dict of additional information that will be passed to the step
+  callable: function to call
+  error_handling: strategy
+  config: # overrides for each step
+    model:
+    temperature:
+    tools:
+    resources:
+
+---
+
+
+
+templates:
+  code_completion:
+    description: Generate a code completion
+    steps:
+      - type: system_message
+        content: "You are an expert architect"
+      - type: user_message
+        content: "Help me debug this stuff"
+      - type: assistant_message
+        content: "What have you tried so far?"
+      - type: user_prompt
+        prompt: prompt_ns.code_completion  # previously registered prompt
+        prompt_args:
+          foo: ~                  # read arg "foo" from runtime context
+          bar: fizz               # literal arg
+          baz: "{{ some_var }}"   # configuration value
+      - type: extract_result
+    output_schema: MyPydanticOutputClass  # pydantic class previously registered as response type
+  example2:
+    description: Example 2
+    input_schema: MyPydanticInputClass  # pydantic class previously registered as input type
+    model: "gpt-4"
+    tools:
+      - tool_ns.weather_tool # previously registered tool
+    resources:
+      - "file://test.txt"
+    steps:
+      - type: system_message
+        content: "Do your best to help me"
+      - type: user_prompt
+        temperature: 0.8
+        tools:
+          - tool_ns.additional_tool # only for this message
+        prompt: prompt_ns.example_prompt  # previously registered prompt
+        prompt_args: MyPydanticInputArgsClass # pydantic class previously registered as input type
+
+
+  code_completion2:
+    description: "Generate a code completion based on user input"
+    metadata:
+      tags: ["code", "development"]
+    # Configuration for the entire template
+    config:
+      model: "claude-3.7-sonnet"
+      error_handling:
+        on_failure: "return_error"  # Options: return_error, retry, fallback
+        max_retries: 2
+    # Optional schemas for validation
+    input_schema: "schemas.CodeCompletionInput"  # Reference to a registered schema
+    output_schema: "schemas.CodeCompletionOutput"  # Reference to a registered schema
+    tools:
+      - "tool_ns.code_linter"
+    resources:
+      - "file://examples/code_samples.txt"
+    # Execution steps
+    steps:
+      - type: "system_message"
+        id: "init_system"  # Optional ID for reference in logs/debugging
+        content: "You are an expert software architect with deep knowledge of best practices and design patterns."
+
+      - type: "user_message"
+        id: "initial_question"
+        content: "Help me debug this code problem."
+
+      - type: "assistant_message"
+        id: "clarification_question"
+        content: "What have you tried so far? Please share any error messages you've encountered."
+
+      - type: "user_prompt"
+        id: "user_input_with_prompt"
+        prompt: "prompt_ns.code_completion"  # Reference to a registered prompt
+        description: "Processes user code with the code completion prompt template"
+        prompt_args:
+          context: "{{ runtime.context }}"  # Value from runtime context
+          language: "{{ config.language }}"  # Value from configuration
+          error_details: "{{ inputs.error_message }}"  # Value from validated input
+          include_tests: true  # Literal value
+
+      - type: "user_input"
+
+      - type: "extract_result"
+        id: "process_response"
+        description: "Extracts structured data from the LLM response"
+        extraction_method: "json"  # Options: json, regex, jmespath
+        target_field: "code_solution"  # Where to store the result
+        error_handling:
+          on_failure: "default_value"
+          default_value: {"status": "extraction_failed", "code": null}
+
+  example3:
+    description: "Comprehensive example showcasing additional features"
+    config:
+      model: "gpt-4"
+      temperature: 0.7
+
+    # Typed input validation
+    input_schema: "schemas.ExampleInput"
+
+    # Resource definitions
+    resources:
+      tools:
+        - "tool_ns.weather_tool"
+        - id: "calculator"
+          tool: "tool_ns.calculator"
+          config:
+            precision: 4
+      files:
+        - id: "reference_doc"
+          path: "file://test.txt"
+          description: "Reference documentation for context"
+
+    steps:
+      - type: "system_message"
+        content: "Do your best to help me with this task."
+
+      - type: "user_prompt"
+        prompt: "prompt_ns.example_prompt"
+        prompt_args: "schemas.ExamplePromptArgs"  # Structured input validation
+        config:
+          temperature: 0.8  # Override for this step only
+          tools:
+            - "tool_ns.additional_tool"  # Additional tool just for this step
+
+      - type: "function_call"
+        id: "process_result"
+        function: "handlers.post_process"
+        description: "Runs custom post-processing on the response"
+        arguments:
+          response: "{{ steps.previous.response }}"
+          format: "markdown"
