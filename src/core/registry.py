@@ -1,4 +1,6 @@
 from typing import List, Any
+
+from mcp import StdioServerParameters
 from pydantic import BaseModel, ValidationError, Field
 from mcp.server.fastmcp.resources import ResourceManager
 from mcp.server.fastmcp.prompts import (
@@ -62,7 +64,7 @@ class Registry:
         self.event_registry = event_registry
         self.schema_manager = SchemaManager()
         self.session_templates = dict[str, SessionTemplate]
-        self.mcp_servers = dict[str, ]
+        self.mcp_servers = dict[str, StdioServerParameters]
 
     def get_schema(self, name: str) -> Schema | None:
         """Get a schema by name."""
