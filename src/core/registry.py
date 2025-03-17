@@ -27,7 +27,7 @@ class Registry:
     def __init__(self, warn_on_duplicate: bool = True):
         self._schemas: dict[str, Schema] = {}
         self._resources: dict[str, Resource] = {}
-        self._templates: dict[str, ResourceTemplate] = {}
+        self._resource_templates: dict[str, ResourceTemplate] = {}
         self._prompts: dict[str, Prompt] = {}
         self._tools: dict[str, Tool] = {}
         self.event_registry = event_registry
