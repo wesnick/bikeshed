@@ -13,6 +13,6 @@ mcp_servers:
       NODE_VERSION: v22.13.1
   filesystem:
     command: /home/wes/.nvm/nvm-exec
-    args: [npx, -y, @modelcontextprotocol/server-filesystem, "/home/wes/Downloads"]
+    args: [npx, -y, '@modelcontextprotocol/server-filesystem', "/home/wes/Downloads"]
     env:
       NODE_VERSION: v22.13.1

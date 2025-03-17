@@ -27,7 +27,7 @@ class Registry:
         self._schemas: dict[str, Schema] = {}
         self._resources: dict[str, Resource] = {}
         self._resource_templates: dict[str, ResourceTemplate] = {}
-        self._prompts: dict[str, Prompt] = {}
+        self.prompts: dict[str, Prompt] = {}
         self._tools: dict[str, Tool] = {}
         self.event_registry = event_registry
         self.session_templates: dict[str, SessionTemplate] = {}
@@ -103,22 +103,22 @@ class Registry:
     # Prompt methods
     def get_prompt(self, name: str) -> Prompt | None:
         """Get prompt by name."""
-        return self._prompts.get(name)
+        return self.prompts.get(name)
 
     def list_prompts(self) -> list[Prompt]:
         """List all registered prompts."""
-        return list(self._prompts.values())
+        return list(self.prompts.values())
 
     def add_prompt(self, name: str, prompt: Prompt) -> Prompt:
         """Add a prompt to the registry."""
         # Check for duplicates
-        existing = self._prompts.get(name)
+        existing = self.prompts.get(name)
         if existing:
             if self.warn_on_duplicate_schemas:
                 logger.warning(f"Prompt already exists: {name}")
             return existing
 
-        self._prompts[name] = prompt
+        self.prompts[name] = prompt
         return prompt
 
     # Tool methods

@@ -19,7 +19,7 @@ from src.models import Message
 from src.service.logging import logger, setup_logging
 from src.service.mcp_client import MCPClient
 from src.http.middleware import HTMXRedirectMiddleware
-from src.dependencies import get_db, get_jinja
+from src.dependencies import get_db, get_jinja, get_mcp_client
 from src.routes import api_router
 from src.repository import session_repository
 
@@ -154,9 +154,9 @@ async def right_drawer_component() -> None:
 async def registry_component(request: Request) -> dict:
     """This route serves the registry sidebar widget for htmx requests."""
     registry = request.app.state.registry
-    
+
     return {
-        "prompts": registry._prompts,
+        "prompts": registry.prompts,
         "tools": registry._tools,
         "resources": registry._resources,
         "resource_templates": registry._resource_templates,
@@ -169,7 +169,7 @@ async def registry_component(request: Request) -> dict:
 async def registry_prompts(request: Request) -> dict:
     """This route serves the prompts listing page."""
     registry = request.app.state.registry
-    return {"prompts": registry._prompts}
+    return {"prompts": registry.prompts}
 
 @app.get("/registry/tools")
 @jinja.hx('components/registry/tools_list.html.j2')
@@ -201,13 +201,15 @@ async def registry_schemas(request: Request) -> dict:
 
 @app.get("/registry/mcp-servers")
 @jinja.hx('components/registry/mcp_servers_list.html.j2')
-async def registry_mcp_servers(request: Request) -> dict:
+async def registry_mcp_servers(request: Request, mcp_client: MCPClient = Depends(get_mcp_client)) -> dict:
     """This route serves the MCP servers listing page."""
     registry = request.app.state.registry
-    
-    # You might want to add server status information here
-    server_status = {}  # This would be populated with actual connection status
-    
+
+    server_status = {}
+    logger.info(f"servers: {mcp_client.sessions}")
+    for name, server in mcp_client.sessions:
+        server_status[name] = True
+
     return {
         "mcp_servers": registry.mcp_servers,
         "server_status": server_status

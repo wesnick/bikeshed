@@ -194,3 +194,5 @@ class RegistryLoader:
             except Exception as e:
                 logger.error(f"Failed to connect to MCP server {name}: {str(e)}")
 
+
+        foo = 'bar'
