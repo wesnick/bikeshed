@@ -183,6 +183,28 @@ def load_templates(directories):
     for prompt in prompts:
         click.echo(f"  - {prompt.name} with variables: {prompt.arguments}")
 
+@click.command()
+@click.argument('files', nargs=-1, required=True)
+def load_session_templates(files):
+    """Load session templates from YAML files."""
+    from src.core.registry import Registry
+    from src.core.config_loader import SessionTemplateLoader
+
+    registry = Registry()
+    loader = SessionTemplateLoader(registry)
+
+    total_templates = {}
+    for file_path in files:
+        templates = loader.load_from_file(file_path)
+        total_templates.update(templates)
+
+    click.echo(f"Loaded {len(total_templates)} session templates from {len(files)} files")
+    for name in total_templates:
+        click.echo(f"  - {name}")
+
+    # Register templates in registry (placeholder for future implementation)
+    registered_names = loader.register_templates(total_templates)
+
 @click.group()
 def group():
     pass
@@ -191,6 +213,7 @@ group.add_command(hello)
 group.add_command(search_mcp)
 group.add_command(load_schemas)
 group.add_command(load_templates)
+group.add_command(load_session_templates)
 
 if __name__ == '__main__':
     group()
