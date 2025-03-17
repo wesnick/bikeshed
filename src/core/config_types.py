@@ -41,7 +41,7 @@ class BaseStep(BaseModel):
     enabled: bool = True
     metadata: Optional[Dict[str, Any]] = None
     error_handling: Optional[ErrorHandling] = None
-    config: Optional[StepConfig] = None
+    model_extra: Optional[Dict[str, Any]] = None
 
 
 class MessageStep(BaseStep):
@@ -61,8 +61,7 @@ class PromptStep(BaseStep):
     template_args: Optional[Dict[str, Any]] = None
     input_schema: Optional[str] = None
     output_schema: Optional[str] = None
-    model_config: Optional[Dict[str, Any]] = None
-
+    model_extra: Optional[Dict[str, Any]] = None
 
 class UserInputStep(BaseStep):
     """Step to wait for manual input from the user."""
@@ -73,8 +72,7 @@ class UserInputStep(BaseStep):
     template_args: Optional[Dict[str, Any]] = None
     input_schema: Optional[str] = None
     output_schema: Optional[str] = None
-    model_config: Optional[Dict[str, Any]] = None
-
+    model_extra: Optional[Dict[str, Any]] = None
 
 class InvokeStep(BaseStep):
     """Step to call a code function."""
@@ -96,11 +94,9 @@ class SessionTemplate(BaseModel):
     description: Optional[str] = None
     goal: Optional[str] = None
     metadata: Optional[Metadata] = None
-    model_config: Optional[Dict[str, Any]] = None
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
-    tools: Optional[List[Union[str, Dict[str, Any]]]] = None
-    resources: Optional[List[Union[str, Dict[str, Any]]]] = None
+    model_extra: Optional[Dict[str, Any]] = None
+    tools: Optional[List[str]] = None
+    resources: Optional[List[str]] = None
     roots: Optional[List[str]] = None
     input_schema: Optional[str] = None
     output_schema: Optional[str] = None
