@@ -8,11 +8,22 @@ from src.service.logging import logger
 
 
 class SessionData:
+
     def __init__(self, session: ClientSession, capabilities: types.ServerCapabilities, write, stdio):
         self.session = session
         self.write = write
         self.stdio = stdio
-        self.capabilities = capabilities
+        self.capabilities: types.ServerCapabilities = capabilities
+
+    def has_prompts(self) -> bool:
+        return self.capabilities.prompts is not None
+
+    def has_resources(self) -> bool:
+        return self.capabilities.resources is not None
+
+    def has_tools(self) -> bool:
+        return self.capabilities.tools is not None
+
 
 
 class MCPClient:

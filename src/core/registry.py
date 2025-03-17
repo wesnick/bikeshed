@@ -3,11 +3,9 @@ from typing import List, Any, Dict
 from mcp import StdioServerParameters
 from pydantic import BaseModel, ValidationError, Field
 from mcp.server.fastmcp.resources import ResourceManager
-from mcp.server.fastmcp.prompts import (
-    PromptManager,
-    Prompt,
-)
-from mcp.server.fastmcp.tools import ToolManager
+from mcp.server.fastmcp.prompts import Prompt
+from mcp.server.fastmcp.tools import Tool
+from mcp.server.fastmcp.resources import Resource, ResourceTemplate
 from fastapi_events.registry.payload_schema import registry as event_registry
 
 from src.core.config_types import SessionTemplate
@@ -25,13 +23,19 @@ class Schema(BaseModel):
     description: str = ""
     source_class: str = ""
 
-
-class SchemaManager:
-    def __init__(self, warn_on_duplicate_schemas: bool = True):
+class Registry:
+    def __init__(self, warn_on_duplicate: bool = True):
         self._schemas: dict[str, Schema] = {}
-        self.warn_on_duplicate_schemas = warn_on_duplicate_schemas
+        self._resources: dict[str, Resource] = {}
+        self._templates: dict[str, ResourceTemplate] = {}
+        self._prompts: dict[str, Prompt] = {}
+        self._tools: dict[str, Tool] = {}
+        self.event_registry = event_registry
+        self.session_templates: dict[str, SessionTemplate] = {}
+        self.mcp_servers: dict[str, StdioServerParameters] = {}
+        self.warn_on_duplicate_schemas = warn_on_duplicate
 
-    def schema(self, name: str) -> Schema | None:
+    def get_schema(self, name: str) -> Schema | None:
         """Get schema by name."""
         return self._schemas.get(name)
 
@@ -55,24 +59,6 @@ class SchemaManager:
         self._schemas[schema.name] = schema
         return schema
 
-
-class Registry:
-    def __init__(self):
-        self.resource_manager = ResourceManager()
-        self.prompt_manager = PromptManager()
-        self.tool_manager = ToolManager()
-        self.event_registry = event_registry
-        self.schema_manager = SchemaManager()
-        self.session_templates: Dict[str, SessionTemplate] = {}
-        self.mcp_servers: Dict[str, StdioServerParameters] = {}
-
-    def get_schema(self, name: str) -> Schema | None:
-        """Get a schema by name."""
-        return self.schema_manager.schema(name)
-
-    def list_schemas(self) -> list[Schema]:
-        """List all registered schemas."""
-        return self.schema_manager.list_schemas()
 
     def add_session_template(self, name: str, template: SessionTemplate):
         """Add a session template to the registry."""

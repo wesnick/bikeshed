@@ -230,46 +230,21 @@ def load_session_templates(files, validate_only):
 
 
 @click.command()
-@click.argument('template_name', required=True)
-@click.option('--description', '-d', help='Optional description override')
-@click.option('--goal', '-g', help='Optional goal override')
-def create_session(template_name, description, goal):
+def load_registry():
     """Create a new session from a template."""
     import asyncio
     from src.dependencies import get_db
     from src.service.session import create_session_from_template
     from rich.panel import Panel
+    from src.core.registry_loader import RegistryLoader
 
-    async def run():
-        async for db in get_db():
-            try:
-                session = await create_session_from_template(
-                    db=db,
-                    template_name=template_name,
-                    description=description,
-                    goal=goal
-                )
+    loader = RegistryLoader()
+    registry = asyncio.run(loader.load())
 
-                if session:
-                    console.print(Panel(
-                        f"[green]Session created successfully![/green]\n\n"
-                        f"ID: {session.id}\n"
-                        f"Description: {session.description or 'N/A'}\n"
-                        f"Goal: {session.goal or 'N/A'}\n"
-                        f"Template: {template_name}\n"
-                        f"Created at: {session.created_at}",
-                        title="Session Details",
-                        expand=False
-                    ))
-                else:
-                    console.print(f"[red]Failed to create session from template '{template_name}'[/red]")
 
-                return session
-            except Exception as e:
-                console.print(f"[red]Error creating session:[/red] {str(e)}")
-                return None
+    foo = 'var'
 
-    return asyncio.run(run())
+
 
 @click.group()
 def group():
@@ -280,7 +255,7 @@ group.add_command(search_mcp)
 group.add_command(load_schemas)
 group.add_command(load_templates)
 group.add_command(load_session_templates)
-group.add_command(create_session)
+group.add_command(load_registry)
 
 if __name__ == '__main__':
     group()

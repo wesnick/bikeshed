@@ -1,0 +1,15 @@
+
+
+
+Default env vars passed to mcp servers:
+    APPDATA
+    HOMEDRIVE
+    HOMEPATH
+    LOCALAPPDATA
+    PATH
+    PROCESSOR_ARCHITECTURE
+    SYSTEMDRIVE
+    SYSTEMROOT
+    TEMP
+    USERNAME
+    USERPROFILE

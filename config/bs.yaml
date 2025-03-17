@@ -5,21 +5,10 @@ schema_modules:
 template_paths:
   '@system': templates/prompts
 
-#  "APPDATA",
-#  "HOMEDRIVE",
-#  "HOMEPATH",
-#  "LOCALAPPDATA",
-#  "PATH",
-#  "PROCESSOR_ARCHITECTURE",
-#  "SYSTEMDRIVE",
-#  "SYSTEMROOT",
-#  "TEMP",
-#  "USERNAME",
-#  "USERPROFILE",
-# Can also be added at runtime
 mcp_servers:
   repomix:
-    command: npx
-    args: [-y, repomix, --mcp]
-    env: ~
+    command: /home/wes/.nvm/nvm-exec
+    args: [npx, -y, repomix, --mcp]
+    env:
+      NODE_VERSION: v22.13.1
 

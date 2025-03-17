@@ -11,6 +11,7 @@ from src.core.registry import Registry
 from src.core.config_loader import SchemaLoader, TemplateLoader, SessionTemplateLoader
 from src.service.logging import logger
 from src.service.mcp_client import MCPClient
+from src.dependencies import get_jinja
 
 
 class RegistryLoader:
@@ -30,12 +31,7 @@ class RegistryLoader:
         self.registry = Registry()
         self.mcp_client = MCPClient()
         self.config = {}
-        self.jinja_env = jinja2.Environment(
-            loader=jinja2.FileSystemLoader("."),
-            autoescape=jinja2.select_autoescape(["html", "xml"]),
-            trim_blocks=True,
-            lstrip_blocks=True,
-        )
+        self.jinja_env = get_jinja().templates.env
 
     def _load_config(self) -> Dict[str, Any]:
         """
@@ -68,7 +64,7 @@ class RegistryLoader:
         schema_loader = SchemaLoader(self.registry)
         for module_name in schema_modules:
             try:
-                schema_loader.load_from_module(module_name, scan_all=True)
+                schema_loader.load_from_module(module_name)
             except Exception as e:
                 logger.error(f"Failed to load schemas from module {module_name}: {str(e)}")
 
@@ -116,7 +112,7 @@ class RegistryLoader:
             except Exception as e:
                 logger.error(f"Failed to load MCP server configuration for {name}: {str(e)}")
 
-    def _load_session_templates(self, templates_dir: str = "templates/sessions") -> None:
+    def _load_session_templates(self, templates_dir: str = "config") -> None:
         """
         Load session templates from the specified directory.
 
@@ -133,7 +129,7 @@ class RegistryLoader:
         except Exception as e:
             logger.error(f"Failed to load session templates from {templates_dir}: {str(e)}")
 
-    def load(self) -> Registry:
+    async def load(self) -> Registry:
         """
         Load all configuration and populate the registry.
 
@@ -158,8 +154,11 @@ class RegistryLoader:
         mcp_servers = self.config.get('mcp_servers', {})
         self._load_mcp_servers(mcp_servers)
 
+        # Connect to MCP servers
+        await self.connect_mcp_servers()
+
         # Load session templates
-        templates_dir = self.config.get('session_templates_dir', 'templates/sessions')
+        templates_dir = self.config.get('session_templates_dir', 'config')
         self._load_session_templates(templates_dir)
 
         logger.info("Registry loading completed")
@@ -173,6 +172,26 @@ class RegistryLoader:
         for name, server_params in self.registry.mcp_servers.items():
             try:
                 await self.mcp_client.connect_to_server(name, server_params)
+
+                session = await self.mcp_client.get_session(name)
+                if self.mcp_client.sessions.get(name).has_tools():
+                    tools_result = await session.list_tools()
+                    for tool in tools_result.tools:
+                        self.registry.add_tool(tool.name, tool)
+                if self.mcp_client.sessions.get(name).has_prompts():
+                    prompts_result = await session.list_prompts()
+                    for prompt in prompts_result.prompts:
+                        self.registry.add_prompt(prompt.name, prompt)
+                if self.mcp_client.sessions.get(name).has_resources():
+                    resources_result = await session.list_resources()
+                    for resource in resources_result.resources:
+                        self.registry.add_resource(resource)
+                    templates_result = await session.list_resource_templates()
+                    for template in templates_result.resourceTemplates:
+                        self.registry.add_resource_template(template.uriTemplate, template)
+
+
+
                 logger.info(f"Connected to MCP server: {name}")
             except Exception as e:
                 logger.error(f"Failed to connect to MCP server {name}: {str(e)}")
@@ -198,10 +217,10 @@ class RegistryLoader:
         try:
             # Load the registry
             self.load()
-            
+
             # Connect to MCP servers
             await self.connect_mcp_servers()
-            
+
             # Yield the registry for use in the application
             yield self.registry
         finally:
