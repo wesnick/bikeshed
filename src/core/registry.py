@@ -2,7 +2,6 @@ from typing import List, Any, Dict
 
 from mcp import StdioServerParameters
 from pydantic import BaseModel, ValidationError, Field
-from mcp.server.fastmcp.resources import ResourceManager
 from mcp.server.fastmcp.prompts import Prompt
 from mcp.server.fastmcp.tools import Tool
 from mcp.server.fastmcp.resources import Resource, ResourceTemplate
@@ -60,9 +59,9 @@ class Registry:
         return schema
 
     # Resource methods
-    def get_resource(self, uri: str) -> Resource | None:
+    def get_resource(self, name: str) -> Resource | None:
         """Get resource by URI."""
-        return self._resources.get(uri)
+        return self._resources.get(name)
 
     def list_resources(self) -> list[Resource]:
         """List all registered resources."""
@@ -71,13 +70,13 @@ class Registry:
     def add_resource(self, resource: Resource) -> Resource:
         """Add a resource to the registry."""
         # Check for duplicates
-        existing = self._resources.get(resource.uri)
+        existing = self._resources.get(resource.name)
         if existing:
             if self.warn_on_duplicate_schemas:
-                logger.warning(f"Resource already exists: {resource.uri}")
+                logger.warning(f"Resource already exists: {resource.name}")
             return existing
 
-        self._resources[resource.uri] = resource
+        self._resources[resource.name] = resource
         return resource
 
     # Resource template methods
@@ -146,6 +145,13 @@ class Registry:
 
     def add_session_template(self, name: str, template: SessionTemplate):
         """Add a session template to the registry."""
+        # Check for duplicates
+        existing = self.session_templates.get(name)
+        if existing:
+            if self.warn_on_duplicate_schemas:
+                logger.warning(f"Session template already exists: {name}")
+            return existing
+
         self.session_templates[name] = template
 
     def get_session_template(self, name: str):

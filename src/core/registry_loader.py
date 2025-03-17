@@ -1,17 +1,12 @@
-import os
 import yaml
-import jinja2
 from typing import Dict, List, Optional, Any
-from contextlib import asynccontextmanager
-from pathlib import Path
 
 from mcp import StdioServerParameters
 
 from src.core.registry import Registry
 from src.core.config_loader import SchemaLoader, TemplateLoader, SessionTemplateLoader
 from src.service.logging import logger
-from src.service.mcp_client import MCPClient
-from src.dependencies import get_jinja
+from src.dependencies import get_jinja, get_mcp_client
 
 
 class RegistryLoader:
@@ -29,7 +24,6 @@ class RegistryLoader:
         """
         self.config_path = config_path
         self.registry = Registry()
-        self.mcp_client = MCPClient()
         self.config = {}
         self.jinja_env = get_jinja().templates.env
 
@@ -171,62 +165,32 @@ class RegistryLoader:
         logger.info("Connecting to MCP servers")
         for name, server_params in self.registry.mcp_servers.items():
             try:
-                await self.mcp_client.connect_to_server(name, server_params)
+                # use mcp_client AsyncGenerator[MCPClient, None]
+                async for mcp_client in get_mcp_client():
+                    await mcp_client.connect_to_server(name, server_params)
 
-                session = await self.mcp_client.get_session(name)
-                if self.mcp_client.sessions.get(name).has_tools():
-                    tools_result = await session.list_tools()
-                    for tool in tools_result.tools:
-                        self.registry.add_tool(tool.name, tool)
-                        logger.debug(f"Added tool: {tool.name}")
-                if self.mcp_client.sessions.get(name).has_prompts():
-                    prompts_result = await session.list_prompts()
-                    for prompt in prompts_result.prompts:
-                        self.registry.add_prompt(prompt.name, prompt)
-                        logger.debug(f"Added prompt: {prompt.name}")
-                if self.mcp_client.sessions.get(name).has_resources():
-                    resources_result = await session.list_resources()
-                    for resource in resources_result.resources:
-                        self.registry.add_resource(resource)
-                        logger.debug(f"Added resource: {resource.uri}")
-                    templates_result = await session.list_resource_templates()
-                    for template in templates_result.resourceTemplates:
-                        self.registry.add_resource_template(template.uriTemplate, template)
-                        logger.debug(f"Added resource template: {template.uriTemplate}")
+                    session = await mcp_client.get_session(name)
+                    if mcp_client.sessions.get(name).has_tools():
+                        tools_result = await session.list_tools()
+                        for tool in tools_result.tools:
+                            self.registry.add_tool(tool.name, tool)
+                            logger.debug(f"Added tool: {tool.name}")
+                    if mcp_client.sessions.get(name).has_prompts():
+                        prompts_result = await session.list_prompts()
+                        for prompt in prompts_result.prompts:
+                            self.registry.add_prompt(prompt.name, prompt)
+                            logger.debug(f"Added prompt: {prompt.name}")
+                    if mcp_client.sessions.get(name).has_resources():
+                        resources_result = await session.list_resources()
+                        for resource in resources_result.resources:
+                            self.registry.add_resource(resource)
+                            logger.debug(f"Added resource: {resource.uri}")
+                        templates_result = await session.list_resource_templates()
+                        for template in templates_result.resourceTemplates:
+                            self.registry.add_resource_template(template.uriTemplate, template)
+                            logger.debug(f"Added resource template: {template.uriTemplate}")
 
-
-
-                logger.info(f"Connected to MCP server: {name}")
+                    logger.info(f"Connected to MCP server: {name}")
             except Exception as e:
                 logger.error(f"Failed to connect to MCP server {name}: {str(e)}")
 
-    async def cleanup(self) -> None:
-        """
-        Clean up resources, including MCP server connections.
-        """
-        logger.info("Cleaning up registry resources")
-        await self.mcp_client.cleanup()
-
-    @asynccontextmanager
-    async def lifespan(self):
-        """
-        Async context manager for use with FastAPI's lifespan.
-
-        Example:
-            @app.on_event("startup")
-            async def startup():
-                async with registry_loader.lifespan() as registry:
-                    app.state.registry = registry
-        """
-        try:
-            # Load the registry
-            self.load()
-
-            # Connect to MCP servers
-            await self.connect_mcp_servers()
-
-            # Yield the registry for use in the application
-            yield self.registry
-        finally:
-            # Clean up resources when the application shuts down
-            await self.cleanup()

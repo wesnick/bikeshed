@@ -97,7 +97,7 @@ class SchemaLoader:
 
                 schema = self._create_schema_from_model(obj, custom_description)
                 if schema:
-                    self.registry.schema_manager.add_schema(schema)
+                    self.registry.add_schema(schema)
                     schemas.append(schema)
 
         logger.info(f"Loaded {len(schemas)} schemas from module {module_name}")
@@ -236,7 +236,7 @@ class TemplateLoader:
                 )
 
                 # Register the prompt
-                self.registry.prompt_manager.add_prompt(prompt)
+                self.registry.add_prompt(qualified_name, prompt)
                 prompts.append(prompt)
 
                 logger.info(f"Loaded template: {qualified_name} with variables: {arguments}")

@@ -242,8 +242,6 @@ def load_registry():
     registry = asyncio.run(loader.load())
 
 
-    foo = 'var'
-
 
 
 @click.group()

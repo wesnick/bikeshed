@@ -13,6 +13,7 @@ from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from sse_starlette.sse import EventSourceResponse
 
+from src.core.registry_loader import RegistryLoader
 from src.types import MessageCreate
 from src.models import Message
 from src.service.logging import logger, setup_logging
@@ -22,10 +23,12 @@ from src.dependencies import get_db, get_jinja
 from src.routes import api_router
 from src.repository import session_repository
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
+
+    loader = RegistryLoader()
+    app.state.registry = await loader.load()
 
     yield
 
