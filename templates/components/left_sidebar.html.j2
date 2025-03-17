@@ -24,5 +24,22 @@
         </ul>
       </details>
     {% endif %}
+    
+    {% if session_templates %}
+      <details>
+        <summary class="is-size-5">
+          Templates
+        </summary>
+        <ul class="menu-list">
+          {% for template_name, template in session_templates.items() %}
+            <li><a
+              hx-get="/session-template/{{ template_name }}"
+              hx-target="#dashboard"
+              hx-push-url="true"
+            >{{ template.name }}</a></li>
+          {% endfor %}
+        </ul>
+      </details>
+    {% endif %}
   </aside>
 </div>

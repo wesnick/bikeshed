@@ -1,0 +1,47 @@
+<div class="box">
+  <h2 class="title is-4">Launch Session from Template: {{ template.name }}</h2>
+  
+  {% if template.description %}
+    <p class="subtitle">{{ template.description }}</p>
+  {% endif %}
+  
+  {% if template.goal %}
+    <div class="block">
+      <strong>Goal:</strong> {{ template.goal }}
+    </div>
+  {% endif %}
+  
+  <form
+    hx-post="/session-template/{{ template_name }}/create"
+    hx-target="#dashboard"
+    hx-push-url="true"
+  >
+    <div class="field">
+      <label class="label">Description (optional)</label>
+      <div class="control">
+        <input class="input" type="text" name="description" placeholder="Custom description for this session">
+      </div>
+      <p class="help">Override the default description</p>
+    </div>
+    
+    <div class="field">
+      <label class="label">Goal (optional)</label>
+      <div class="control">
+        <textarea class="textarea" name="goal" placeholder="Custom goal for this session"></textarea>
+      </div>
+      <p class="help">Override the default goal</p>
+    </div>
+    
+    <div class="field is-grouped">
+      <div class="control">
+        <button class="button is-primary" type="submit">Create Session</button>
+      </div>
+      <div class="control">
+        <button class="button is-light" 
+          hx-get="/components/left-sidebar"
+          hx-target="#left-sidebar"
+          type="button">Cancel</button>
+      </div>
+    </div>
+  </form>
+</div>

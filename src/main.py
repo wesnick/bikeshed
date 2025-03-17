@@ -143,11 +143,16 @@ async def session_component() -> dict:
 async def left_sidebar_component(db: AsyncSession = Depends(get_db)) -> dict:
     """This route serves the left sidebar component for htmx requests."""
     sessions = await session_repository.get_recent_sessions(db)
+    
+    # Get session templates from registry
+    session_templates = app.state.registry.session_templates if hasattr(app.state, 'registry') else {}
+    
     return {
         "flows": [],
         "sessions": sessions,
         "tools": [],
         "prompts": [],
+        "session_templates": session_templates,
     }
 
 @app.get("/components/right-drawer")
@@ -165,6 +170,56 @@ async def navbar_component() -> None:
 async def session_form_component(session_id: str):
     """This route serves the session form component for htmx requests."""
     return {"session_id": session_id}
+
+@app.get("/session-template/{template_name}")
+@jinja.hx('components/session_template_form.html.j2')
+async def session_template_form(template_name: str, request: Request):
+    """This route serves the session template form for creating a new session."""
+    # Get the template from the registry
+    template = request.app.state.registry.get_session_template(template_name)
+    if not template:
+        return {"error": f"Template {template_name} not found"}
+    
+    return {
+        "template": template,
+        "template_name": template_name
+    }
+
+@app.post("/session-template/{template_name}/create")
+async def create_session_from_template_route(
+    template_name: str, 
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new session from a template and redirect to it."""
+    # Get form data
+    form_data = await request.form()
+    description = form_data.get("description")
+    goal = form_data.get("goal")
+    
+    # Get the template from the registry
+    template = request.app.state.registry.get_session_template(template_name)
+    if not template:
+        return {"error": f"Template {template_name} not found"}
+    
+    # Create the session
+    from src.service.session import create_session_from_template
+    session = await create_session_from_template(
+        db=db,
+        template=template,
+        description=description if description else None,
+        goal=goal if goal else None
+    )
+    
+    if not session:
+        return {"error": "Failed to create session"}
+    
+    # Redirect to the session page
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(
+        url=f"/session/{session.id}",
+        status_code=303
+    )
 
 
 @app.get("/prompt/{prompt_id}")
