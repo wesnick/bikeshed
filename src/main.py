@@ -149,6 +149,21 @@ async def left_sidebar_component(db: AsyncSession = Depends(get_db)) -> dict:
 async def right_drawer_component() -> None:
     """This route serves the right drawer component for htmx requests."""
 
+@app.get("/components/registry")
+@jinja.hx('components/registry/sidebar_widget.html.j2')
+async def registry_component(request: Request) -> dict:
+    """This route serves the registry sidebar widget for htmx requests."""
+    registry = request.app.state.registry
+    
+    return {
+        "prompts": registry._prompts,
+        "tools": registry._tools,
+        "resources": registry._resources,
+        "resource_templates": registry._resource_templates,
+        "schemas": registry._schemas,
+        "mcp_servers": registry.mcp_servers
+    }
+
 @app.get("/registry/prompts")
 @jinja.hx('components/registry/prompts_list.html.j2')
 async def registry_prompts(request: Request) -> dict:
