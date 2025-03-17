@@ -1,0 +1,209 @@
+import os
+import yaml
+import jinja2
+from typing import Dict, List, Optional, Any
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from mcp import StdioServerParameters
+
+from src.core.registry import Registry
+from src.core.config_loader import SchemaLoader, TemplateLoader, SessionTemplateLoader
+from src.service.logging import logger
+from src.service.mcp_client import MCPClient
+
+
+class RegistryLoader:
+    """
+    Loads configuration from bs.yaml and populates the Registry with schemas, templates,
+    MCP servers, and session templates.
+    """
+
+    def __init__(self, config_path: str = "config/bs.yaml"):
+        """
+        Initialize the registry loader with a path to the configuration file.
+
+        Args:
+            config_path: Path to the bs.yaml configuration file
+        """
+        self.config_path = config_path
+        self.registry = Registry()
+        self.mcp_client = MCPClient()
+        self.config = {}
+        self.jinja_env = jinja2.Environment(
+            loader=jinja2.FileSystemLoader("."),
+            autoescape=jinja2.select_autoescape(["html", "xml"]),
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+
+    def _load_config(self) -> Dict[str, Any]:
+        """
+        Load the configuration from the bs.yaml file.
+
+        Returns:
+            Dictionary containing the configuration
+        """
+        try:
+            with open(self.config_path, 'r') as f:
+                config = yaml.safe_load(f)
+            logger.info(f"Loaded configuration from {self.config_path}")
+            return config
+        except Exception as e:
+            logger.error(f"Failed to load configuration from {self.config_path}: {str(e)}")
+            return {}
+
+    def _load_schemas(self, schema_modules: List[str]) -> None:
+        """
+        Load schemas from the specified modules.
+
+        Args:
+            schema_modules: List of module names to load schemas from
+        """
+        if not schema_modules:
+            logger.warning("No schema modules specified in configuration")
+            return
+
+        logger.info(f"Loading schemas from modules: {schema_modules}")
+        schema_loader = SchemaLoader(self.registry)
+        for module_name in schema_modules:
+            try:
+                schema_loader.load_from_module(module_name, scan_all=True)
+            except Exception as e:
+                logger.error(f"Failed to load schemas from module {module_name}: {str(e)}")
+
+    def _load_templates(self, template_paths: Dict[str, str]) -> None:
+        """
+        Load templates from the specified paths.
+
+        Args:
+            template_paths: Dictionary mapping aliases to template directories
+        """
+        if not template_paths:
+            logger.warning("No template paths specified in configuration")
+            return
+
+        logger.info(f"Loading templates from paths: {template_paths}")
+        template_loader = TemplateLoader(self.registry, self.jinja_env)
+        for alias, path in template_paths.items():
+            try:
+                template_loader.load_from_directory(path, alias)
+            except Exception as e:
+                logger.error(f"Failed to load templates from {path} with alias {alias}: {str(e)}")
+
+    def _load_mcp_servers(self, mcp_servers: Dict[str, Dict[str, Any]]) -> None:
+        """
+        Load MCP server configurations.
+
+        Args:
+            mcp_servers: Dictionary mapping server names to server configurations
+        """
+        if not mcp_servers:
+            logger.warning("No MCP servers specified in configuration")
+            return
+
+        logger.info(f"Loading MCP server configurations: {list(mcp_servers.keys())}")
+        for name, config in mcp_servers.items():
+            try:
+                # Create StdioServerParameters from config
+                server_params = StdioServerParameters(
+                    command=config.get('command'),
+                    args=config.get('args', []),
+                    env=config.get('env', {})
+                )
+                self.registry.mcp_servers[name] = server_params
+                logger.info(f"Loaded MCP server configuration: {name}")
+            except Exception as e:
+                logger.error(f"Failed to load MCP server configuration for {name}: {str(e)}")
+
+    def _load_session_templates(self, templates_dir: str = "templates/sessions") -> None:
+        """
+        Load session templates from the specified directory.
+
+        Args:
+            templates_dir: Directory containing session template YAML files
+        """
+        logger.info(f"Loading session templates from directory: {templates_dir}")
+        template_loader = SessionTemplateLoader(self.registry)
+        try:
+            templates = template_loader.load_from_directory(templates_dir)
+            for name, template in templates.items():
+                self.registry.add_session_template(name, template)
+            logger.info(f"Loaded {len(templates)} session templates")
+        except Exception as e:
+            logger.error(f"Failed to load session templates from {templates_dir}: {str(e)}")
+
+    def load(self) -> Registry:
+        """
+        Load all configuration and populate the registry.
+
+        Returns:
+            The populated Registry instance
+        """
+        # Load the configuration file
+        self.config = self._load_config()
+        if not self.config:
+            logger.error("Failed to load configuration, using empty registry")
+            return self.registry
+
+        # Load schemas
+        schema_modules = self.config.get('schema_modules', [])
+        self._load_schemas(schema_modules)
+
+        # Load templates
+        template_paths = self.config.get('template_paths', {})
+        self._load_templates(template_paths)
+
+        # Load MCP servers
+        mcp_servers = self.config.get('mcp_servers', {})
+        self._load_mcp_servers(mcp_servers)
+
+        # Load session templates
+        templates_dir = self.config.get('session_templates_dir', 'templates/sessions')
+        self._load_session_templates(templates_dir)
+
+        logger.info("Registry loading completed")
+        return self.registry
+
+    async def connect_mcp_servers(self) -> None:
+        """
+        Connect to all configured MCP servers.
+        """
+        logger.info("Connecting to MCP servers")
+        for name, server_params in self.registry.mcp_servers.items():
+            try:
+                await self.mcp_client.connect_to_server(name, server_params)
+                logger.info(f"Connected to MCP server: {name}")
+            except Exception as e:
+                logger.error(f"Failed to connect to MCP server {name}: {str(e)}")
+
+    async def cleanup(self) -> None:
+        """
+        Clean up resources, including MCP server connections.
+        """
+        logger.info("Cleaning up registry resources")
+        await self.mcp_client.cleanup()
+
+    @asynccontextmanager
+    async def lifespan(self):
+        """
+        Async context manager for use with FastAPI's lifespan.
+
+        Example:
+            @app.on_event("startup")
+            async def startup():
+                async with registry_loader.lifespan() as registry:
+                    app.state.registry = registry
+        """
+        try:
+            # Load the registry
+            self.load()
+            
+            # Connect to MCP servers
+            await self.connect_mcp_servers()
+            
+            # Yield the registry for use in the application
+            yield self.registry
+        finally:
+            # Clean up resources when the application shuts down
+            await self.cleanup()

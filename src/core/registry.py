@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import List, Any, Dict
 
 from mcp import StdioServerParameters
 from pydantic import BaseModel, ValidationError, Field
@@ -63,8 +63,8 @@ class Registry:
         self.tool_manager = ToolManager()
         self.event_registry = event_registry
         self.schema_manager = SchemaManager()
-        self.session_templates = dict[str, SessionTemplate]
-        self.mcp_servers = dict[str, StdioServerParameters]
+        self.session_templates: Dict[str, SessionTemplate] = {}
+        self.mcp_servers: Dict[str, StdioServerParameters] = {}
 
     def get_schema(self, name: str) -> Schema | None:
         """Get a schema by name."""
@@ -81,7 +81,6 @@ class Registry:
     def get_session_template(self, name: str):
         """Get a session template by name."""
         return self.session_templates.get(name)
-
 
 
 
