@@ -14,7 +14,7 @@ class Metadata(BaseModel):
         default=None,
         description="Owner or creator of the session"
     )
-    version: Optional[str] = Field(
+    version: Optional[Union[str, float]] = Field(
         default=None,
         description="Version of this specific session definition"
     )
@@ -96,7 +96,7 @@ class BaseStep(BaseModel):
         default=None,
         description="Error handling configuration for this step"
     )
-    model_extra: Optional[Dict[str, Any]] = Field(
+    config_extra: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Additional model configuration for this step"
     )
@@ -151,7 +151,7 @@ class PromptStep(BaseStep):
         default=None,
         description="Schema to validate LLM response"
     )
-    model_extra: Optional[Dict[str, Any]] = Field(
+    config_extra: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Step-specific model configuration overrides"
     )
@@ -186,7 +186,7 @@ class UserInputStep(BaseStep):
         default=None,
         description="Schema to validate processed input"
     )
-    model_extra: Optional[Dict[str, Any]] = Field(
+    config_extra: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Step-specific model configuration"
     )
@@ -238,7 +238,7 @@ class SessionTemplate(BaseModel):
         default=None,
         description="Additional metadata for the session"
     )
-    model_extra: Optional[Dict[str, Any]] = Field(
+    config_extra: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Dictionary of model configuration options"
     )

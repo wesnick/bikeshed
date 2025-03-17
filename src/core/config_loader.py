@@ -282,6 +282,37 @@ class SessionTemplateLoader:
         """
         self.registry = registry
 
+    def validate_template(self, template_name: str, template_data: Dict[str, Any]) -> tuple[bool, Optional[SessionTemplate], List[str]]:
+        """
+        Validate a session template against the schema.
+        
+        Args:
+            template_name: Name of the template
+            template_data: Dictionary of template data
+            
+        Returns:
+            Tuple of (is_valid, template_object, error_messages)
+        """
+        errors = []
+        template_obj = None
+        
+        try:
+            # Try to create a SessionTemplate object
+            template_obj = SessionTemplate(**template_data)
+            return True, template_obj, []
+        except Exception as e:
+            # If validation fails, collect all errors
+            if hasattr(e, 'errors'):
+                for error in e.errors():
+                    # Format error message with location and message
+                    location = ".".join(str(loc) for loc in error["loc"])
+                    message = error["msg"]
+                    errors.append(f"{location}: {message}")
+            else:
+                errors.append(str(e))
+            
+            return False, None, errors
+
     def load_from_file(self, file_path: Union[str, Path]) -> Dict[str, SessionTemplate]:
         """
         Load session templates from a YAML file.
@@ -310,17 +341,27 @@ class SessionTemplateLoader:
 
             templates_dict = yaml_content['session_templates']
             loaded_templates = {}
+            validation_errors = {}
 
             # Process each template
             for template_name, template_data in templates_dict.items():
-                try:
-                    # Create a SessionTemplate object
-                    session_template = SessionTemplate(**template_data)
-                    loaded_templates[template_name] = session_template
+                is_valid, template_obj, errors = self.validate_template(template_name, template_data)
+                
+                if is_valid:
+                    loaded_templates[template_name] = template_obj
                     logger.info(f"Loaded session template: {template_name}")
-                except Exception as e:
-                    logger.error(f"Failed to load session template '{template_name}': {str(e)}")
+                else:
+                    validation_errors[template_name] = errors
+                    error_list = "\n  - ".join([""] + errors)
+                    logger.error(f"Failed to validate session template '{template_name}':{error_list}")
 
+            # If there were validation errors, print a summary
+            if validation_errors:
+                logger.error(f"Validation failed for {len(validation_errors)} templates in {file_path}")
+                for template_name, errors in validation_errors.items():
+                    error_list = "\n  - ".join([""] + errors)
+                    logger.error(f"Template '{template_name}' has {len(errors)} errors:{error_list}")
+            
             logger.info(f"Loaded {len(loaded_templates)} session templates from {file_path}")
             return loaded_templates
         except Exception as e:

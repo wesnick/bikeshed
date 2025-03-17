@@ -185,11 +185,16 @@ def load_templates(directories):
 
 @click.command()
 @click.argument('files', nargs=-1, required=True)
-def load_session_templates(files):
+@click.option('--validate-only', is_flag=True, help="Only validate templates without registering them")
+def load_session_templates(files, validate_only):
     """Load session templates from YAML files."""
     from src.core.registry import Registry
     from src.core.config_loader import SessionTemplateLoader
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
 
+    console = Console()
     registry = Registry()
     loader = SessionTemplateLoader(registry)
 
@@ -198,12 +203,31 @@ def load_session_templates(files):
         templates = loader.load_from_file(file_path)
         total_templates.update(templates)
 
-    click.echo(f"Loaded {len(total_templates)} session templates from {len(files)} files")
-    for name in total_templates:
-        click.echo(f"  - {name}")
-
-    # Register templates in registry (placeholder for future implementation)
-    registered_names = loader.register_templates(total_templates)
+    # Create a nice summary table
+    table = Table(title=f"Session Template Loading Results")
+    table.add_column("File", style="cyan")
+    table.add_column("Templates", style="green")
+    table.add_column("Status", style="yellow")
+    
+    for file_path in files:
+        file_templates = loader.load_from_file(file_path)
+        status = f"[green]✓ {len(file_templates)} loaded" if file_templates else "[red]✗ No valid templates"
+        table.add_row(file_path, ", ".join(file_templates.keys()) or "None", status)
+    
+    console.print(table)
+    
+    if total_templates:
+        console.print(f"[green]Successfully loaded {len(total_templates)} templates:[/green]")
+        for name in total_templates:
+            console.print(f"  - {name}")
+    else:
+        console.print("[red]No valid templates were loaded.[/red]")
+        console.print("Check the logs for detailed validation errors.")
+    
+    if not validate_only and total_templates:
+        # Register templates in registry (placeholder for future implementation)
+        registered_names = loader.register_templates(total_templates)
+        console.print(f"[green]Registered {len(registered_names)} templates in the registry.[/green]")
 
 @click.group()
 def group():
