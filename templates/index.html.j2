@@ -35,15 +35,10 @@
         {% include 'components/skeleton.html.j2' %}
       </div>
 
-      <div id="sidebar-settings">
-        <!-- Misc Items -->
-        <p class="menu-label mt-6">
-          Misc
-        </p>
-        <ul class="menu-list">
-          <li><a>Misc Item</a></li>
-          <li><a>Misc Item</a></li>
-        </ul>
+      <div id="sidebar-settings"
+           hx-get="/components/registry"
+           hx-trigger="load, sse:registry_update from:body"
+      >
       </div>
     </aside>
 
