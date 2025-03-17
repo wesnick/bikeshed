@@ -29,36 +29,28 @@ class WorkflowService:
         self.message_repo = message_repo
         self.active_machines: Dict[UUID, AsyncMachine] = {}
 
-    async def create_workflow(
+    async def get_session(self, db: AsyncSession, session_id: UUID) -> Optional[Session]:
+        """Get a session by ID"""
+        return await self.session_repo.get_by_id(db, session_id)
+        
+    async def create_state_machine(
         self,
-        db: AsyncSession,
-        session_id: UUID,
-        template: SessionTemplate,
-        initial_data: Optional[Dict[str, Any]] = None
-    ) -> Session:
-        """Create a new workflow from a session template"""
-        # Get the session
-        session = await self.session_repo.get_by_id(db, session_id)
-        if not session:
-            raise ValueError(f"Session not found: {session_id}")
-
-        # Update session with workflow data
-        session_data = {
-            "status": "pending",
-            "current_state": "initial",
-            "workflow_data": initial_data or {},
-            "template": template,
-        }
-
-        session = await self.session_repo.update(db, session_id, session_data)
-
+        session: Session,
+        template: Optional[SessionTemplate] = None
+    ) -> AsyncMachine:
+        """Create a state machine for a session"""
+        if not template and not session.template:
+            raise ValueError("Template is required to create a state machine")
+            
+        template_to_use = template or session.template
+        
         # Create state machine
-        machine = self._create_state_machine(session, template)
-
+        machine = self._create_state_machine(session, template_to_use)
+        
         # Store the machine
-        self.active_machines[session_id] = machine
-
-        return session
+        self.active_machines[session.id] = machine
+        
+        return machine
 
     def _create_state_machine(
         self,
