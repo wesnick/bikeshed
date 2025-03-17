@@ -165,22 +165,22 @@ class RegistryLoader:
         logger.info("Connecting to MCP servers")
         for name, server_params in self.registry.mcp_servers.items():
             try:
-                # use mcp_client AsyncGenerator[MCPClient, None]
+                # Get the singleton mcp_client instance
                 async for mcp_client in get_mcp_client():
                     await mcp_client.connect_to_server(name, server_params)
 
                     session = await mcp_client.get_session(name)
-                    if mcp_client.sessions.get(name).has_tools():
+                    if session and mcp_client.sessions.get(name) and mcp_client.sessions.get(name).has_tools():
                         tools_result = await session.list_tools()
                         for tool in tools_result.tools:
                             self.registry.add_tool(tool.name, tool)
                             logger.debug(f"Added tool: {tool.name}")
-                    if mcp_client.sessions.get(name).has_prompts():
+                    if session and mcp_client.sessions.get(name) and mcp_client.sessions.get(name).has_prompts():
                         prompts_result = await session.list_prompts()
                         for prompt in prompts_result.prompts:
                             self.registry.add_prompt(prompt.name, prompt)
                             logger.debug(f"Added prompt: {prompt.name}")
-                    if mcp_client.sessions.get(name).has_resources():
+                    if session and mcp_client.sessions.get(name) and mcp_client.sessions.get(name).has_resources():
                         resources_result = await session.list_resources()
                         for resource in resources_result.resources:
                             self.registry.add_resource(resource)

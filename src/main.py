@@ -30,7 +30,17 @@ async def lifespan(app: FastAPI):
     loader = RegistryLoader()
     app.state.registry = await loader.load()
 
+    # Make the mcp_client available in app state for easy access
+    from src.dependencies import mcp_client
+    app.state.mcp_client = mcp_client
+
     yield
+    
+    # Clean up the mcp_client when the application shuts down
+    from src.dependencies import mcp_client, _mcp_client_initialized
+    if _mcp_client_initialized:
+        logger.info("Cleaning up MCP client...")
+        await mcp_client.__aexit__(None, None, None)
 
 
 app = FastAPI(title="BikeShed", lifespan=lifespan)

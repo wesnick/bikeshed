@@ -33,11 +33,21 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def get_cache() -> AsyncGenerator[RedisService, None]:
     yield RedisService(redis_url=str(settings.redis_url))
 
+# Create the singleton instance
 mcp_client = MCPClient()
+_mcp_client_initialized = False
 
 async def get_mcp_client() -> AsyncGenerator[MCPClient, None]:
-    async with mcp_client as client:
-        yield client
+    """Dependency for getting the singleton MCPClient instance"""
+    global _mcp_client_initialized
+    
+    # Only enter the context manager once
+    if not _mcp_client_initialized:
+        await mcp_client.__aenter__()
+        _mcp_client_initialized = True
+    
+    # Simply yield the singleton instance
+    yield mcp_client
 
 def markdown2html(text: str):
     from src.main import logger
