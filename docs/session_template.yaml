@@ -14,7 +14,7 @@ session_prototype:
 
   # Core session configuration
   model: string                 # Default LLM model to use
-  model_config: dict            # dictionary of model configuration, optional
+  model_extra: dict            # dictionary of model configuration, optional
 
   # Available tools and resources
   tools: list[string]           # List of tool identifiers
@@ -50,7 +50,7 @@ step_types:
         - template_args: object # Arguments to pass to the template
         - input_schema: string  # Schema to validate template_args
         - output_schema: string # Schema to validate LLM response
-        - model_config: object  # Step-specific configuration overrides
+        - model_extra: object   # Step-specific configuration overrides
         - error_handling: object # Step-specific error handling
 
   - user_input:                 # Wait for manual input from user, optionally prefilling with template
@@ -60,7 +60,7 @@ step_types:
         - template: string      # Template to format user input
         - template_args: object # Arguments to pass to the template
         - input_schema: string  # Schema to validate user input
-        - model_config: object        # Step-specific configuration
+        - model_extra: object   # Step-specific configuration
         - output_schema: string # Schema to validate processed input
         - error_handling: object # Step-specific error handling
 
