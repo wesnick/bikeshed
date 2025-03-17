@@ -6,9 +6,18 @@ from pydantic import BaseModel, Field
 
 class Metadata(BaseModel):
     """Metadata for session execution."""
-    tags: Optional[List[str]] = None
-    owner: Optional[str] = None
-    version: Optional[str] = None
+    tags: Optional[List[str]] = Field(
+        default=None,
+        description="List of categorization tags for the session"
+    )
+    owner: Optional[str] = Field(
+        default=None,
+        description="Owner or creator of the session"
+    )
+    version: Optional[str] = Field(
+        default=None,
+        description="Version of this specific session definition"
+    )
     # Allow additional fields
     model_config = {
         "extra": "allow",
@@ -17,70 +26,192 @@ class Metadata(BaseModel):
 
 class ErrorHandling(BaseModel):
     """Error handling configuration."""
-    strategy: Literal["fail", "retry", "continue", "fallback"] = "fail"
-    max_retries: Optional[int] = None
-    fallback_step: Optional[str] = None
+    strategy: Literal["fail", "retry", "continue", "fallback"] = Field(
+        default="fail",
+        description="Error handling strategy to use when a step fails"
+    )
+    max_retries: Optional[int] = Field(
+        default=None,
+        description="Maximum number of retry attempts"
+    )
+    fallback_step: Optional[str] = Field(
+        default=None,
+        description="Step ID to jump to on failure"
+    )
 
 
 class StepConfig(BaseModel):
     """Configuration overrides for a specific step."""
-    model: Optional[str] = None
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
-    tools: Optional[List[Union[str, Dict[str, Any]]]] = None
-    tool_merge_strategy: Optional[Literal["replace", "append", "prepend"]] = None
-    resources: Optional[List[Union[str, Dict[str, Any]]]] = None
-    resource_merge_strategy: Optional[Literal["replace", "append", "prepend"]] = None
+    model: Optional[str] = Field(
+        default=None,
+        description="Override default model for this step"
+    )
+    temperature: Optional[float] = Field(
+        default=None,
+        description="Override default temperature for this step"
+    )
+    max_tokens: Optional[int] = Field(
+        default=None,
+        description="Override default max tokens for this step"
+    )
+    tools: Optional[List[Union[str, Dict[str, Any]]]] = Field(
+        default=None,
+        description="Override or extend available tools for this step"
+    )
+    tool_merge_strategy: Optional[Literal["replace", "append", "prepend"]] = Field(
+        default=None,
+        description="Strategy for merging tools with the default set"
+    )
+    resources: Optional[List[Union[str, Dict[str, Any]]]] = Field(
+        default=None,
+        description="Override or extend available resources for this step"
+    )
+    resource_merge_strategy: Optional[Literal["replace", "append", "prepend"]] = Field(
+        default=None,
+        description="Strategy for merging resources with the default set"
+    )
 
 
 class BaseStep(BaseModel):
     """Base class for all step types."""
-    name: str
-    description: Optional[str] = None
-    type: str
-    enabled: bool = True
-    metadata: Optional[Dict[str, Any]] = None
-    error_handling: Optional[ErrorHandling] = None
-    model_extra: Optional[Dict[str, Any]] = None
+    name: str = Field(
+        description="Concise descriptive name for the step"
+    )
+    description: Optional[str] = Field(
+        default=None,
+        description="Detailed purpose of the step"
+    )
+    type: str = Field(
+        description="Type of step to execute"
+    )
+    enabled: bool = Field(
+        default=True,
+        description="Whether the step is active"
+    )
+    metadata: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Additional information for tracking/debugging"
+    )
+    error_handling: Optional[ErrorHandling] = Field(
+        default=None,
+        description="Error handling configuration for this step"
+    )
+    model_extra: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Additional model configuration for this step"
+    )
 
 
 class MessageStep(BaseStep):
     """Step to output a message with a specified role."""
-    type: Literal["message"] = "message"
-    role: Literal["system", "user", "assistant"]
-    content: Optional[str] = None
-    template: Optional[str] = None
-    template_args: Optional[Dict[str, Any]] = None
+    type: Literal["message"] = Field(
+        default="message",
+        description="Step type for adding a message to the conversation"
+    )
+    role: Literal["system", "user", "assistant"] = Field(
+        description="Role of the message sender"
+    )
+    content: Optional[str] = Field(
+        default=None,
+        description="Text content of the message"
+    )
+    template: Optional[str] = Field(
+        default=None,
+        description="Registered template name to use"
+    )
+    template_args: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Arguments to pass to the template"
+    )
 
 
 class PromptStep(BaseStep):
     """Step to generate a completion from an LLM."""
-    type: Literal["prompt"] = "prompt"
-    content: Optional[str] = None
-    template: Optional[str] = None
-    template_args: Optional[Dict[str, Any]] = None
-    input_schema: Optional[str] = None
-    output_schema: Optional[str] = None
-    model_extra: Optional[Dict[str, Any]] = None
+    type: Literal["prompt"] = Field(
+        default="prompt",
+        description="Step type for generating completion from LLM"
+    )
+    content: Optional[str] = Field(
+        default=None,
+        description="Direct content to use as prompt"
+    )
+    template: Optional[str] = Field(
+        default=None,
+        description="Registered template name to use"
+    )
+    template_args: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Arguments to pass to the template"
+    )
+    input_schema: Optional[str] = Field(
+        default=None,
+        description="Schema to validate template_args"
+    )
+    output_schema: Optional[str] = Field(
+        default=None,
+        description="Schema to validate LLM response"
+    )
+    model_extra: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Step-specific model configuration overrides"
+    )
 
 class UserInputStep(BaseStep):
     """Step to wait for manual input from the user."""
-    type: Literal["user_input"] = "user_input"
-    instructions: Optional[str] = None
-    prompt: Optional[str] = None
-    template: Optional[str] = None
-    template_args: Optional[Dict[str, Any]] = None
-    input_schema: Optional[str] = None
-    output_schema: Optional[str] = None
-    model_extra: Optional[Dict[str, Any]] = None
+    type: Literal["user_input"] = Field(
+        default="user_input",
+        description="Step type for waiting for manual user input"
+    )
+    instructions: Optional[str] = Field(
+        default=None,
+        description="Instructions for the user"
+    )
+    prompt: Optional[str] = Field(
+        default=None,
+        description="Text to display to user when requesting input"
+    )
+    template: Optional[str] = Field(
+        default=None,
+        description="Template to format user input"
+    )
+    template_args: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Arguments to pass to the template"
+    )
+    input_schema: Optional[str] = Field(
+        default=None,
+        description="Schema to validate user input"
+    )
+    output_schema: Optional[str] = Field(
+        default=None,
+        description="Schema to validate processed input"
+    )
+    model_extra: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Step-specific model configuration"
+    )
 
 class InvokeStep(BaseStep):
     """Step to call a code function."""
-    type: Literal["invoke"] = "invoke"
-    callable: str
-    args: Optional[Dict[str, Any]] = None
-    input_schema: Optional[str] = None
-    output_schema: Optional[str] = None
+    type: Literal["invoke"] = Field(
+        default="invoke",
+        description="Step type for calling a code function"
+    )
+    callable: str = Field(
+        description="Function identifier to call, use '@' for tool lookup"
+    )
+    args: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Arguments to pass to function"
+    )
+    input_schema: Optional[str] = Field(
+        default=None,
+        description="Schema to validate args"
+    )
+    output_schema: Optional[str] = Field(
+        default=None,
+        description="Schema to validate function result"
+    )
 
 
 # Union type for all possible steps
@@ -89,18 +220,52 @@ Step = Union[MessageStep, PromptStep, UserInputStep, InvokeStep]
 
 class SessionTemplate(BaseModel):
     """Core session configuration."""
-    model: str
-    steps: List[Step]
-    description: Optional[str] = None
-    goal: Optional[str] = None
-    metadata: Optional[Metadata] = None
-    model_extra: Optional[Dict[str, Any]] = None
-    tools: Optional[List[str]] = None
-    resources: Optional[List[str]] = None
-    roots: Optional[List[str]] = None
-    input_schema: Optional[str] = None
-    output_schema: Optional[str] = None
-    error_handling: Optional[ErrorHandling] = None
+    model: str = Field(
+        description="Default LLM model to use"
+    )
+    steps: List[Step] = Field(
+        description="Ordered list of execution steps"
+    )
+    description: Optional[str] = Field(
+        default=None,
+        description="Brief description of the session"
+    )
+    goal: Optional[str] = Field(
+        default=None,
+        description="Desired outcome of the session"
+    )
+    metadata: Optional[Metadata] = Field(
+        default=None,
+        description="Additional metadata for the session"
+    )
+    model_extra: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Dictionary of model configuration options"
+    )
+    tools: Optional[List[str]] = Field(
+        default=None,
+        description="List of tool identifiers"
+    )
+    resources: Optional[List[str]] = Field(
+        default=None,
+        description="List of resource identifiers"
+    )
+    roots: Optional[List[str]] = Field(
+        default=None,
+        description="List of root identifiers"
+    )
+    input_schema: Optional[str] = Field(
+        default=None,
+        description="Registered schema name for session input"
+    )
+    output_schema: Optional[str] = Field(
+        default=None,
+        description="Registered schema name for session output"
+    )
+    error_handling: Optional[ErrorHandling] = Field(
+        default=None,
+        description="Default error handling strategy"
+    )
 
 
 SessionTemplate.model_json_schema()
