@@ -59,6 +59,90 @@ class Registry:
         self._schemas[schema.name] = schema
         return schema
 
+    # Resource methods
+    def get_resource(self, uri: str) -> Resource | None:
+        """Get resource by URI."""
+        return self._resources.get(uri)
+
+    def list_resources(self) -> list[Resource]:
+        """List all registered resources."""
+        return list(self._resources.values())
+
+    def add_resource(self, resource: Resource) -> Resource:
+        """Add a resource to the registry."""
+        # Check for duplicates
+        existing = self._resources.get(resource.uri)
+        if existing:
+            if self.warn_on_duplicate_schemas:
+                logger.warning(f"Resource already exists: {resource.uri}")
+            return existing
+
+        self._resources[resource.uri] = resource
+        return resource
+
+    # Resource template methods
+    def get_resource_template(self, uri_template: str) -> ResourceTemplate | None:
+        """Get resource template by URI template."""
+        return self._resource_templates.get(uri_template)
+
+    def list_resource_templates(self) -> list[ResourceTemplate]:
+        """List all registered resource templates."""
+        return list(self._resource_templates.values())
+
+    def add_resource_template(self, uri_template: str, template: ResourceTemplate) -> ResourceTemplate:
+        """Add a resource template to the registry."""
+        # Check for duplicates
+        existing = self._resource_templates.get(uri_template)
+        if existing:
+            if self.warn_on_duplicate_schemas:
+                logger.warning(f"Resource template already exists: {uri_template}")
+            return existing
+
+        self._resource_templates[uri_template] = template
+        return template
+
+    # Prompt methods
+    def get_prompt(self, name: str) -> Prompt | None:
+        """Get prompt by name."""
+        return self._prompts.get(name)
+
+    def list_prompts(self) -> list[Prompt]:
+        """List all registered prompts."""
+        return list(self._prompts.values())
+
+    def add_prompt(self, name: str, prompt: Prompt) -> Prompt:
+        """Add a prompt to the registry."""
+        # Check for duplicates
+        existing = self._prompts.get(name)
+        if existing:
+            if self.warn_on_duplicate_schemas:
+                logger.warning(f"Prompt already exists: {name}")
+            return existing
+
+        self._prompts[name] = prompt
+        return prompt
+
+    # Tool methods
+    def get_tool(self, name: str) -> Tool | None:
+        """Get tool by name."""
+        return self._tools.get(name)
+
+    def list_tools(self) -> list[Tool]:
+        """List all registered tools."""
+        return list(self._tools.values())
+
+    def add_tool(self, name: str, tool: Tool) -> Tool:
+        """Add a tool to the registry."""
+        # Check for duplicates
+        existing = self._tools.get(name)
+        if existing:
+            if self.warn_on_duplicate_schemas:
+                logger.warning(f"Tool already exists: {name}")
+            return existing
+
+        self._tools[name] = tool
+        return tool
+
 
     def add_session_template(self, name: str, template: SessionTemplate):
         """Add a session template to the registry."""

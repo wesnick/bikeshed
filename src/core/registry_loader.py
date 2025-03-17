@@ -178,17 +178,21 @@ class RegistryLoader:
                     tools_result = await session.list_tools()
                     for tool in tools_result.tools:
                         self.registry.add_tool(tool.name, tool)
+                        logger.debug(f"Added tool: {tool.name}")
                 if self.mcp_client.sessions.get(name).has_prompts():
                     prompts_result = await session.list_prompts()
                     for prompt in prompts_result.prompts:
                         self.registry.add_prompt(prompt.name, prompt)
+                        logger.debug(f"Added prompt: {prompt.name}")
                 if self.mcp_client.sessions.get(name).has_resources():
                     resources_result = await session.list_resources()
                     for resource in resources_result.resources:
                         self.registry.add_resource(resource)
+                        logger.debug(f"Added resource: {resource.uri}")
                     templates_result = await session.list_resource_templates()
                     for template in templates_result.resourceTemplates:
                         self.registry.add_resource_template(template.uriTemplate, template)
+                        logger.debug(f"Added resource template: {template.uriTemplate}")
 
 
 
