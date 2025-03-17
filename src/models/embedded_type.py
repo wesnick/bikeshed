@@ -10,6 +10,9 @@ from sqlalchemy.sql.type_api import TypeEngine
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
+"""
+Source: https://gist.github.com/a1d4r/100b06239925a414446305c81433cc88
+"""
 
 class PydanticType(sa.types.TypeDecorator[ModelT]):
     """Pydantic type.

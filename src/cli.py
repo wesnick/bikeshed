@@ -194,7 +194,6 @@ def load_session_templates(files, validate_only):
     from rich.panel import Panel
     from rich.table import Table
 
-    console = Console()
     registry = Registry()
     loader = SessionTemplateLoader(registry)
 
@@ -237,16 +236,12 @@ def load_session_templates(files, validate_only):
 def create_session(template_name, description, goal):
     """Create a new session from a template."""
     import asyncio
-    from sqlalchemy.ext.asyncio import AsyncSession
-    from src.database import get_async_session
+    from src.dependencies import get_db
     from src.service.session import create_session_from_template
-    from rich.console import Console
     from rich.panel import Panel
 
-    console = Console()
-
     async def run():
-        async for db in get_async_session():
+        async for db in get_db():
             try:
                 session = await create_session_from_template(
                     db=db,
@@ -254,7 +249,7 @@ def create_session(template_name, description, goal):
                     description=description,
                     goal=goal
                 )
-                
+
                 if session:
                     console.print(Panel(
                         f"[green]Session created successfully![/green]\n\n"
@@ -268,7 +263,7 @@ def create_session(template_name, description, goal):
                     ))
                 else:
                     console.print(f"[red]Failed to create session from template '{template_name}'[/red]")
-                
+
                 return session
             except Exception as e:
                 console.print(f"[red]Error creating session:[/red] {str(e)}")

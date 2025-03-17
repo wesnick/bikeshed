@@ -220,6 +220,9 @@ Step = Union[MessageStep, PromptStep, UserInputStep, InvokeStep]
 
 class SessionTemplate(BaseModel):
     """Core session configuration."""
+    name: str = Field(
+        description="Unique identifier for the session template"
+    )
     model: str = Field(
         description="Default LLM model to use"
     )

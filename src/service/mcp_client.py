@@ -16,11 +16,10 @@ class SessionData:
 
 
 class MCPClient:
-    def __init__(self, redis_service: Optional[RedisService] = None):
+    def __init__(self):
         self.sessions: Dict[str, SessionData] = {}
         self.exit_stack = AsyncExitStack()
         self._initialized = False
-        self.redis_service = redis_service
 
     async def __aenter__(self):
         """Make MCPClient usable as an async context manager."""
@@ -41,7 +40,7 @@ class MCPClient:
         if name in self.sessions:
             # If we already have a session with this name, close it first
             await self._close_session(name)
-            
+
         try:
             stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
             stdio, write = stdio_transport
@@ -81,7 +80,7 @@ class MCPClient:
 
     async def get_session(self, name: str) -> Optional[ClientSession]:
         """Get the ClientSession by name.
-        
+
         Args:
             name: name of the session
 
@@ -92,48 +91,3 @@ class MCPClient:
         if session_data:
             return session_data.session
         return None
-
-
-    async def get_manifest(self):
-        cached_manifest = self.redis_service.get("mcp:manifes")
-        if cached_manifest:
-            return json.loads(cached_manifest)
-
-        manifest = await self.build_manifest()
-        self.redis_service.set("mcp:manifes", json.dumps(manifest))
-        return manifest
-
-    async def build_manifest(self):
-        # iterate over sessions
-        manifest = {'tools': {}, 'prompts': {}, 'resources': {}, 'resource_templates': {}}
-        for name, session in self.sessions.items():
-            if session.capabilities.tools:
-                tools = await session.session.list_tools()
-                for t in tools.tools:
-                    manifest['tools'][name + '.' + t.name] = {
-                        'name': t.name,
-                        'description': t.description,
-                        'schema': t.inputSchema
-                    }
-
-            if session.capabilities.prompts:
-                prompts = await session.session.list_prompts()
-                for p in prompts.prompts:
-                    manifest['prompts'][name + '.' + p.name] = {
-                        'name': p.name,
-                        'description': p.description,
-                        'arguments': [arg.model_dump() for arg in p.arguments]
-                    }
-
-            if session.capabilities.resources:
-                resources = await session.session.list_resources()
-                for r in resources.resources:
-                    manifest['resources'][name + '.' + r.name] = {
-                        'name': r.name,
-                        'uri': r.uri,
-                        'description': r.description,
-                        'mimeType': r.mimeType
-                    }
-
-
-        return manifest

@@ -285,19 +285,20 @@ class SessionTemplateLoader:
     def validate_template(self, template_name: str, template_data: Dict[str, Any]) -> tuple[bool, Optional[SessionTemplate], List[str]]:
         """
         Validate a session template against the schema.
-        
+
         Args:
             template_name: Name of the template
             template_data: Dictionary of template data
-            
+
         Returns:
             Tuple of (is_valid, template_object, error_messages)
         """
         errors = []
         template_obj = None
-        
+
         try:
             # Try to create a SessionTemplate object
+            template_data['name'] = template_name
             template_obj = SessionTemplate(**template_data)
             return True, template_obj, []
         except Exception as e:
@@ -310,7 +311,7 @@ class SessionTemplateLoader:
                     errors.append(f"{location}: {message}")
             else:
                 errors.append(str(e))
-            
+
             return False, None, errors
 
     def load_from_file(self, file_path: Union[str, Path]) -> Dict[str, SessionTemplate]:
@@ -346,7 +347,7 @@ class SessionTemplateLoader:
             # Process each template
             for template_name, template_data in templates_dict.items():
                 is_valid, template_obj, errors = self.validate_template(template_name, template_data)
-                
+
                 if is_valid:
                     loaded_templates[template_name] = template_obj
                     logger.info(f"Loaded session template: {template_name}")
@@ -361,7 +362,7 @@ class SessionTemplateLoader:
                 for template_name, errors in validation_errors.items():
                     error_list = "\n  - ".join([""] + errors)
                     logger.error(f"Template '{template_name}' has {len(errors)} errors:{error_list}")
-            
+
             logger.info(f"Loaded {len(loaded_templates)} session templates from {file_path}")
             return loaded_templates
         except Exception as e:
@@ -410,12 +411,12 @@ class SessionTemplateLoader:
         # This is a placeholder for future registry integration
         # Currently, the registry doesn't have a dedicated place for session templates
         # You might want to add a session_template_manager to the Registry class
-        
+
         registered_names = []
         for name, template in templates.items():
             # Future: self.registry.session_template_manager.add_template(name, template)
             registered_names.append(name)
-            
+
         return registered_names
 
 

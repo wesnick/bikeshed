@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Any
 from pydantic import BaseModel, ValidationError, Field
 from mcp.server.fastmcp.resources import ResourceManager
 from mcp.server.fastmcp.prompts import (
@@ -8,6 +8,7 @@ from mcp.server.fastmcp.prompts import (
 from mcp.server.fastmcp.tools import ToolManager
 from fastapi_events.registry.payload_schema import registry as event_registry
 
+from src.core.config_types import SessionTemplate
 from src.service.logging import logger
 
 class TemplatePrompt(Prompt):
@@ -60,6 +61,8 @@ class Registry:
         self.tool_manager = ToolManager()
         self.event_registry = event_registry
         self.schema_manager = SchemaManager()
+        self.session_templates = dict[str, SessionTemplate]
+        self.mcp_servers = dict[str, ]
 
     def get_schema(self, name: str) -> Schema | None:
         """Get a schema by name."""
@@ -68,6 +71,16 @@ class Registry:
     def list_schemas(self) -> list[Schema]:
         """List all registered schemas."""
         return self.schema_manager.list_schemas()
+
+    def add_session_template(self, name: str, template: SessionTemplate):
+        """Add a session template to the registry."""
+        self.session_templates[name] = template
+
+    def get_session_template(self, name: str):
+        """Get a session template by name."""
+        return self.session_templates.get(name)
+
+
 
 
 

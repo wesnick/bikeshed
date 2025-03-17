@@ -17,7 +17,7 @@ frontend-dev:
 # Build the frontend assets for production
 build:
     npm run build
-    
+
 # Run aider with project documentation and justfile
 aider *args:
     aider --file docs/project.md --file justfile {{args}}
@@ -46,14 +46,6 @@ alembic-current:
 search-mcp query="":
     python -m src.cli search-mcp {{query}}
 
-# Create database fixtures for development
-create-fixtures:
-    python -m src.cli create-fixtures
-
-# Create database fixtures with custom parameters
-create-fixtures-custom:
-    python -m src.cli create-fixtures --templates=3 --flows=5 --sessions=10 --messages-per-session=8 --artifacts=15 --scratchpads=3 --complete-flows=2
-
 # Run all tests
 test:
     pytest tests/ -v
@@ -70,27 +62,7 @@ test-cov:
 # Run tests and watch for changes
 test-watch:
     pytest-watch -- tests/ -v
-    
+
 # Start both frontend and backend development servers
 dev:
     just frontend-dev & just fastapi-dev
-    
-# Load schemas from modules
-load-schemas:
-    python -m src.cli load-schemas
-
-# Load all schemas (including non-decorated ones)
-load-all-schemas:
-    python -m src.cli load-schemas --scan-all
-    
-# Load templates from directories
-load-templates *dirs:
-    python -m src.cli load-templates {{dirs}}
-    
-# Load session templates from YAML files
-load-session-templates *files:
-    python -m src.cli load-session-templates {{files}}
-    
-# Create a new session from a template
-create-session template_name *args:
-    python -m src.cli create-session {{template_name}} {{args}}

@@ -5,14 +5,25 @@ from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
 from markdown2 import markdown
 from sqlalchemy.ext.asyncio import  AsyncSession
-
-from src.service.database import async_session_factory
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from src.service.cache import RedisService
 from src.service.mcp_client import MCPClient
 from src.config import get_config
 
 
 settings = get_config()
+
+# Create engine with the Base metadata from models
+engine = create_async_engine(
+    str(settings.database_url),
+    echo=settings.log_level == "DEBUG",
+)
+
+async_session_factory = async_sessionmaker(
+    engine,
+    expire_on_commit=False
+)
+
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Dependency for getting async database session"""
@@ -22,8 +33,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def get_cache() -> AsyncGenerator[RedisService, None]:
     yield RedisService(redis_url=str(settings.redis_url))
 
-async def get_mcp_client(cache: Annotated[RedisService, Depends(get_cache)]) -> AsyncGenerator[MCPClient, None]:
-    async with MCPClient(redis_service=cache) as client:
+async def get_mcp_client() -> AsyncGenerator[MCPClient, None]:
+    async with MCPClient() as client:
         yield client
 
 
