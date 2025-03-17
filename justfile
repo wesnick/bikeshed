@@ -5,6 +5,7 @@ default:
 # Create a local .env file from .env.dist if it doesn't exist
 setup-env:
     [ -f .env ] || cp .env.dist .env
+    uv pip install transitions[asyncio]
 
 # Start the FastAPI development server with auto-reload
 fastapi-dev:

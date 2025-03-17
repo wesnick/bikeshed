@@ -192,64 +192,6 @@ class WorkflowService:
 
         return machine
 
-    def _create_step_callback(
-        self,
-        session_id: UUID,
-        step_index: int,
-        template: SessionTemplate
-    ) -> Callable:
-        """Create a callback function for executing a step"""
-        step = template.steps[step_index]
-
-        async def execute_step(event):
-            session = event.model
-
-            # Update session status
-            async with get_db() as db:
-                await self.session_repo.update(db, session_id, {
-                    "status": "running",
-                    "current_state": f"step_{step_index}"
-                })
-
-            try:
-                # Create a message for this step
-                async with get_db() as db:
-                    message = await self._create_step_message(db, session_id, step)
-
-                # Execute the step based on its type
-                if step.type == "message":
-                    await self._execute_message_step(session_id, step, message)
-                elif step.type == "prompt":
-                    await self._execute_prompt_step(session_id, step, message)
-                elif step.type == "user_input":
-                    # For user_input, we'll pause the workflow and wait for input
-                    async with get_db() as db:
-                        await self.session_repo.update(db, session_id, {
-                            "status": "paused",
-                            "workflow_data": {
-                                **session.workflow_data,
-                                "current_message_id": str(message.id)
-                            }
-                        })
-                    return
-                elif step.type == "invoke":
-                    await self._execute_invoke_step(session_id, step, message)
-
-                # Trigger the next step
-                next_trigger = f"next_step_{step_index}"
-                machine = self.active_machines[session_id]
-                await machine.trigger(next_trigger)
-
-            except Exception as e:
-                logger.exception(f"Error executing step {step_index}")
-                async with get_db() as db:
-                    await self.session_repo.update(db, session_id, {
-                        "status": "failed",
-                        "error": str(e)
-                    })
-                await self.active_machines[session_id].trigger('fail')
-
-        return execute_step
 
     async def _create_step_message(
         self,
