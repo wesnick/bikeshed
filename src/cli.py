@@ -230,44 +230,89 @@ def load_session_templates(files, validate_only):
 
 
 @click.command()
-def load_registry():
-    """Create a new session from a template."""
+@click.argument('template_name')
+@click.option('--description', '-d', help='Optional description override')
+@click.option('--goal', '-g', help='Optional goal override')
+def run_workflow(template_name: str, description: Optional[str] = None, goal: Optional[str] = None):
+    """Create and run a workflow from a template."""
     import asyncio
     from src.dependencies import get_db
-    from src.service.session import create_session_from_template
-    from rich.panel import Panel
     from src.core.registry_loader import RegistryLoader
     from src.service.workflow_runner import WorkflowRunner
-    from src.core.registry import Registry
+    from src.service.workflow import WorkflowService
+    from src.repository.session import SessionRepository
+    from src.repository.message import MessageRepository
 
-    loader = RegistryLoader()
-    registry = asyncio.run(loader.load())
+    async def _run_workflow():
+        # Load registry
+        loader = RegistryLoader()
+        registry = await loader.load()
 
-    template_name = 'hone_idea'
+        # Get the session template
+        template = registry.session_templates.get(template_name)
+        if not template:
+            console.print(f"[bold red]Error:[/bold red] Template not found: {template_name}")
+            return
 
-    # Get the session template
-    template = registry.session_templates.get(template_name)
-    if not template:
-        raise ValueError(f"Template not found: {template_name}")
-
+        # Create repositories and services
+        session_repo = SessionRepository()
+        message_repo = MessageRepository()
+        workflow_service = WorkflowService(session_repo, message_repo)
+        
         # Create a workflow runner
-    runner = WorkflowRunner(
-        workflow_service,
-        session_id,
-        template
-    )
+        runner = WorkflowRunner(workflow_service)
+        
+        # Create and run the workflow
+        async with get_db() as db:
+            with console.status(f"Creating and running workflow from template '{template_name}'..."):
+                try:
+                    session = await runner.create_and_run(db, template, description, goal)
+                    
+                    # Generate a diagram
+                    diagram = workflow_service.generate_workflow_diagram(session.id)
+                    
+                    # Display session info
+                    console.print(f"[bold green]Session created:[/bold green] {session.id}")
+                    console.print(f"[bold]Status:[/bold] {session.status}")
+                    console.print(f"[bold]Current state:[/bold] {session.current_state}")
+                    
+                    # Display diagram
+                    console.print("\n[bold]Workflow Diagram:[/bold]")
+                    console.print(diagram)
+                    
+                except Exception as e:
+                    console.print(f"[bold red]Error:[/bold red] {str(e)}")
+    
+    asyncio.run(_run_workflow())
 
-    # Run the workflow
-    session = await runner.run(db)
-
-    # Generate a diagram
-    diagram = workflow_service.generate_workflow_diagram(session_id)
-
-    return {
-        "session": session,
-        "diagram": diagram
-    }
-
+@click.command()
+@click.argument('description')
+@click.option('--goal', '-g', help='Optional goal for the session')
+def create_ad_hoc(description: str, goal: Optional[str] = None):
+    """Create a new ad-hoc session without a workflow."""
+    import asyncio
+    from src.dependencies import get_db
+    from src.service.session import SessionService
+    
+    async def _create_ad_hoc():
+        session_service = SessionService()
+        
+        async with get_db() as db:
+            with console.status(f"Creating ad-hoc session..."):
+                try:
+                    session = await session_service.create_ad_hoc_session(db, description, goal)
+                    
+                    # Display session info
+                    console.print(f"[bold green]Ad-hoc session created:[/bold green] {session.id}")
+                    console.print(f"[bold]Description:[/bold] {session.description}")
+                    if session.goal:
+                        console.print(f"[bold]Goal:[/bold] {session.goal}")
+                    console.print(f"[bold]Status:[/bold] {session.status}")
+                    
+                except Exception as e:
+                    console.print(f"[bold red]Error:[/bold red] {str(e)}")
+    
+    asyncio.run(_create_ad_hoc())
 
 
 
@@ -281,7 +326,8 @@ group.add_command(search_mcp)
 group.add_command(load_schemas)
 group.add_command(load_templates)
 group.add_command(load_session_templates)
-group.add_command(load_registry)
+group.add_command(run_workflow)
+group.add_command(create_ad_hoc)
 
 if __name__ == '__main__':
     group()
