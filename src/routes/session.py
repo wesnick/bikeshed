@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import get_db, get_jinja
 from src.repository import session_repository, message_repository
-from src.models.models import Session
+
 
 router = APIRouter(prefix="/session", tags=["session"])
 

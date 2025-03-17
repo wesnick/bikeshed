@@ -30,12 +30,8 @@ async def lifespan(app: FastAPI):
     loader = RegistryLoader()
     app.state.registry = await loader.load()
 
-    # Make the mcp_client available in app state for easy access
-    from src.dependencies import mcp_client
-    app.state.mcp_client = mcp_client
-
     yield
-    
+
     # Clean up the mcp_client when the application shuts down
     from src.dependencies import mcp_client, _mcp_client_initialized
     if _mcp_client_initialized:
@@ -158,72 +154,6 @@ async def left_sidebar_component(db: AsyncSession = Depends(get_db)) -> dict:
 @jinja.hx('components/right_drawer.html.j2', no_data=True)
 async def right_drawer_component() -> None:
     """This route serves the right drawer component for htmx requests."""
-
-@app.get("/components/registry")
-@jinja.hx('components/registry/sidebar_widget.html.j2')
-async def registry_component(request: Request) -> dict:
-    """This route serves the registry sidebar widget for htmx requests."""
-    registry = request.app.state.registry
-
-    return {
-        "prompts": registry.prompts,
-        "tools": registry._tools,
-        "resources": registry._resources,
-        "resource_templates": registry._resource_templates,
-        "schemas": registry._schemas,
-        "mcp_servers": registry.mcp_servers
-    }
-
-@app.get("/registry/prompts")
-@jinja.hx('components/registry/prompts_list.html.j2')
-async def registry_prompts(request: Request) -> dict:
-    """This route serves the prompts listing page."""
-    registry = request.app.state.registry
-    return {"prompts": registry.prompts}
-
-@app.get("/registry/tools")
-@jinja.hx('components/registry/tools_list.html.j2')
-async def registry_tools(request: Request) -> dict:
-    """This route serves the tools listing page."""
-    registry = request.app.state.registry
-    return {"tools": registry._tools}
-
-@app.get("/registry/resources")
-@jinja.hx('components/registry/resources_list.html.j2')
-async def registry_resources(request: Request) -> dict:
-    """This route serves the resources listing page."""
-    registry = request.app.state.registry
-    return {"resources": registry._resources}
-
-@app.get("/registry/resource-templates")
-@jinja.hx('components/registry/resource_templates_list.html.j2')
-async def registry_resource_templates(request: Request) -> dict:
-    """This route serves the resource templates listing page."""
-    registry = request.app.state.registry
-    return {"resource_templates": registry._resource_templates}
-
-@app.get("/registry/schemas")
-@jinja.hx('components/registry/schemas_list.html.j2')
-async def registry_schemas(request: Request) -> dict:
-    """This route serves the schemas listing page."""
-    registry = request.app.state.registry
-    return {"schemas": registry._schemas}
-
-@app.get("/registry/mcp-servers")
-@jinja.hx('components/registry/mcp_servers_list.html.j2')
-async def registry_mcp_servers(request: Request, mcp_client: MCPClient = Depends(get_mcp_client)) -> dict:
-    """This route serves the MCP servers listing page."""
-    registry = request.app.state.registry
-
-    server_status = {}
-    logger.info(f"servers: {mcp_client.sessions}")
-    for name, server in mcp_client.sessions:
-        server_status[name] = True
-
-    return {
-        "mcp_servers": registry.mcp_servers,
-        "server_status": server_status
-    }
 
 @app.get("/components/navbar")
 @jinja.hx('components/navbar.html.j2', no_data=True)

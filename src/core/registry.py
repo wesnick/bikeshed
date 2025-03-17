@@ -1,7 +1,5 @@
-from typing import List, Any, Dict
-
 from mcp import StdioServerParameters
-from pydantic import BaseModel, ValidationError, Field
+from pydantic import BaseModel, Field
 from mcp.server.fastmcp.prompts import Prompt
 from mcp.server.fastmcp.tools import Tool
 from mcp.server.fastmcp.resources import Resource, ResourceTemplate
@@ -24,11 +22,11 @@ class Schema(BaseModel):
 
 class Registry:
     def __init__(self, warn_on_duplicate: bool = True):
-        self._schemas: dict[str, Schema] = {}
-        self._resources: dict[str, Resource] = {}
-        self._resource_templates: dict[str, ResourceTemplate] = {}
+        self.schemas: dict[str, Schema] = {}
+        self.resources: dict[str, Resource] = {}
+        self.resource_templates: dict[str, ResourceTemplate] = {}
         self.prompts: dict[str, Prompt] = {}
-        self._tools: dict[str, Tool] = {}
+        self.tools: dict[str, Tool] = {}
         self.event_registry = event_registry
         self.session_templates: dict[str, SessionTemplate] = {}
         self.mcp_servers: dict[str, StdioServerParameters] = {}
@@ -36,11 +34,11 @@ class Registry:
 
     def get_schema(self, name: str) -> Schema | None:
         """Get schema by name."""
-        return self._schemas.get(name)
+        return self.schemas.get(name)
 
     def list_schemas(self) -> list[Schema]:
         """List all registered schemas."""
-        return list(self._schemas.values())
+        return list(self.schemas.values())
 
     def add_schema(
         self,
@@ -49,55 +47,55 @@ class Registry:
         """Add a schema to the manager."""
 
         # Check for duplicates
-        existing = self._schemas.get(schema.name)
+        existing = self.schemas.get(schema.name)
         if existing:
             if self.warn_on_duplicate_schemas:
                 logger.warning(f"Schema already exists: {schema.name}")
             return existing
 
-        self._schemas[schema.name] = schema
+        self.schemas[schema.name] = schema
         return schema
 
     # Resource methods
     def get_resource(self, name: str) -> Resource | None:
         """Get resource by URI."""
-        return self._resources.get(name)
+        return self.resources.get(name)
 
     def list_resources(self) -> list[Resource]:
         """List all registered resources."""
-        return list(self._resources.values())
+        return list(self.resources.values())
 
     def add_resource(self, resource: Resource) -> Resource:
         """Add a resource to the registry."""
         # Check for duplicates
-        existing = self._resources.get(resource.name)
+        existing = self.resources.get(resource.name)
         if existing:
             if self.warn_on_duplicate_schemas:
                 logger.warning(f"Resource already exists: {resource.name}")
             return existing
 
-        self._resources[resource.name] = resource
+        self.resources[resource.name] = resource
         return resource
 
     # Resource template methods
     def get_resource_template(self, uri_template: str) -> ResourceTemplate | None:
         """Get resource template by URI template."""
-        return self._resource_templates.get(uri_template)
+        return self.resource_templates.get(uri_template)
 
     def list_resource_templates(self) -> list[ResourceTemplate]:
         """List all registered resource templates."""
-        return list(self._resource_templates.values())
+        return list(self.resource_templates.values())
 
     def add_resource_template(self, uri_template: str, template: ResourceTemplate) -> ResourceTemplate:
         """Add a resource template to the registry."""
         # Check for duplicates
-        existing = self._resource_templates.get(uri_template)
+        existing = self.resource_templates.get(uri_template)
         if existing:
             if self.warn_on_duplicate_schemas:
                 logger.warning(f"Resource template already exists: {uri_template}")
             return existing
 
-        self._resource_templates[uri_template] = template
+        self.resource_templates[uri_template] = template
         return template
 
     # Prompt methods
@@ -124,22 +122,22 @@ class Registry:
     # Tool methods
     def get_tool(self, name: str) -> Tool | None:
         """Get tool by name."""
-        return self._tools.get(name)
+        return self.tools.get(name)
 
     def list_tools(self) -> list[Tool]:
         """List all registered tools."""
-        return list(self._tools.values())
+        return list(self.tools.values())
 
     def add_tool(self, name: str, tool: Tool) -> Tool:
         """Add a tool to the registry."""
         # Check for duplicates
-        existing = self._tools.get(name)
+        existing = self.tools.get(name)
         if existing:
             if self.warn_on_duplicate_schemas:
                 logger.warning(f"Tool already exists: {name}")
             return existing
 
-        self._tools[name] = tool
+        self.tools[name] = tool
         return tool
 
 

@@ -2,27 +2,6 @@
 <div>
   <aside class="menu">
     <h3 class="menu-label">Navigation</h3>
-
-    <details>
-      <summary class="is-size-5">
-        Flows
-        [<a
-        hx-get="/flow"
-        hx-target="#dashboard"
-        hx-push-url="true"
-      >view all</a>]
-        [create]
-      </summary>
-        <ul class="menu-list">
-          {% for flow in flows %}
-            <li><a
-              hx-get="/flow/{{ flow.id }}"
-              hx-target="#dashboard"
-              hx-push-url="true"
-            >{{ flow.goal }}</a></li>
-          {% endfor %}
-        </ul>
-    </details>
     {% if sessions %}
       <details>
         <summary class="is-size-5">
@@ -44,46 +23,6 @@
           {% endfor %}
         </ul>
       </details>
-    {% endif %}
-
-
-    {#    <ul class="menu-list">#}
-    {#      <li><a href="/session" hx-get="/session" hx-target="#dashboard" hx-push-url="true">Sessions</a></li>#}
-    {#      <li><a href="#">Flows</a></li>#}
-    {##}
-    {#      <li><a href="#">Flows</a></li>#}
-    {#      <li><a href="/settings" hx-get="/settings" hx-target="#dashboard" hx-push-url="true">Settings</a></li>#}
-    {#      <li><a href="/kitchen-sink" hx-get="/kitchen-sink" hx-target="#dashboard" hx-push-url="true">Kitchen Sink</a></li>#}
-    {#    </ul>#}
-    {% if tools %}
-      <p class="menu-label">Tools</p>
-      <ul class="menu-list">
-        {% for key, item in manifest['tools'].items() %}
-          <li>
-            <a href="/tool/{{ key }}"
-               hx-get="/tool/{{ key }}"
-               hx-target="#dashboard-dock">
-              {{ item.name }}
-            </a>
-            <span class="is-small">{{ item.description }}</span>
-          </li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-    {% if prompts %}
-      <p class="menu-label">Prompts</p>
-      <ul class="menu-list">
-        {% for key, item in manifest['prompts'].items() %}
-          <li>
-            <a href="/prompt/{{ key }}"
-               hx-get="/prompt/{{ key }}"
-               hx-target="#dashboard-dock">
-              {{ item.name }}
-            </a>
-            <span class="is-small">{{ item.description }}</span>
-          </li>
-        {% endfor %}
-      </ul>
     {% endif %}
   </aside>
 </div>
