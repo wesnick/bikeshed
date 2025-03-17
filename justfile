@@ -90,3 +90,7 @@ load-templates *dirs:
 # Load session templates from YAML files
 load-session-templates *files:
     python -m src.cli load-session-templates {{files}}
+    
+# Create a new session from a template
+create-session template_name *args:
+    python -m src.cli create-session {{template_name}} {{args}}

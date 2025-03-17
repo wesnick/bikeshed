@@ -229,6 +229,53 @@ def load_session_templates(files, validate_only):
         registered_names = loader.register_templates(total_templates)
         console.print(f"[green]Registered {len(registered_names)} templates in the registry.[/green]")
 
+
+@click.command()
+@click.argument('template_name', required=True)
+@click.option('--description', '-d', help='Optional description override')
+@click.option('--goal', '-g', help='Optional goal override')
+def create_session(template_name, description, goal):
+    """Create a new session from a template."""
+    import asyncio
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from src.database import get_async_session
+    from src.service.session import create_session_from_template
+    from rich.console import Console
+    from rich.panel import Panel
+
+    console = Console()
+
+    async def run():
+        async for db in get_async_session():
+            try:
+                session = await create_session_from_template(
+                    db=db,
+                    template_name=template_name,
+                    description=description,
+                    goal=goal
+                )
+                
+                if session:
+                    console.print(Panel(
+                        f"[green]Session created successfully![/green]\n\n"
+                        f"ID: {session.id}\n"
+                        f"Description: {session.description or 'N/A'}\n"
+                        f"Goal: {session.goal or 'N/A'}\n"
+                        f"Template: {template_name}\n"
+                        f"Created at: {session.created_at}",
+                        title="Session Details",
+                        expand=False
+                    ))
+                else:
+                    console.print(f"[red]Failed to create session from template '{template_name}'[/red]")
+                
+                return session
+            except Exception as e:
+                console.print(f"[red]Error creating session:[/red] {str(e)}")
+                return None
+
+    return asyncio.run(run())
+
 @click.group()
 def group():
     pass
@@ -238,6 +285,7 @@ group.add_command(search_mcp)
 group.add_command(load_schemas)
 group.add_command(load_templates)
 group.add_command(load_session_templates)
+group.add_command(create_session)
 
 if __name__ == '__main__':
     group()
