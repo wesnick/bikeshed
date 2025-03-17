@@ -1,0 +1,28 @@
+<div class="box">
+  <h2 class="title is-4">Resources</h2>
+  
+  {% if resources %}
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for name, resource in resources.items() %}
+          <tr>
+            <td>{{ name }}</td>
+            <td>{{ resource.type }}</td>
+            <td>{{ resource.description }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="notification is-warning">
+      No resources registered in the system.
+    </div>
+  {% endif %}
+</div>

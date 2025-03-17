@@ -149,6 +149,55 @@ async def left_sidebar_component(db: AsyncSession = Depends(get_db)) -> dict:
 async def right_drawer_component() -> None:
     """This route serves the right drawer component for htmx requests."""
 
+@app.get("/registry/prompts")
+@jinja.hx('components/registry/prompts_list.html.j2')
+async def registry_prompts(request: Request) -> dict:
+    """This route serves the prompts listing page."""
+    registry = request.app.state.registry
+    return {"prompts": registry._prompts}
+
+@app.get("/registry/tools")
+@jinja.hx('components/registry/tools_list.html.j2')
+async def registry_tools(request: Request) -> dict:
+    """This route serves the tools listing page."""
+    registry = request.app.state.registry
+    return {"tools": registry._tools}
+
+@app.get("/registry/resources")
+@jinja.hx('components/registry/resources_list.html.j2')
+async def registry_resources(request: Request) -> dict:
+    """This route serves the resources listing page."""
+    registry = request.app.state.registry
+    return {"resources": registry._resources}
+
+@app.get("/registry/resource-templates")
+@jinja.hx('components/registry/resource_templates_list.html.j2')
+async def registry_resource_templates(request: Request) -> dict:
+    """This route serves the resource templates listing page."""
+    registry = request.app.state.registry
+    return {"resource_templates": registry._resource_templates}
+
+@app.get("/registry/schemas")
+@jinja.hx('components/registry/schemas_list.html.j2')
+async def registry_schemas(request: Request) -> dict:
+    """This route serves the schemas listing page."""
+    registry = request.app.state.registry
+    return {"schemas": registry._schemas}
+
+@app.get("/registry/mcp-servers")
+@jinja.hx('components/registry/mcp_servers_list.html.j2')
+async def registry_mcp_servers(request: Request) -> dict:
+    """This route serves the MCP servers listing page."""
+    registry = request.app.state.registry
+    
+    # You might want to add server status information here
+    server_status = {}  # This would be populated with actual connection status
+    
+    return {
+        "mcp_servers": registry.mcp_servers,
+        "server_status": server_status
+    }
+
 @app.get("/components/navbar")
 @jinja.hx('components/navbar.html.j2', no_data=True)
 async def navbar_component() -> None:

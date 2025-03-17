@@ -1,0 +1,33 @@
+<div class="box">
+  <h2 class="title is-4">Prompts</h2>
+  
+  {% if prompts %}
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for name, prompt in prompts.items() %}
+          <tr>
+            <td>{{ name }}</td>
+            <td>{{ prompt.description }}</td>
+            <td>
+              <a href="/prompt/{{ name }}" class="button is-small is-primary">
+                <span class="icon"><i class="fas fa-edit"></i></span>
+                <span>Use</span>
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="notification is-warning">
+      No prompts registered in the system.
+    </div>
+  {% endif %}
+</div>

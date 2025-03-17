@@ -1,0 +1,28 @@
+<div class="box">
+  <h2 class="title is-4">Schemas</h2>
+  
+  {% if schemas %}
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Source</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for name, schema in schemas.items() %}
+          <tr>
+            <td>{{ name }}</td>
+            <td>{{ schema.description }}</td>
+            <td>{{ schema.source_class }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="notification is-warning">
+      No schemas registered in the system.
+    </div>
+  {% endif %}
+</div>

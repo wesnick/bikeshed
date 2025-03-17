@@ -1,0 +1,33 @@
+<div class="box">
+  <h2 class="title is-4">Tools</h2>
+  
+  {% if tools %}
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for name, tool in tools.items() %}
+          <tr>
+            <td>{{ name }}</td>
+            <td>{{ tool.description }}</td>
+            <td>
+              <a href="/tool/{{ name }}" class="button is-small is-primary">
+                <span class="icon"><i class="fas fa-wrench"></i></span>
+                <span>Use</span>
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="notification is-warning">
+      No tools registered in the system.
+    </div>
+  {% endif %}
+</div>
