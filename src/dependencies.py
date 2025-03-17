@@ -33,17 +33,11 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def get_cache() -> AsyncGenerator[RedisService, None]:
     yield RedisService(redis_url=str(settings.redis_url))
 
+mcp_client = MCPClient()
+
 async def get_mcp_client() -> AsyncGenerator[MCPClient, None]:
-    async with MCPClient() as client:
+    async with mcp_client as client:
         yield client
-
-# async def get_registry() -> AsyncGenerator[Registry, None]:
-#     loader = RegistryLoader()
-#
-#     async with loader.lifespan() as registry:
-#         yield registry
-#
-
 
 def markdown2html(text: str):
     from src.main import logger

@@ -193,6 +193,3 @@ class RegistryLoader:
                     logger.info(f"Connected to MCP server: {name}")
             except Exception as e:
                 logger.error(f"Failed to connect to MCP server {name}: {str(e)}")
-
-
-        foo = 'bar'
