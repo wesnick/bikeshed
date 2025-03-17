@@ -208,14 +208,14 @@ def load_session_templates(files, validate_only):
     table.add_column("File", style="cyan")
     table.add_column("Templates", style="green")
     table.add_column("Status", style="yellow")
-    
+
     for file_path in files:
         file_templates = loader.load_from_file(file_path)
         status = f"[green]✓ {len(file_templates)} loaded" if file_templates else "[red]✗ No valid templates"
         table.add_row(file_path, ", ".join(file_templates.keys()) or "None", status)
-    
+
     console.print(table)
-    
+
     if total_templates:
         console.print(f"[green]Successfully loaded {len(total_templates)} templates:[/green]")
         for name in total_templates:
@@ -223,7 +223,7 @@ def load_session_templates(files, validate_only):
     else:
         console.print("[red]No valid templates were loaded.[/red]")
         console.print("Check the logs for detailed validation errors.")
-    
+
     if not validate_only and total_templates:
         # Register templates in registry (placeholder for future implementation)
         registered_names = loader.register_templates(total_templates)
