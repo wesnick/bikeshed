@@ -32,7 +32,7 @@ class WorkflowService:
     async def get_session(self, db: AsyncSession, session_id: UUID) -> Optional[Session]:
         """Get a session by ID"""
         return await self.session_repo.get_by_id(db, session_id)
-        
+
     async def create_state_machine(
         self,
         session: Session,
@@ -41,15 +41,15 @@ class WorkflowService:
         """Create a state machine for a session"""
         if not template and not session.template:
             raise ValueError("Template is required to create a state machine")
-            
+
         template_to_use = template or session.template
-        
+
         # Create state machine
         machine = self._create_state_machine(session, template_to_use)
-        
+
         # Store the machine
         self.active_machines[session.id] = machine
-        
+
         return machine
 
     def _create_state_machine(
@@ -361,12 +361,21 @@ class WorkflowService:
         graph_machine = graph_machine_cls(
             states=machine.states,
             transitions=machine.transitions,
-            initial=machine.initial,
-            auto_transitions=False,
-            title=f"Workflow for Session {session_id}",
-            show_conditions=True,
-            graph_engine=format
+            # initial=machine.initial,
+            # auto_transitions=False,
+            # title=f"Workflow for Session {session_id}",
+            # show_conditions=True,
+            # graph_engine=format
         )
+        # graph_machine = graph_machine_cls(
+        #     states=machine.states,
+        #     transitions=machine.transitions,
+        #     initial=machine.initial,
+        #     auto_transitions=False,
+        #     title=f"Workflow for Session {session_id}",
+        #     show_conditions=True,
+        #     graph_engine=format
+        # )
 
         # Get the graph
         graph = graph_machine.get_graph()

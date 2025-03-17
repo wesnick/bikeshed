@@ -236,7 +236,7 @@ def load_session_templates(files, validate_only):
 def run_workflow(template_name: str, description: Optional[str] = None, goal: Optional[str] = None):
     """Create and run a workflow from a template."""
     import asyncio
-    from src.dependencies import get_db
+    from src.dependencies import async_session_factory
     from src.core.registry_loader import RegistryLoader
     from src.service.workflow_runner import WorkflowRunner
     from src.service.workflow import WorkflowService
@@ -258,31 +258,31 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
         session_repo = SessionRepository()
         message_repo = MessageRepository()
         workflow_service = WorkflowService(session_repo, message_repo)
-        
+
         # Create a workflow runner
         runner = WorkflowRunner(workflow_service)
-        
+
         # Create and run the workflow
-        async with get_db() as db:
+        async with async_session_factory() as db:
             with console.status(f"Creating and running workflow from template '{template_name}'..."):
                 try:
                     session = await runner.create_and_run(db, template, description, goal)
-                    
+
                     # Generate a diagram
                     diagram = workflow_service.generate_workflow_diagram(session.id)
-                    
+
                     # Display session info
                     console.print(f"[bold green]Session created:[/bold green] {session.id}")
                     console.print(f"[bold]Status:[/bold] {session.status}")
                     console.print(f"[bold]Current state:[/bold] {session.current_state}")
-                    
+
                     # Display diagram
                     console.print("\n[bold]Workflow Diagram:[/bold]")
                     console.print(diagram)
-                    
+
                 except Exception as e:
                     console.print(f"[bold red]Error:[/bold red] {str(e)}")
-    
+
     asyncio.run(_run_workflow())
 
 @click.command()
@@ -293,25 +293,25 @@ def create_ad_hoc(description: str, goal: Optional[str] = None):
     import asyncio
     from src.dependencies import get_db
     from src.service.session import SessionService
-    
+
     async def _create_ad_hoc():
         session_service = SessionService()
-        
+
         async with get_db() as db:
             with console.status(f"Creating ad-hoc session..."):
                 try:
                     session = await session_service.create_ad_hoc_session(db, description, goal)
-                    
+
                     # Display session info
                     console.print(f"[bold green]Ad-hoc session created:[/bold green] {session.id}")
                     console.print(f"[bold]Description:[/bold] {session.description}")
                     if session.goal:
                         console.print(f"[bold]Goal:[/bold] {session.goal}")
                     console.print(f"[bold]Status:[/bold] {session.status}")
-                    
+
                 except Exception as e:
                     console.print(f"[bold red]Error:[/bold red] {str(e)}")
-    
+
     asyncio.run(_create_ad_hoc())
 
 
