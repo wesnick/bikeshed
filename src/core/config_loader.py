@@ -1,9 +1,11 @@
 import inspect
 import os
 import sys
+import yaml
 import jinja2
 from jinja2 import meta
-from typing import Any, Dict, List, Type, Optional, Callable
+from typing import Any, Dict, List, Type, Optional, Callable, Union
+from pathlib import Path
 
 from mcp.server.fastmcp.prompts.base import PromptArgument
 
@@ -12,6 +14,7 @@ import importlib
 from functools import wraps
 
 from src.core.registry import Registry, Schema, TemplatePrompt
+from src.core.config_types import SessionTemplate
 from src.service.logging import logger
 
 
@@ -263,5 +266,115 @@ class TemplateLoader:
         except Exception as e:
             logger.error(f"Failed to create schema from {model_class.__name__}: {str(e)}")
             return None
+
+
+class SessionTemplateLoader:
+    """
+    Loads session templates from YAML files and hydrates SessionTemplate Pydantic models.
+    """
+
+    def __init__(self, registry: Registry):
+        """
+        Initialize the session template loader with a registry.
+
+        Args:
+            registry: The registry to populate with session templates
+        """
+        self.registry = registry
+
+    def load_from_file(self, file_path: Union[str, Path]) -> Dict[str, SessionTemplate]:
+        """
+        Load session templates from a YAML file.
+
+        Args:
+            file_path: Path to the YAML file containing session templates
+
+        Returns:
+            Dictionary of template name to SessionTemplate objects
+        """
+        file_path = Path(file_path)
+        if not file_path.exists():
+            logger.error(f"Session template file not found: {file_path}")
+            return {}
+
+        logger.info(f"Loading session templates from file: {file_path}")
+
+        try:
+            # Load the YAML file
+            with open(file_path, 'r') as f:
+                yaml_content = yaml.safe_load(f)
+
+            if not yaml_content or 'session_templates' not in yaml_content:
+                logger.warning(f"No session_templates found in {file_path}")
+                return {}
+
+            templates_dict = yaml_content['session_templates']
+            loaded_templates = {}
+
+            # Process each template
+            for template_name, template_data in templates_dict.items():
+                try:
+                    # Create a SessionTemplate object
+                    session_template = SessionTemplate(**template_data)
+                    loaded_templates[template_name] = session_template
+                    logger.info(f"Loaded session template: {template_name}")
+                except Exception as e:
+                    logger.error(f"Failed to load session template '{template_name}': {str(e)}")
+
+            logger.info(f"Loaded {len(loaded_templates)} session templates from {file_path}")
+            return loaded_templates
+        except Exception as e:
+            logger.error(f"Failed to load session templates from {file_path}: {str(e)}")
+            return {}
+
+    def load_from_directory(self, directory: Union[str, Path]) -> Dict[str, SessionTemplate]:
+        """
+        Load all session templates from YAML files in a directory.
+
+        Args:
+            directory: Directory path containing YAML files
+
+        Returns:
+            Dictionary of template name to SessionTemplate objects
+        """
+        directory = Path(directory)
+        if not directory.is_dir():
+            logger.error(f"Directory not found: {directory}")
+            return {}
+
+        logger.info(f"Loading session templates from directory: {directory}")
+
+        all_templates = {}
+        yaml_extensions = ['.yaml', '.yml']
+
+        # Scan for all YAML files in the directory
+        for file_path in directory.iterdir():
+            if file_path.suffix.lower() in yaml_extensions:
+                templates = self.load_from_file(file_path)
+                all_templates.update(templates)
+
+        logger.info(f"Loaded a total of {len(all_templates)} session templates from directory {directory}")
+        return all_templates
+
+    def register_templates(self, templates: Dict[str, SessionTemplate]) -> List[str]:
+        """
+        Register loaded session templates in the registry.
+
+        Args:
+            templates: Dictionary of template name to SessionTemplate objects
+
+        Returns:
+            List of registered template names
+        """
+        # This is a placeholder for future registry integration
+        # Currently, the registry doesn't have a dedicated place for session templates
+        # You might want to add a session_template_manager to the Registry class
+        
+        registered_names = []
+        for name, template in templates.items():
+            # Future: self.registry.session_template_manager.add_template(name, template)
+            registered_names.append(name)
+            
+        return registered_names
 
 

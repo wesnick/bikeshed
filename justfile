@@ -86,3 +86,7 @@ load-all-schemas:
 # Load templates from directories
 load-templates *dirs:
     python -m src.cli load-templates {{dirs}}
+    
+# Load session templates from YAML files
+load-session-templates *files:
+    python -m src.cli load-session-templates {{files}}
