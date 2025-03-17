@@ -51,6 +51,12 @@ class Session(Base):
     goal = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
     template: Optional[SessionTemplate] = Column(PydanticType(SessionTemplate), nullable=True)
+    
+    # Workflow state fields
+    status = Column(String(50), default='pending')  # pending, running, paused, completed, failed
+    current_state = Column(String(100), nullable=True)  # Current state in the workflow
+    workflow_data = Column(JSONB, nullable=True)  # For storing workflow state data
+    error = Column(Text, nullable=True)  # For storing error information
 
     # Relationships
     messages = relationship("Message", back_populates="session")

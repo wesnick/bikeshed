@@ -46,6 +46,10 @@ alembic-current:
 search-mcp query="":
     python -m src.cli search-mcp {{query}}
 
+# Run a workflow for a session
+run-workflow session_id template_name:
+    python -m src.cli run-workflow {{session_id}} {{template_name}}
+
 # Run all tests
 test:
     pytest tests/ -v
