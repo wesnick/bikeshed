@@ -61,52 +61,50 @@ class WorkflowService:
         # Extract states from template steps
         states = ["initial"] + [f"step_{i}" for i in range(len(template.steps))] + ["completed", "failed"]
 
-        # Create transitions between steps
-        transitions = [{
-            'trigger': 'start',
-            'source': 'initial',
-            'dest': 'step_0',
-            'before': [self._create_step_callback(session.id, 0, template)]
-        }]
-
-        # Add initial transition
-
-        # Add transitions between steps
-        for i in range(len(template.steps) - 1):
-            transitions.append({
-                'trigger': f'next_step_{i}',
-                'source': f'step_{i}',
-                'dest': f'step_{i+1}',
-                'before': [self._create_step_callback(session.id, i+1, template)]
-            })
-
-        # Add final transition
-        transitions.append({
-            'trigger': f'next_step_{len(template.steps)-1}',
-            'source': f'step_{len(template.steps)-1}',
-            'dest': 'completed',
-            'before': [self._on_workflow_completed]
-        })
-
-        # Add failure transitions from each step
-        for i in range(len(template.steps)):
-            transitions.append({
-                'trigger': 'fail',
-                'source': f'step_{i}',
-                'dest': 'failed',
-                'before': [self._on_workflow_failed]
-            })
-
-        # Create the state machine
+        # Create the state machine first
         machine_cls = MachineFactory.get_predefined(asyncio=True)
         machine = machine_cls(
             model=session,
             states=states,
-            transitions=transitions,
             initial='initial',
             send_event=True,
             auto_transitions=False,
         )
+        
+        # Add transitions after machine creation
+        # Add initial transition
+        machine.add_transition(
+            trigger='start',
+            source='initial',
+            dest='step_0',
+            before=[self._create_step_callback(session.id, 0, template)]
+        )
+
+        # Add transitions between steps
+        for i in range(len(template.steps) - 1):
+            machine.add_transition(
+                trigger=f'next_step_{i}',
+                source=f'step_{i}',
+                dest=f'step_{i+1}',
+                before=[self._create_step_callback(session.id, i+1, template)]
+            )
+
+        # Add final transition
+        machine.add_transition(
+            trigger=f'next_step_{len(template.steps)-1}',
+            source=f'step_{len(template.steps)-1}',
+            dest='completed',
+            before=[self._on_workflow_completed]
+        )
+
+        # Add failure transitions from each step
+        for i in range(len(template.steps)):
+            machine.add_transition(
+                trigger='fail',
+                source=f'step_{i}',
+                dest='failed',
+                before=[self._on_workflow_failed]
+            )
 
         return machine
 
@@ -361,28 +359,18 @@ class WorkflowService:
         graph_machine = graph_machine_cls(
             states=machine.states,
             transitions=machine.transitions,
-            # initial=machine.initial,
-            # auto_transitions=False,
-            # title=f"Workflow for Session {session_id}",
-            # show_conditions=True,
-            # graph_engine=format
+            initial=machine.initial,
+            auto_transitions=False,
+            title=f"Workflow for Session {session_id}",
+            show_conditions=True
         )
-        # graph_machine = graph_machine_cls(
-        #     states=machine.states,
-        #     transitions=machine.transitions,
-        #     initial=machine.initial,
-        #     auto_transitions=False,
-        #     title=f"Workflow for Session {session_id}",
-        #     show_conditions=True,
-        #     graph_engine=format
-        # )
 
         # Get the graph
         graph = graph_machine.get_graph()
 
         # Return the diagram
         if format == "mermaid":
-            return graph.draw(None)
+            return graph.draw(format="mermaid")
         else:
             # For graphviz, return the DOT representation
             return graph.string()

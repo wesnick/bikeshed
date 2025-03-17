@@ -291,13 +291,13 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
 def create_ad_hoc(description: str, goal: Optional[str] = None):
     """Create a new ad-hoc session without a workflow."""
     import asyncio
-    from src.dependencies import get_db
+    from src.dependencies import async_session_factory
     from src.service.session import SessionService
 
     async def _create_ad_hoc():
         session_service = SessionService()
 
-        async with get_db() as db:
+        async with async_session_factory() as db:
             with console.status(f"Creating ad-hoc session..."):
                 try:
                     session = await session_service.create_ad_hoc_session(db, description, goal)
