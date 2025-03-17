@@ -17,6 +17,87 @@ from src.dependencies import get_db
 
 logger = logging.getLogger(__name__)
 
+class WorkflowModel:
+    """Model class for the state machine that handles workflow execution"""
+    
+    def __init__(self, session_id: UUID, template: SessionTemplate, service):
+        self.session_id = session_id
+        self.template = template
+        self.service = service
+        self.state = 'initial'  # Initial state
+        
+    async def execute_step(self, event):
+        """Execute the current step in the workflow"""
+        # Get the current step index from the state
+        current_state = event.transition.dest
+        if not current_state.startswith("step_"):
+            return
+            
+        step_index = int(current_state.split("_")[1])
+        step = self.template.steps[step_index]
+        
+        # Update session status
+        async with get_db() as db:
+            await self.service.session_repo.update(db, self.session_id, {
+                "status": "running",
+                "current_state": current_state
+            })
+
+        try:
+            # Create a message for this step
+            async with get_db() as db:
+                message = await self.service._create_step_message(db, self.session_id, step)
+
+            # Execute the step based on its type
+            if step.type == "message":
+                await self.service._execute_message_step(self.session_id, step, message)
+            elif step.type == "prompt":
+                await self.service._execute_prompt_step(self.session_id, step, message)
+            elif step.type == "user_input":
+                # For user_input, we'll pause the workflow and wait for input
+                async with get_db() as db:
+                    session = await self.service.session_repo.get_by_id(db, self.session_id)
+                    await self.service.session_repo.update(db, self.session_id, {
+                        "status": "paused",
+                        "workflow_data": {
+                            **(session.workflow_data or {}),
+                            "current_message_id": str(message.id)
+                        }
+                    })
+                return
+            elif step.type == "invoke":
+                await self.service._execute_invoke_step(self.session_id, step, message)
+
+            # If we reach here, we can proceed to the next step
+            # The state machine will handle this automatically
+
+        except Exception as e:
+            logger.exception(f"Error executing step {step_index}")
+            async with get_db() as db:
+                await self.service.session_repo.update(db, self.session_id, {
+                    "status": "failed",
+                    "error": str(e)
+                })
+            # Trigger failure
+            machine = self.service.active_machines[self.session_id]
+            await machine.trigger('fail')
+    
+    async def on_workflow_completed(self, event):
+        """Handle workflow completion"""
+        # Update the session
+        async with get_db() as db:
+            await self.service.session_repo.update(db, self.session_id, {
+                "status": "completed"
+            })
+    
+    async def on_workflow_failed(self, event):
+        """Handle workflow failure"""
+        # Update the session
+        async with get_db() as db:
+            await self.service.session_repo.update(db, self.session_id, {
+                "status": "failed"
+            })
+
 class WorkflowService:
     """Service for managing workflow execution based on session templates"""
 
@@ -61,10 +142,13 @@ class WorkflowService:
         # Extract states from template steps
         states = ["initial"] + [f"step_{i}" for i in range(len(template.steps))] + ["completed", "failed"]
 
-        # Create the state machine first
+        # Create a workflow model that will handle the callbacks
+        workflow_model = WorkflowModel(session.id, template, self)
+        
+        # Create the state machine with the workflow model
         machine_cls = MachineFactory.get_predefined(asyncio=True)
         machine = machine_cls(
-            model=session,
+            model=workflow_model,
             states=states,
             initial='initial',
             send_event=True,
@@ -77,7 +161,7 @@ class WorkflowService:
             trigger='start',
             source='initial',
             dest='step_0',
-            before=[self._create_step_callback(session.id, 0, template)]
+            before='execute_step'
         )
 
         # Add transitions between steps
@@ -86,7 +170,7 @@ class WorkflowService:
                 trigger=f'next_step_{i}',
                 source=f'step_{i}',
                 dest=f'step_{i+1}',
-                before=[self._create_step_callback(session.id, i+1, template)]
+                before='execute_step'
             )
 
         # Add final transition
@@ -94,7 +178,7 @@ class WorkflowService:
             trigger=f'next_step_{len(template.steps)-1}',
             source=f'step_{len(template.steps)-1}',
             dest='completed',
-            before=[self._on_workflow_completed]
+            before='on_workflow_completed'
         )
 
         # Add failure transitions from each step
@@ -103,7 +187,7 @@ class WorkflowService:
                 trigger='fail',
                 source=f'step_{i}',
                 dest='failed',
-                before=[self._on_workflow_failed]
+                before='on_workflow_failed'
             )
 
         return machine
@@ -282,8 +366,7 @@ class WorkflowService:
             raise ValueError(f"No workflow found for session {session_id}")
 
         machine = self.active_machines[session_id]
-        session = await self.session_repo.get_by_id(db, session_id)
-
+        
         # Start the workflow
         await machine.trigger('start')
 
