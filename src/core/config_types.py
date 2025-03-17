@@ -8,6 +8,7 @@ class Metadata(BaseModel):
     """Metadata for session execution."""
     tags: Optional[List[str]] = None
     owner: Optional[str] = None
+    version: Optional[str] = None
     # Allow additional fields
     model_config = {
         "extra": "allow",
@@ -26,8 +27,10 @@ class StepConfig(BaseModel):
     model: Optional[str] = None
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
-    tools: Optional[List[str]] = None
-    resources: Optional[List[str]] = None
+    tools: Optional[List[Union[str, Dict[str, Any]]]] = None
+    tool_merge_strategy: Optional[Literal["replace", "append", "prepend"]] = None
+    resources: Optional[List[Union[str, Dict[str, Any]]]] = None
+    resource_merge_strategy: Optional[Literal["replace", "append", "prepend"]] = None
 
 
 class BaseStep(BaseModel):
@@ -58,15 +61,19 @@ class PromptStep(BaseStep):
     template_args: Optional[Dict[str, Any]] = None
     input_schema: Optional[str] = None
     output_schema: Optional[str] = None
+    model_config: Optional[Dict[str, Any]] = None
 
 
 class UserInputStep(BaseStep):
     """Step to wait for manual input from the user."""
     type: Literal["user_input"] = "user_input"
+    instructions: Optional[str] = None
     prompt: Optional[str] = None
     template: Optional[str] = None
+    template_args: Optional[Dict[str, Any]] = None
     input_schema: Optional[str] = None
     output_schema: Optional[str] = None
+    model_config: Optional[Dict[str, Any]] = None
 
 
 class InvokeStep(BaseStep):
@@ -87,11 +94,14 @@ class SessionTemplate(BaseModel):
     model: str
     steps: List[Step]
     description: Optional[str] = None
+    goal: Optional[str] = None
     metadata: Optional[Metadata] = None
+    model_config: Optional[Dict[str, Any]] = None
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
     tools: Optional[List[Union[str, Dict[str, Any]]]] = None
     resources: Optional[List[Union[str, Dict[str, Any]]]] = None
+    roots: Optional[List[str]] = None
     input_schema: Optional[str] = None
     output_schema: Optional[str] = None
     error_handling: Optional[ErrorHandling] = None
