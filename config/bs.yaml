@@ -2,5 +2,24 @@
 schema_modules:
   - src.types
 
-template_path:
-  '@system': templates
+template_paths:
+  '@system': templates/prompts
+
+#  "APPDATA",
+#  "HOMEDRIVE",
+#  "HOMEPATH",
+#  "LOCALAPPDATA",
+#  "PATH",
+#  "PROCESSOR_ARCHITECTURE",
+#  "SYSTEMDRIVE",
+#  "SYSTEMROOT",
+#  "TEMP",
+#  "USERNAME",
+#  "USERPROFILE",
+# Can also be added at runtime
+mcp_servers:
+  repomix:
+    command: npx
+    args: [-y, repomix, --mcp]
+    env: ~
+

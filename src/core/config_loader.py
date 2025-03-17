@@ -1,11 +1,17 @@
 import inspect
+import os
 import sys
+import jinja2
+from jinja2 import meta
 from typing import Any, Dict, List, Type, Optional, Callable
+
+from mcp.server.fastmcp.prompts.base import PromptArgument
+
 from pydantic import BaseModel
 import importlib
 from functools import wraps
 
-from src.core.registry import Registry, Schema
+from src.core.registry import Registry, Schema, TemplatePrompt
 from src.service.logging import logger
 
 
@@ -44,6 +50,118 @@ class SchemaLoader:
             registry: The registry to populate with schemas
         """
         self.registry = registry
+
+
+class TemplateLoader:
+    """
+    Loads Jinja templates from specified directories and registers them as prompts in the Registry.
+    """
+
+    def __init__(self, registry: Registry, jinja_env: jinja2.Environment):
+        """
+        Initialize the template loader with a registry and Jinja environment.
+
+        Args:
+            registry: The registry to populate with prompts
+            jinja_env: The Jinja environment to use for parsing templates
+        """
+        self.registry = registry
+        self.jinja_env = jinja_env
+
+    def load_from_directory(self, directory: str, alias: str) -> List[TemplatePrompt]:
+        """
+        Load all Jinja templates from a directory and register them as prompts.
+
+        Args:
+            directory: The directory path to load templates from
+            alias: The namespace/alias for templates in this directory
+
+        Returns:
+            List of registered prompts
+        """
+        if not os.path.isdir(directory):
+            logger.error(f"Directory not found: {directory}")
+            return []
+
+        logger.info(f"Loading templates from directory {directory} with alias {alias}")
+
+        prompts = []
+
+        # Scan for all .j2 files in the directory
+        for filename in os.listdir(directory):
+            if not filename.endswith('.j2'):
+                continue
+
+            template_path = os.path.join(directory, filename)
+            template_name = os.path.splitext(filename)[0]
+            qualified_name = f"{alias}/{template_name}"
+
+            try:
+                # Read the template file
+                with open(template_path, 'r') as f:
+                    template_content = f.read()
+
+                # Parse the template to extract variables
+                ast = self.jinja_env.parse(template_content)
+                variables = meta.find_undeclared_variables(ast)
+
+                # Convert parameters to PromptArguments
+                arguments = []
+                for param_name in variables:
+                    arguments.append(
+                        PromptArgument(
+                            name=param_name,
+                            required=True,
+                        )
+                    )
+
+
+                def render_fn(**kwargs):
+                    # Create a template environment
+                    # Render the template with the provided arguments
+                    return self.jinja_env.from_string(template_content).render(**kwargs)
+
+                # Create a prompt object
+                prompt = TemplatePrompt(
+                    name=qualified_name,
+                    template=qualified_name,
+                    description=f"Template from {qualified_name}",
+                    arguments=arguments,
+                    fn=render_fn
+                )
+
+                # Register the prompt
+                self.registry.prompt_manager.add_prompt(prompt)
+                prompts.append(prompt)
+
+                logger.info(f"Loaded template: {qualified_name} with variables: {arguments}")
+
+            except Exception as e:
+                logger.error(f"Failed to load template {template_path}: {str(e)}")
+
+        logger.info(f"Loaded {len(prompts)} templates from directory {directory} with alias {alias}")
+        return prompts
+
+    def load_from_directories(self, directory_configs: List[Dict[str, str]]) -> List[TemplatePrompt]:
+        """
+        Load templates from multiple directories.
+
+        Args:
+            directory_configs: List of dicts with 'path' and 'alias' keys
+
+        Returns:
+            List of all registered prompts
+        """
+        all_prompts = []
+        for config in directory_configs:
+            if 'path' not in config or 'alias' not in config:
+                logger.error(f"Invalid directory config: {config}, must contain 'path' and 'alias'")
+                continue
+
+            prompts = self.load_from_directory(config['path'], config['alias'])
+            all_prompts.extend(prompts)
+
+        return all_prompts
 
     def load_from_module(self, module_name: str, scan_all: bool = False) -> List[Schema]:
         """

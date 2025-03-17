@@ -20,7 +20,7 @@ from src.service.mcp_client import MCPClient
 from src.http.middleware import HTMXRedirectMiddleware
 from src.dependencies import get_db, get_jinja
 from src.routes import api_router
-from src.repository import session_repository, flow_repository
+from src.repository import session_repository
 
 
 @asynccontextmanager
@@ -133,10 +133,9 @@ async def session_component() -> dict:
 @jinja.hx('components/left_sidebar.html.j2')
 async def left_sidebar_component(db: AsyncSession = Depends(get_db)) -> dict:
     """This route serves the left sidebar component for htmx requests."""
-    flows = await flow_repository.get_recent_flows(db)
     sessions = await session_repository.get_recent_sessions(db)
     return {
-        "flows": flows,
+        "flows": [],
         "sessions": sessions,
         "tools": [],
         "prompts": [],

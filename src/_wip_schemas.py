@@ -448,3 +448,92 @@ def unlink_artifact_from_scratchpad(
         db.commit()
 
     return {"status": "success"}
+
+
+
+
+## Models
+
+#
+# class Flow(Base):
+#     __tablename__ = 'flows'
+#
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+#
+#     name = Column(String(255), nullable=False)
+#     description = Column(Text, nullable=True)
+#     goal = Column(Text, nullable=True)
+#     strategy = Column(String(100), nullable=True)  # workflow, sequence, etc.
+#
+#     # State machine properties
+#     current_state = Column(String(100), nullable=True)
+#     workflow_definition = Column(JSONB, nullable=True)  # YAML workflow as JSON
+#
+#     created_at = Column(DateTime, default=datetime.now)
+#     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+#     template_id = Column(UUID(as_uuid=True), ForeignKey('flow_templates.id'), nullable=True)
+#
+#     # Relationships
+#     # sessions = relationship("Session", back_populates="flow")
+#     # artifacts = relationship("Artifact", back_populates="source_flow")
+#     # template = relationship("FlowTemplate", back_populates="derived_flows")
+#
+#
+# class Artifact(Base):
+#     __tablename__ = 'artifacts'
+#
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+#
+#     name = Column(String(255), nullable=False)
+#     description = Column(Text, nullable=True)
+#     mime_type = Column(String(100), nullable=False)
+#     content_path = Column(String(255), nullable=True)  # Path to stored content if binary
+#     content_text = Column(Text, nullable=True)  # Direct content if text
+#
+#     # Can be linked to any source
+#     source_message_id = Column(UUID(as_uuid=True), ForeignKey('messages.id'), nullable=True)
+#     source_session_id = Column(UUID(as_uuid=True), ForeignKey('sessions.id'), nullable=True)
+#     source_flow_id = Column(UUID(as_uuid=True), ForeignKey('flows.id'), nullable=True)
+#
+#     created_at = Column(DateTime, default=datetime.now)
+#     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+#     extra = Column(JSONB, nullable=True)  # For file size, dimensions, etc.
+#
+#     # Relationships
+#     # source_message = relationship("Message", back_populates="artifacts")
+#     # source_session = relationship("Session", back_populates="artifacts")
+#     # source_flow = relationship("Flow", back_populates="artifacts")
+#     # scratchpads = relationship("ScratchPad", secondary=artifact_scratchpad, back_populates="scratchpads")
+#
+#
+# class FlowTemplate(Base):
+#     __tablename__ = 'flow_templates'
+#
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+#
+#     name = Column(String(255), nullable=False)
+#     description = Column(Text, nullable=True)
+#     definition = Column(JSONB, nullable=False)  # Template definition as JSON
+#
+#     created_at = Column(DateTime, default=datetime.now)
+#     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+#
+#     # Relationships
+#     # derived_flows = relationship("Flow", back_populates="template")
+#     # derived_sessions = relationship("Session", back_populates="template")
+#
+#
+# class ScratchPad(Base):
+#     __tablename__ = 'scratchpads'
+#
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+#
+#     name = Column(String(255), nullable=False)
+#     description = Column(Text, nullable=True)
+#     notes = Column(JSONB, nullable=True)  # Additional free-form notes
+#
+#     created_at = Column(DateTime, default=datetime.now)
+#     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+#
+#     # Relationships
+#     # artifacts = relationship("Artifact", secondary=artifact_scratchpad, back_populates="scratchpads")

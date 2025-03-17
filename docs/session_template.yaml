@@ -2,9 +2,10 @@
 version: "1.0.0"
 
 # Overall session structure definition
-session_structure:
+session_prototype:
   # Metadata will be persisted on executions (all fields optional)
-  description: string         # Detailed description of the session
+  description: string           # Brief description of the session
+  goal: string                  # Desired outcome of the session
   metadata:
     tags: list[string]          # List of categorization tags
     owner: string               # Owner/creator of the session
@@ -13,12 +14,13 @@ session_structure:
 
   # Core session configuration
   model: string                 # Default LLM model to use
-  temperature: float            # Default temperature (0.0-1.0), optional
-  max_tokens: integer           # Maximum tokens for responses, optional
+  model_config: dict            # dictionary of model configuration, optional
 
   # Available tools and resources
-  tools: list[string|object]    # List of tool identifiers or tool configs
-  resources: list[string|object] # List of resource identifiers or configs
+  tools: list[string]           # List of tool identifiers
+  resources: list[string]       # List of resource identifiers
+
+  roots: list[string]           # List of root identifiers
 
   # Schema validation (optional)
   input_schema: string          # Registered schema name for session input
@@ -36,7 +38,7 @@ session_structure:
 
 # Detailed documentation of available step types
 step_types:
-  - message:                    # Print message with specified role
+  - message:                    # Add message to the conversation dictionary with specified role
       fields:
         - role: string          # One of: "system", "user", "assistant"
         - content: string       # Text content of the message
@@ -48,21 +50,23 @@ step_types:
         - template_args: object # Arguments to pass to the template
         - input_schema: string  # Schema to validate template_args
         - output_schema: string # Schema to validate LLM response
-        - config: object        # Step-specific configuration overrides
+        - model_config: object  # Step-specific configuration overrides
         - error_handling: object # Step-specific error handling
 
-  - user_input:                 # Wait for manual input from user
+  - user_input:                 # Wait for manual input from user, optionally prefilling with template
       fields:
+        - instructions: string  # Instructions for the user
         - prompt: string        # Text to display to user when requesting input
         - template: string      # Template to format user input
+        - template_args: object # Arguments to pass to the template
         - input_schema: string  # Schema to validate user input
-        - config: object        # Step-specific configuration
+        - model_config: object        # Step-specific configuration
         - output_schema: string # Schema to validate processed input
         - error_handling: object # Step-specific error handling
 
   - invoke:                     # Call code function
       fields:
-        - callable: string      # Function identifier to call
+        - callable: string      # Function identifier to call, use '@' for tool lookup
         - args: object          # Arguments to pass to function
         - input_schema: string  # Schema to validate args
         - output_schema: string # Schema to validate function result

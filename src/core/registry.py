@@ -1,18 +1,18 @@
+from typing import List
 from pydantic import BaseModel, ValidationError, Field
 from mcp.server.fastmcp.resources import ResourceManager
 from mcp.server.fastmcp.prompts import (
     PromptManager,
-    Prompt as BasePrompt,
+    Prompt,
 )
 from mcp.server.fastmcp.tools import ToolManager
 from fastapi_events.registry.payload_schema import registry as event_registry
 
 from src.service.logging import logger
 
-class Prompt(BasePrompt):
+class TemplatePrompt(Prompt):
     """A prompt that can be rendered with arguments."""
     template: str = Field(description="Path to template, prefixed with alias")
-
 
 
 class Schema(BaseModel):

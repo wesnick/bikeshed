@@ -82,3 +82,7 @@ load-schemas:
 # Load all schemas (including non-decorated ones)
 load-all-schemas:
     python -m src.cli load-schemas --scan-all
+    
+# Load templates from directories
+load-templates *dirs:
+    python -m src.cli load-templates {{dirs}}

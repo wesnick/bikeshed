@@ -20,10 +20,8 @@ class MessageCreate(MessageBase):
 @register_schema("Project specification with core features and overview")
 class ProjectSpecification(BaseModel):
     name: str
-    overview: str
-    duration_weeks: Optional[int]
-    core_feature_details: list[str]
-
+    final_specification: str
+    next_steps: list[str]
 
 
 @register_schema("Project milestones tracking")
