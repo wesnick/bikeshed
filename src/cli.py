@@ -237,8 +237,6 @@ def load_registry():
     from src.service.session import create_session_from_template
     from rich.panel import Panel
     from src.core.registry_loader import RegistryLoader
-    from src.dependencies import get_db, get_workflow_service
-    from src.service.workflow import WorkflowService
     from src.service.workflow_runner import WorkflowRunner
     from src.core.registry import Registry
 
