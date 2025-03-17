@@ -5,6 +5,8 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, JSON, Table
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import declarative_base, relationship, mapped_column
+from src.core.config_types import SessionTemplate
+from .embedded_type import PydanticType
 
 Base = declarative_base()
 
@@ -48,7 +50,7 @@ class Session(Base):
     description = Column(Text, nullable=True)
     goal = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
-    template = Column(JSONB, nullable=True)
+    template: Optional[SessionTemplate] = Column(PydanticType(SessionTemplate), nullable=True)
 
     # Relationships
     messages = relationship("Message", back_populates="session")
