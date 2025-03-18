@@ -57,18 +57,18 @@ class WorkflowService:
         
         # Add callbacks for different step types
         session.machine = machine
-        
-        # Register step type handlers
-        machine.add_model_method('_before_message', self._before_message)
-        machine.add_model_method('_after_message', self._after_message)
-        machine.add_model_method('_before_prompt', self._before_prompt)
-        machine.add_model_method('_after_prompt', self._after_prompt)
-        machine.add_model_method('_before_user_input', self._before_user_input)
-        machine.add_model_method('_after_user_input', self._after_user_input)
-        machine.add_model_method('_before_invoke', self._before_invoke)
-        machine.add_model_method('_after_invoke', self._after_invoke)
-        machine.add_model_method('_check_step_enabled', self._check_step_enabled)
-        
+
+        # Register step type handlers as methods on the session object
+        session._before_message = self._before_message.__get__(session, Session)
+        session._after_message = self._after_message.__get__(session, Session)
+        session._before_prompt = self._before_prompt.__get__(session, Session)
+        session._after_prompt = self._after_prompt.__get__(session, Session)
+        session._before_user_input = self._before_user_input.__get__(session, Session)
+        session._after_user_input = self._after_user_input.__get__(session, Session)
+        session._before_invoke = self._before_invoke.__get__(session, Session)
+        session._after_invoke = self._after_invoke.__get__(session, Session)
+        session._check_step_enabled = self._check_step_enabled.__get__(session, Session)
+
         # Store session
         self.sessions[session.id] = session
         return session
