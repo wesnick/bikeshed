@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Union, Callable, Awaitable
 import uuid
+import inspect
 from transitions.extensions.asyncio import AsyncMachine
 
 from src.models.models import Session, Message
@@ -11,6 +12,17 @@ class WorkflowService:
     
     def __init__(self):
         self.sessions: Dict[uuid.UUID, Session] = {}
+        
+        # Register this instance in a global registry so transitions can find it
+        if not hasattr(WorkflowService, '_instances'):
+            WorkflowService._instances = {}
+        self._instance_id = str(uuid.uuid4())
+        WorkflowService._instances[self._instance_id] = self
+        
+    @classmethod
+    def get_instance(cls, instance_id):
+        """Get a workflow service instance by ID"""
+        return cls._instances.get(instance_id)
         
     async def initialize_session(self, session: Session) -> Session:
         """Initialize a state machine for a session based on its template"""
@@ -27,13 +39,18 @@ class WorkflowService:
             source = 'start' if i == 0 else steps[i-1].name
             dest = 'end' if i == len([s for s in steps if s.enabled]) - 1 else steps[i+1].name
             
+            # Use string paths to the workflow service methods
+            service_path = f"src.service.workflow.WorkflowService._before_{step.type}"
+            after_path = f"src.service.workflow.WorkflowService._after_{step.type}"
+            condition_path = f"src.service.workflow.WorkflowService._check_step_enabled"
+            
             transitions.append({
                 'trigger': f'execute_{step.name}',
                 'source': source,
                 'dest': dest,
-                'before': f'_before_{step.type}',
-                'after': f'_after_{step.type}',
-                'conditions': '_check_step_enabled'
+                'before': service_path,
+                'after': after_path,
+                'conditions': condition_path
             })
         
         # Initialize workflow data if not present
@@ -58,16 +75,16 @@ class WorkflowService:
         # Add callbacks for different step types
         session.machine = machine
 
-        # Register step type handlers as methods on the session object
-        session._before_message = self._before_message.__get__(session, Session)
-        session._after_message = self._after_message.__get__(session, Session)
-        session._before_prompt = self._before_prompt.__get__(session, Session)
-        session._after_prompt = self._after_prompt.__get__(session, Session)
-        session._before_user_input = self._before_user_input.__get__(session, Session)
-        session._after_user_input = self._after_user_input.__get__(session, Session)
-        session._before_invoke = self._before_invoke.__get__(session, Session)
-        session._after_invoke = self._after_invoke.__get__(session, Session)
-        session._check_step_enabled = self._check_step_enabled.__get__(session, Session)
+        # Register callback methods on the session object that reference this service
+        session._before_message = lambda event: self._before_message(event)
+        session._after_message = lambda event: self._after_message(event)
+        session._before_prompt = lambda event: self._before_prompt(event)
+        session._after_prompt = lambda event: self._after_prompt(event)
+        session._before_user_input = lambda event: self._before_user_input(event)
+        session._after_user_input = lambda event: self._after_user_input(event)
+        session._before_invoke = lambda event: self._before_invoke(event)
+        session._after_invoke = lambda event: self._after_invoke(event)
+        session._check_step_enabled = lambda event: self._check_step_enabled(event)
 
         # Store session
         self.sessions[session.id] = session
