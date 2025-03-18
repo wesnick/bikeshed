@@ -1,6 +1,6 @@
 ## BikeShed Project
 
-A playground for experimenting with LLM completions using the Model Context Protocol.  The goal of the project is to be able to experiment with LLM calls and workflows to ultimately be able to compile for use in another project.
+A playground for experimenting with LLM completions using the Model Context Protocol. The goal of the project is to be able to experiment with LLM calls and workflows to ultimately be able to compile for use in another project.
 
 The application uses:
 
@@ -10,6 +10,7 @@ Redis
 Python (3.12):
  - Packages are managed with uv (NOT `pip`!)
  - FastAPI 
+ - Transitions (for state machine workflow)
 Frontend:
  - build system is vite
  - HTMX v2
@@ -17,6 +18,16 @@ Frontend:
  - Bulma v2
 
 Whenever you make a fundamental change to architectural approach or establish a new pattern that should be followed through the whole application, be sure to update this document.
+
+### Workflow System
+
+The application uses the Transitions library to implement a state machine for session workflows:
+
+- Each `Session` is a state machine with states derived from the steps in its `SessionTemplate`
+- The `WorkflowService` manages the initialization and execution of these state machines
+- Steps are executed asynchronously with appropriate callbacks based on step type
+- The workflow system supports different step types: message, prompt, user_input, and invoke
+- State is persisted in the database via the `workflow_data` JSONB field
 
 ## Backend
 
