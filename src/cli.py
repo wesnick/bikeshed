@@ -238,10 +238,10 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
     import asyncio
     from src.dependencies import async_session_factory
     from src.core.registry_loader import RegistryLoader
-    from src.service.workflow_runner import WorkflowRunner
     from src.service.workflow import WorkflowService
     from src.repository.session import SessionRepository
     from src.repository.message import MessageRepository
+    from src.service.session import SessionService
 
     async def _run_workflow():
         # Load registry
@@ -255,30 +255,33 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
             return
 
         # Create repositories and services
-        session_repo = SessionRepository()
-        message_repo = MessageRepository()
-        workflow_service = WorkflowService(session_repo, message_repo)
-
-        # Create a workflow runner
-        runner = WorkflowRunner(workflow_service)
+        workflow_service = WorkflowService()
+        session_service = SessionService()
 
         # Create and run the workflow
         async with async_session_factory() as db:
             with console.status(f"Creating and running workflow from template '{template_name}'..."):
                 try:
-                    session = await runner.create_and_run(db, template, description, goal)
+                    session = await session_service.create_session_from_template(db=db, template=template)
+                    session = await workflow_service.initialize_session(session)
 
-                    # Generate a diagram
-                    diagram = workflow_service.generate_workflow_diagram(session.id)
+                    # Run the workflow
+                    step = session.get_current_step()
+                    while step:
+                        await workflow_service.execute_next_step(session)
+                        step = session.get_current_step()
+
+                    foo = 'bar'
+
 
                     # Display session info
-                    console.print(f"[bold green]Session created:[/bold green] {session.id}")
-                    console.print(f"[bold]Status:[/bold] {session.status}")
-                    console.print(f"[bold]Current state:[/bold] {session.current_state}")
-
-                    # Display diagram
-                    console.print("\n[bold]Workflow Diagram:[/bold]")
-                    console.print(diagram)
+                    # console.print(f"[bold green]Session created:[/bold green] {session.id}")
+                    # console.print(f"[bold]Status:[/bold] {session.status}")
+                    # console.print(f"[bold]Current state:[/bold] {session.current_state}")
+                    #
+                    # # Display diagram
+                    # console.print("\n[bold]Workflow Diagram:[/bold]")
+                    # console.print(diagram)
 
                 except Exception as e:
                     console.print(f"[bold red]Error:[/bold red] {str(e)}")
