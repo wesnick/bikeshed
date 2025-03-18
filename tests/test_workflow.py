@@ -284,7 +284,8 @@ async def test_on_invoke(session):
 @pytest.mark.asyncio
 @patch('src.dependencies.get_db')
 @patch('src.repository.session_repository.update')
-async def test_persist_workflow(mock_update, mock_get_db, session):
+@patch('src.repository.session_repository.get_by_id')
+async def test_persist_workflow(mock_get_by_id, mock_update, mock_get_db, session):
     """Test persisting workflow state to the database"""
     # Set up the session and event data
     session.machine = MagicMock()
@@ -298,6 +299,9 @@ async def test_persist_workflow(mock_update, mock_get_db, session):
             status="delivered"
         )
     ]
+    
+    # Mock session repository to return the session
+    mock_get_by_id.return_value = session
     
     event_data = MagicMock()
     event_data.model = session

@@ -16,6 +16,13 @@ async def persist_workflow(event: EventData):
     logger.info(f"Persisting state: {session.status} machine_state: {session.machine.get_model_state(session).name} current_state: {session.current_state} for session: {session.id} event: {event.event.name}")
 
     async for db in get_db():
+        # First, ensure the session exists in the database
+        db_session = await session_repository.get_by_id(db, session.id)
+        if not db_session:
+            # In a test environment, we might need to create the session first
+            db.add(session)
+            await db.flush()  # This assigns an ID if needed and makes it available in the session
+        
         # Update session data
         await session_repository.update(db, session.id, {
             'status': session.status,

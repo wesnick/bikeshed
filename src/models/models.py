@@ -66,7 +66,7 @@ class Session(Base):
 
     # Instance variables - not mapped to database columns
     machine: Optional[AsyncMachine] = None
-    _temp_messages: ClassVar[List[Message]] = []
+    _temp_messages: List[Message] = []  # Changed from ClassVar to instance variable
 
     @property
     def first_message(self):
