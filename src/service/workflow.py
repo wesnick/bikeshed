@@ -26,9 +26,11 @@ async def persist_workflow(event: EventData):
         # Save any temporary messages
         if hasattr(session, '_temp_messages') and session._temp_messages:
             for msg in session._temp_messages:
-                # Ensure message has session_id (should be set when created)
+                # Ensure message has session_id and ID
                 if not msg.session_id:
                     msg.session_id = session.id
+                if not msg.id:
+                    msg.id = uuid.uuid4()
                 db.add(msg)
             session._temp_messages = []  # Clear the temporary messages
 
@@ -47,6 +49,7 @@ async def on_message(event: EventData) -> None:
 
     # Create a message in the database
     message = Message(
+        id=uuid.uuid4(),  # Ensure ID is set
         session_id=session.id,
         role=next_step.role,
         text=next_step.content or "",
@@ -56,7 +59,7 @@ async def on_message(event: EventData) -> None:
     # Add to session's messages (this would be persisted by the caller)
     if not hasattr(session, '_temp_messages') or session._temp_messages is None:
         session._temp_messages = []
-    session._temp_messages.append(message)
+    session._temp_messages = [message]  # Replace instead of append
 
     # Update workflow data
     session.workflow_data['current_step_index'] += 1
@@ -84,6 +87,7 @@ async def on_prompt(event: EventData) -> None:
 
     # Create messages for the prompt and response
     user_message = Message(
+        id=uuid.uuid4(),  # Ensure ID is set
         session_id=session.id,
         role="user",
         text=next_step.content or "",
@@ -91,6 +95,7 @@ async def on_prompt(event: EventData) -> None:
     )
 
     assistant_message = Message(
+        id=uuid.uuid4(),  # Ensure ID is set
         session_id=session.id,
         role="assistant",
         text=response,
@@ -101,7 +106,7 @@ async def on_prompt(event: EventData) -> None:
     # Add to session's messages
     if not hasattr(session, '_temp_messages') or session._temp_messages is None:
         session._temp_messages = []
-    session._temp_messages.extend([user_message, assistant_message])
+    session._temp_messages = [user_message, assistant_message]  # Replace instead of extend
 
     # Update workflow data
     session.workflow_data['current_step_index'] += 1
@@ -130,6 +135,7 @@ async def on_user_input(event: EventData) -> None:
 
     # Create a message for the user input
     message = Message(
+        id=uuid.uuid4(),  # Ensure ID is set
         session_id=session.id,
         role="user",
         text=user_input,
@@ -139,7 +145,7 @@ async def on_user_input(event: EventData) -> None:
     # Add to session's messages
     if not hasattr(session, '_temp_messages') or session._temp_messages is None:
         session._temp_messages = []
-    session._temp_messages.append(message)
+    session._temp_messages = [message]  # Replace instead of append
 
     # Update workflow data
     session.workflow_data['current_step_index'] += 1
