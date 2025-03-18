@@ -47,6 +47,7 @@ class Message(Base):
 
 class Session(Base):
     __tablename__ = 'sessions'
+    __allow_unmapped__ = True
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     description = Column(Text, nullable=True)
@@ -56,7 +57,7 @@ class Session(Base):
     
     # Workflow state fields
     status = Column(String(50), default='pending')  # pending, running, paused, completed, failed, waiting_for_input
-    current_state = Column(String(100), nullable=True)  # Current state in the workflow
+    current_state = Column(String(100), nullable=True, default='start')  # Current state in the workflow
     workflow_data = Column(JSONB, nullable=True)  # For storing workflow state data
     error = Column(Text, nullable=True)  # For storing error information
 
@@ -64,8 +65,8 @@ class Session(Base):
     messages = relationship("Message", back_populates="session")
 
     # Instance variables - not mapped to database columns
-    machine: ClassVar[Optional[AsyncMachine]] = None
-    _temp_messages: ClassVar[List[Message]] = []
+    machine: Optional[AsyncMachine] = None
+    _temp_messages: List[Message] = []
 
     @property
     def first_message(self):

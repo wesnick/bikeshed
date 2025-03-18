@@ -9,6 +9,7 @@ from rich.text import Text
 from rich.prompt import Prompt
 from typing import List, Optional
 
+from src.dependencies import get_db
 from src.service.pulse_mcp_api import PulseMCPAPI, MCPServer
 
 
@@ -259,7 +260,7 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
         session_service = SessionService()
 
         # Create and run the workflow
-        async with async_session_factory() as db:
+        async for db in get_db():
             with console.status(f"Creating and running workflow from template '{template_name}'..."):
                 try:
                     session = await session_service.create_session_from_template(db=db, template=template)
@@ -271,7 +272,6 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
                         await workflow_service.execute_next_step(session)
                         step = session.get_current_step()
 
-                    foo = 'bar'
 
 
                     # Display session info
@@ -287,6 +287,7 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
                     console.print(f"[bold red]Error:[/bold red] {str(e)}")
 
     asyncio.run(_run_workflow())
+
 
 @click.command()
 @click.argument('description')
