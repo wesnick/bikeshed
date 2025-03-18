@@ -237,7 +237,7 @@ def load_session_templates(files, validate_only):
 def run_workflow(template_name: str, description: Optional[str] = None, goal: Optional[str] = None):
     """Create and run a workflow from a template."""
     import asyncio
-    from src.dependencies import async_session_factory
+    from src.dependencies import mcp_client
     from src.core.registry_loader import RegistryLoader
     from src.service.workflow import WorkflowService
     from src.repository.session import SessionRepository
@@ -248,6 +248,7 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
         # Load registry
         loader = RegistryLoader()
         registry = await loader.load()
+
 
         # Get the session template
         template = registry.session_templates.get(template_name)
@@ -264,28 +265,26 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
             with console.status(f"Creating and running workflow from template '{template_name}'..."):
                 try:
                     session = await session_service.create_session_from_template(db=db, template=template)
-                    session = await workflow_service.initialize_session(session)
-
-                    # Run the workflow
+                    # session = await workflow_service.initialize_session(session)
+                    #
+                    # # Run the workflow
                     step = session.get_current_step()
                     while step:
                         await workflow_service.execute_next_step(session)
                         step = session.get_current_step()
-
-
-
-                    # Display session info
-                    # console.print(f"[bold green]Session created:[/bold green] {session.id}")
-                    # console.print(f"[bold]Status:[/bold] {session.status}")
-                    # console.print(f"[bold]Current state:[/bold] {session.current_state}")
                     #
-                    # # Display diagram
-                    # console.print("\n[bold]Workflow Diagram:[/bold]")
-                    # console.print(diagram)
+                    # # Ensure any remaining resources are cleaned up
+                    # await asyncio.sleep(0.1)  # Small delay to allow async tasks to complete
+                    #
+                    console.print(f"[bold green]Workflow completed successfully![/bold green]")
+                    console.print(f"[bold]Session ID:[/bold] {session.id}")
+                    console.print(f"[bold]Status:[/bold] {session.status}")
+                    console.print(f"[bold]Final state:[/bold] {session.current_state}")
 
                 except Exception as e:
                     console.print(f"[bold red]Error:[/bold red] {str(e)}")
 
+        await mcp_client.cleanup()
     asyncio.run(_run_workflow())
 
 
