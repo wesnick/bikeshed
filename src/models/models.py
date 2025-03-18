@@ -5,6 +5,8 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, JSON, Table
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import declarative_base, relationship, mapped_column
+from transitions.extensions.asyncio import AsyncMachine
+
 from src.core.config_types import SessionTemplate
 from .embedded_type import PydanticType
 
@@ -60,6 +62,9 @@ class Session(Base):
 
     # Relationships
     messages = relationship("Message", back_populates="session")
+
+    # Instance variables
+    machine: Optional[AsyncMachine] = None
 
     @property
     def first_message(self):
