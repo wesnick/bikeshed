@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any, Callable, Awaitable
+from typing import Optional, List, Dict, Any, Callable, Awaitable, ClassVar
 
 from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, JSON, Table
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -63,9 +63,9 @@ class Session(Base):
     # Relationships
     messages = relationship("Message", back_populates="session")
 
-    # Instance variables
-    machine: Optional[AsyncMachine] = None
-    _temp_messages: List[Message] = []
+    # Instance variables - not mapped to database columns
+    machine: ClassVar[Optional[AsyncMachine]] = None
+    _temp_messages: ClassVar[List[Message]] = []
 
     @property
     def first_message(self):

@@ -137,7 +137,7 @@ class WorkflowService:
         )
         
         # Add to session's messages (this would be persisted by the caller)
-        if not hasattr(session, '_temp_messages'):
+        if not hasattr(session, '_temp_messages') or session._temp_messages is None:
             session._temp_messages = []
         session._temp_messages.append(message)
         
@@ -188,7 +188,7 @@ class WorkflowService:
         )
         
         # Add to session's messages
-        if not hasattr(session, '_temp_messages'):
+        if not hasattr(session, '_temp_messages') or session._temp_messages is None:
             session._temp_messages = []
         session._temp_messages.extend([user_message, assistant_message])
         
@@ -233,7 +233,7 @@ class WorkflowService:
         )
         
         # Add to session's messages
-        if not hasattr(session, '_temp_messages'):
+        if not hasattr(session, '_temp_messages') or session._temp_messages is None:
             session._temp_messages = []
         session._temp_messages.append(message)
         
