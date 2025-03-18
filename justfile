@@ -59,6 +59,10 @@ create-ad-hoc description:
 test:
     pytest tests/ -v
 
+# Run workflow tests
+test-workflow:
+    pytest tests/test_workflow.py -v
+
 # Set up test database
 setup-test-db:
     PGPASSWORD=postgres createdb -U postgres app_test || echo "Test database already exists"
