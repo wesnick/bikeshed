@@ -4,18 +4,21 @@ import inspect
 
 from transitions.core import EventData
 from transitions.extensions.asyncio import AsyncMachine
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import get_db
 from src.models.models import Session, Message
 from src.core.config_types import Step, MessageStep, PromptStep, UserInputStep, InvokeStep
+from src.repository.session import SessionRepository
 from src.repository import session_repository
 from src.service.logging import logger
 
 class WorkflowService:
     """Service for managing workflow state machines for sessions"""
     
-    def __init__(self):
+    def __init__(self, session_repo: Optional[SessionRepository] = None):
         self.sessions: Dict[uuid.UUID, Session] = {}
+        self.session_repo = session_repo or SessionRepository()
         
         # Register this instance in a global registry so transitions can find it
         if not hasattr(WorkflowService, '_instances'):
@@ -328,4 +331,23 @@ class WorkflowService:
         """Persist the state of the session to the database"""
         session = event.model
         logger.info(f"Persisting state for session: {session.id}")
+
+        async for db in get_db():
+            # Update session data
+            await self.session_repo.update(db, session.id, {
+                'status': session.status,
+                'current_state': session.machine.get_model_state(session).name,
+                'workflow_data': session.workflow_data
+            })
+
+            # Save any temporary messages
+            if hasattr(session, '_temp_messages') and session._temp_messages:
+                for msg in session._temp_messages:
+                    # Ensure message has session_id (should be set when created)
+                    if not msg.session_id:
+                        msg.session_id = session.id
+                    await db.add(msg)
+                session._temp_messages = []  # Clear the temporary messages
+
+            await db.commit()
 
