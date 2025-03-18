@@ -33,36 +33,40 @@ class WorkflowService:
         steps = session.template.steps
         states = ['start'] + [step.name for step in steps if step.enabled] + ['end']
         
+        # Store the workflow service instance ID in the session for callback resolution
+        if not session.workflow_data:
+            session.workflow_data = {}
+        session.workflow_data['workflow_service_id'] = self._instance_id
+        
         # Create transitions between states
         transitions = []
         for i, step in enumerate([s for s in steps if s.enabled]):
             source = 'start' if i == 0 else steps[i-1].name
             dest = 'end' if i == len([s for s in steps if s.enabled]) - 1 else steps[i+1].name
             
-            # Use string paths to the workflow service methods
-            service_path = f"src.service.workflow.WorkflowService._before_{step.type}"
-            after_path = f"src.service.workflow.WorkflowService._after_{step.type}"
-            condition_path = f"src.service.workflow.WorkflowService._check_step_enabled"
-            
+            # Create callback paths that will be resolved by our custom callback resolver
             transitions.append({
                 'trigger': f'execute_{step.name}',
                 'source': source,
                 'dest': dest,
-                'before': service_path,
-                'after': after_path,
-                'conditions': condition_path
+                'before': f'workflow_service:_before_{step.type}',
+                'after': f'workflow_service:_after_{step.type}',
+                'conditions': f'workflow_service:_check_step_enabled'
             })
         
-        # Initialize workflow data if not present
+        # Initialize workflow data if not fully present
         if not session.workflow_data:
-            session.workflow_data = {
-                'current_step_index': 0,
-                'step_results': {},
-                'variables': {},
-                'errors': []
-            }
+            session.workflow_data = {}
+            
+        # Ensure all required workflow data fields exist
+        session.workflow_data.update({
+            'current_step_index': session.workflow_data.get('current_step_index', 0),
+            'step_results': session.workflow_data.get('step_results', {}),
+            'variables': session.workflow_data.get('variables', {}),
+            'errors': session.workflow_data.get('errors', [])
+        })
         
-        # Create state machine
+        # Create state machine with custom callback resolver
         machine = AsyncMachine(
             model=session,
             states=states,
@@ -72,21 +76,27 @@ class WorkflowService:
             auto_transitions=False
         )
         
-        # Add callbacks for different step types
+        # Override the resolve_callable method to handle our custom callback format
+        original_resolve = machine.resolve_callable
+        
+        def custom_resolve_callable(func, event_data):
+            if isinstance(func, str) and func.startswith('workflow_service:'):
+                # Extract the method name from our custom format
+                method_name = func.split(':', 1)[1]
+                # Get the workflow service instance from the session's workflow data
+                service_id = event_data.model.workflow_data.get('workflow_service_id')
+                service = WorkflowService.get_instance(service_id)
+                if service and hasattr(service, method_name):
+                    return getattr(service, method_name)
+            # Fall back to the original resolver for other cases
+            return original_resolve(func, event_data)
+            
+        machine.resolve_callable = custom_resolve_callable
+        
+        # Store the machine on the session
         session.machine = machine
 
-        # Register callback methods on the session object that reference this service
-        session._before_message = lambda event: self._before_message(event)
-        session._after_message = lambda event: self._after_message(event)
-        session._before_prompt = lambda event: self._before_prompt(event)
-        session._after_prompt = lambda event: self._after_prompt(event)
-        session._before_user_input = lambda event: self._before_user_input(event)
-        session._after_user_input = lambda event: self._after_user_input(event)
-        session._before_invoke = lambda event: self._before_invoke(event)
-        session._after_invoke = lambda event: self._after_invoke(event)
-        session._check_step_enabled = lambda event: self._check_step_enabled(event)
-
-        # Store session
+        # Store session in our registry
         self.sessions[session.id] = session
         return session
     
