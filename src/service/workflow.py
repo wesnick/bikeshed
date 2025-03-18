@@ -1,10 +1,14 @@
 from typing import Any, Dict, List, Optional, Union, Callable, Awaitable
 import uuid
 import inspect
+
+from transitions.core import EventData
 from transitions.extensions.asyncio import AsyncMachine
 
+from src.dependencies import get_db
 from src.models.models import Session, Message
 from src.core.config_types import Step, MessageStep, PromptStep, UserInputStep, InvokeStep
+from src.repository import session_repository
 from src.service.logging import logger
 
 class WorkflowService:
@@ -73,7 +77,9 @@ class WorkflowService:
             transitions=transitions,
             initial='start',
             send_event=True,
-            auto_transitions=False
+            auto_transitions=False,
+            model_attribute='status',
+            after_state_change=f'workflow_service:_persist_state'
         )
         
         # Override the resolve_callable method to handle our custom callback format
@@ -124,7 +130,9 @@ class WorkflowService:
         # Check if the trigger exists
         if hasattr(session, trigger):
             trigger_method = getattr(session, trigger)
+            logger.info(f"Trigger Info: sessionstatus: {session.status} workflowstatus: {session.machine.get_model_state(session).name} trigger: {trigger}")
             await trigger_method()
+            logger.info(f"Executed step: {next_step.name}")
             return True
         else:
             logger.error(f"Trigger {trigger} not found for session {session.id}")
@@ -314,4 +322,10 @@ class WorkflowService:
         
         # Execute the step now that we have input
         return await self.execute_next_step(session)
+
+    async def _persist_state(self, event: EventData):
+
+        """Persist the state of the session to the database"""
+        session = event.model
+        logger.info(f"Persisting state for session: {session.id}")
 
