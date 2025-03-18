@@ -14,6 +14,7 @@ def session_template():
     return SessionTemplate(
         name="Test Template",
         description="A template for testing",
+        model="test_model",
         steps=[
             MessageStep(
                 name="welcome",
