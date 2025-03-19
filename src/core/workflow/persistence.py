@@ -34,8 +34,11 @@ class DatabasePersistenceProvider(PersistenceProvider):
         async with self._lock:
             logger.info(f"Saving session {session.id} with state {session.current_state}")
             
-            async for db in self.get_db():
-                try:
+            db = None
+            try:
+                async for db_session in self.get_db():
+                    db = db_session
+                    
                     # First, ensure the session exists in the database
                     db_session = await self.session_repo.get_by_id(db, session.id)
                     if not db_session:
@@ -63,10 +66,12 @@ class DatabasePersistenceProvider(PersistenceProvider):
 
                     await db.commit()
                     logger.info(f"Successfully saved session {session.id}")
-                except Exception as e:
-                    logger.error(f"Error saving session {session.id}: {e}")
+                    break
+            except Exception as e:
+                logger.error(f"Error saving session {session.id}: {e}")
+                if db:
                     await db.rollback()
-                    raise
+                raise
 
     async def load_session(self, session_id: uuid.UUID) -> Optional[Session]:
         """
@@ -80,27 +85,29 @@ class DatabasePersistenceProvider(PersistenceProvider):
         """
         logger.info(f"Loading session {session_id}")
         
-        async for db in self.get_db():
-            try:
+        session = None
+        try:
+            async for db in self.get_db():
                 # Load the session with its messages
                 session = await self.session_repo.get_by_id(
                     db, 
                     session_id, 
                     load_relations=['messages']
                 )
+                break
                 
-                if not session:
-                    logger.warning(f"Session {session_id} not found")
-                    return None
-                
-                # Initialize temporary messages list
-                session._temp_messages = []
-                
-                logger.info(f"Successfully loaded session {session_id} with state {session.current_state}")
-                return session
-            except Exception as e:
-                logger.error(f"Error loading session {session_id}: {e}")
-                raise
+            if not session:
+                logger.warning(f"Session {session_id} not found")
+                return None
+            
+            # Initialize temporary messages list
+            session._temp_messages = []
+            
+            logger.info(f"Successfully loaded session {session_id} with state {session.current_state}")
+            return session
+        except Exception as e:
+            logger.error(f"Error loading session {session_id}: {e}")
+            raise
 
     async def create_session(self, session_data: Dict[str, Any]) -> Session:
         """
@@ -115,23 +122,30 @@ class DatabasePersistenceProvider(PersistenceProvider):
         session_template = session_data.get('template', {})
         logger.info(f"Creating new session with template {session_template.name}")
         
-        async for db in self.get_db():
-            try:
-                # Create the session
-                session = Session(**session_data)
+        # Create the session object first
+        session = Session(**session_data)
+        
+        # Initialize temporary messages list
+        session._temp_messages = []
+        
+        # Now persist it to the database
+        db = None
+        try:
+            async for db_session in self.get_db():
+                db = db_session
+                # Add to database
                 db.add(session)
                 await db.flush()
-                
-                # Initialize temporary messages list
-                session._temp_messages = []
-                
-                logger.info(f"Successfully created session {session.id}")
                 await db.commit()
-                return session
-            except Exception as e:
-                logger.error(f"Error creating session: {e}")
+                logger.info(f"Successfully created session {session.id}")
+                break
+        except Exception as e:
+            logger.error(f"Error creating session: {e}")
+            if db:
                 await db.rollback()
-                raise
+            raise
+            
+        return session
 
 
 class InMemoryPersistenceProvider(PersistenceProvider):
