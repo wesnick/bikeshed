@@ -102,12 +102,11 @@ class DatabasePersistenceProvider(PersistenceProvider):
                 logger.error(f"Error loading session {session_id}: {e}")
                 raise
 
-    async def create_session(self, db: AsyncSession, session_data: Dict[str, Any]) -> Session:
+    async def create_session(self, session_data: Dict[str, Any]) -> Session:
         """
         Create a new session in the database
         
         Args:
-            db: Database session
             session_data: Data for the new session
             
         Returns:
@@ -116,20 +115,23 @@ class DatabasePersistenceProvider(PersistenceProvider):
         session_template = session_data.get('template', {})
         logger.info(f"Creating new session with template {session_template.name}")
         
-        try:
-            # Create the session
-            session = Session(**session_data)
-            db.add(session)
-            await db.flush()
-            
-            # Initialize temporary messages list
-            session._temp_messages = []
-            
-            logger.info(f"Successfully created session {session.id}")
-            return session
-        except Exception as e:
-            logger.error(f"Error creating session: {e}")
-            raise
+        async for db in self.get_db():
+            try:
+                # Create the session
+                session = Session(**session_data)
+                db.add(session)
+                await db.flush()
+                
+                # Initialize temporary messages list
+                session._temp_messages = []
+                
+                logger.info(f"Successfully created session {session.id}")
+                await db.commit()
+                return session
+            except Exception as e:
+                logger.error(f"Error creating session: {e}")
+                await db.rollback()
+                raise
 
 
 class InMemoryPersistenceProvider(PersistenceProvider):
@@ -196,12 +198,11 @@ class InMemoryPersistenceProvider(PersistenceProvider):
         
         return session
         
-    async def create_session(self, db: AsyncSession, session_data: Dict[str, Any]) -> Session:
+    async def create_session(self, session_data: Dict[str, Any]) -> Session:
         """
         Create a new session in memory
         
         Args:
-            db: Database session (ignored)
             session_data: Data for the new session
             
         Returns:
