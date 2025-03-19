@@ -61,12 +61,30 @@ async def on_message(event: EventData) -> None:
     logger.info(f"Preparing message step: {next_step.name}")
     session.status = 'running'
 
+    # Determine the message content based on the step configuration
+    message_content = ""
+    if next_step.content is not None:
+        # Direct content provided
+        message_content = next_step.content
+    elif next_step.template is not None:
+        # Template-based content
+        # In a real implementation, this would use a template engine
+        template_name = next_step.template
+        template_args = next_step.template_args or {}
+        
+        # Placeholder for template rendering
+        message_content = f"[Template: {template_name} with args: {template_args}]"
+    else:
+        # This shouldn't happen due to model validation, but handle it anyway
+        logger.error(f"Step {next_step.name} has neither content nor template")
+        message_content = "[Error: No content or template specified]"
+
     # Create a message in the database
     message = Message(
-        id=uuid.uuid4(),  # Ensure ID is set
+        id=uuid.uuid4(),
         session_id=session.id,
         role=next_step.role,
-        text=next_step.content or "",
+        text=message_content,
         status='delivered'
     )
 
@@ -79,7 +97,8 @@ async def on_message(event: EventData) -> None:
     session.workflow_data['current_step_index'] += 1
     session.workflow_data['step_results'][next_step.name] = {
         'completed': True,
-        'message_id': str(message.id)
+        'message_id': str(message.id),
+        'message_content': message_content
     }
 
     logger.info(f"Completed message step: {next_step.name}")
@@ -95,24 +114,49 @@ async def on_prompt(event: EventData) -> None:
     logger.info(f"Preparing prompt step: {next_step.name}")
     session.status = 'running'
 
+    # Determine the prompt content based on the step configuration
+    prompt_content = ""
+    if next_step.content is not None:
+        # Direct content provided
+        prompt_content = next_step.content
+    elif next_step.template is not None:
+        # Template-based content
+        # In a real implementation, this would use a template engine
+        template_name = next_step.template
+        template_args = next_step.template_args or {}
+        
+        # Placeholder for template rendering
+        prompt_content = f"[Template: {template_name} with args: {template_args}]"
+        
+        # If input schema is specified, validate template_args
+        if next_step.input_schema:
+            # In a real implementation, this would validate against the schema
+            logger.info(f"Validating template args against schema: {next_step.input_schema}")
+    else:
+        # This shouldn't happen due to model validation, but handle it anyway
+        logger.error(f"Step {next_step.name} has neither content nor template")
+        prompt_content = "[Error: No content or template specified]"
 
     # Create messages for the prompt and response
     user_message = Message(
-        id=uuid.uuid4(),  # Ensure ID is set
+        id=uuid.uuid4(),
         session_id=session.id,
         role="user",
-        text=next_step.content or "",
+        text=prompt_content,
         status='delivered'
     )
 
-
     # This would call the LLM service in a real implementation
     # For now, just create a placeholder response
-    response = f"LLM response for prompt: {next_step.content or next_step.template}"
+    response = f"LLM response for prompt: {prompt_content}"
 
+    # If output schema is specified, validate the response
+    if next_step.output_schema:
+        # In a real implementation, this would validate against the schema
+        logger.info(f"Validating response against schema: {next_step.output_schema}")
 
     assistant_message = Message(
-        id=uuid.uuid4(),  # Ensure ID is set
+        id=uuid.uuid4(),
         session_id=session.id,
         role="assistant",
         text=response,
@@ -131,7 +175,8 @@ async def on_prompt(event: EventData) -> None:
         'completed': True,
         'prompt_message_id': str(user_message.id),
         'response_message_id': str(assistant_message.id),
-        'response': response
+        'response': response,
+        'prompt_content': prompt_content
     }
 
     logger.info(f"Completed prompt step: {next_step.name}")
