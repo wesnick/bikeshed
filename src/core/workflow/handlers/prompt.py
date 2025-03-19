@@ -10,7 +10,7 @@ class PromptStepHandler(StepHandler):
     """Handler for prompt steps"""
 
     def __init__(self, registry_provider, llm_service):
-        self.get_registry = registry_provider
+        self.registry_provider = registry_provider
         self.llm_service = llm_service
 
     async def can_handle(self, session: Session, step: Step) -> bool:
@@ -26,8 +26,7 @@ class PromptStepHandler(StepHandler):
         variables = session.workflow_data.get('variables', {})
         template_args = step.template_args or {}
 
-        registry = await self.get_registry()
-        prompt = registry.get_prompt(step.template)
+        prompt = self.registry_provider.get_prompt(step.template)
 
         # Get required variables not in template_args
         required_vars = [arg.name for arg in prompt.arguments
@@ -58,8 +57,8 @@ class PromptStepHandler(StepHandler):
         # Create messages for tracking
         messages = await self._create_prompt_messages(session, prompt_content)
 
-        # Call LLM service @TODO
-        response = "Test response" # await self.llm_service.generate_response(messages)
+        # Call LLM service
+        response = await self.llm_service.generate_response(messages)
 
         # Create response message
         response_message = Message(
@@ -98,8 +97,7 @@ class PromptStepHandler(StepHandler):
             args = {**variables, **template_args}
 
             # Get and render prompt
-            registry = await self.get_registry()
-            prompt = registry.get_prompt(step.template)
+            prompt = self.registry_provider.get_prompt(step.template)
 
             return await prompt.render(args)
 

@@ -98,8 +98,8 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
         if _workflow_service is None:
             # Get the dependencies needed for WorkflowService
             db_factory = async_session_factory
-            registry_provider = registry
-            llm_service = mcp_client
+            registry_provider = await get_registry().__anext__()  # Get the registry instance
+            llm_service = await get_mcp_client().__anext__()  # Get the MCP client instance
             
             # Create the WorkflowService instance
             _workflow_service = WorkflowService(db_factory, registry_provider, llm_service)
