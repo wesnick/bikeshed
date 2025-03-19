@@ -95,9 +95,6 @@ async def on_prompt(event: EventData) -> None:
     logger.info(f"Preparing prompt step: {next_step.name}")
     session.status = 'running'
 
-    # This would call the LLM service in a real implementation
-    # For now, just create a placeholder response
-    response = f"LLM response for prompt: {next_step.content or next_step.template}"
 
     # Create messages for the prompt and response
     user_message = Message(
@@ -107,6 +104,12 @@ async def on_prompt(event: EventData) -> None:
         text=next_step.content or "",
         status='delivered'
     )
+
+
+    # This would call the LLM service in a real implementation
+    # For now, just create a placeholder response
+    response = f"LLM response for prompt: {next_step.content or next_step.template}"
+
 
     assistant_message = Message(
         id=uuid.uuid4(),  # Ensure ID is set
