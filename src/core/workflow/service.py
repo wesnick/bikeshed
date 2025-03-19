@@ -37,7 +37,6 @@ class WorkflowService:
 
     async def create_session_from_template(
             self,
-            db: AsyncSession,
             template: SessionTemplate,
             description: Optional[str] = None,
             goal: Optional[str] = None,
@@ -55,7 +54,7 @@ class WorkflowService:
         }
 
         # Create session in database
-        session = await self.persistence.create_session(db, session_data)
+        session = await self.persistence.create_session(session_data)
 
         # Initialize workflow
         return await self.engine.initialize_session(session)
