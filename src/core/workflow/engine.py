@@ -61,7 +61,7 @@ class WorkflowEngine:
             send_event=True,
             auto_transitions=False,
             model_attribute='current_state',
-            after_state_change=self._after_state_change_wrapper(session),
+            after_state_change=self._after_state_change,
         )
 
         session.machine = machine
@@ -88,8 +88,8 @@ class WorkflowEngine:
                 'trigger': f'run_{step.name}',
                 'source': source,
                 'dest': state_name,
-                'before': '_execute_step',
-                'conditions': '_can_execute_step'
+                'before': self._execute_step,
+                'conditions': self._can_execute_step
             }
             transitions.append(transition)
 
@@ -99,7 +99,7 @@ class WorkflowEngine:
                     'trigger': 'finalize',
                     'source': state_name,
                     'dest': 'end',
-                    'before': '_finalize_workflow'
+                    'before': self._finalize_workflow
                 })
 
         return states, transitions
@@ -117,15 +117,8 @@ class WorkflowEngine:
             'messages': session.workflow_data.get('messages', [])
         })
 
-    def _after_state_change_wrapper(self, session):
-        """Create a bound callback for after_state_change"""
-        async def _after_state_change(event):
-            """Handle state change events"""
-            await self.persistence.save_session(session)
-        return _after_state_change
-
     async def _after_state_change(self, event):
-        """Handle state change events (legacy method)"""
+        """Handle state change events"""
         session = event.model
         await self.persistence.save_session(session)
 
