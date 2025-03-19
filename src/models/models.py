@@ -5,7 +5,7 @@ from typing import Optional, List, Dict, Any, Callable, Awaitable, ClassVar
 from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, JSON, Table
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import declarative_base, relationship, mapped_column
-from transitions.extensions.asyncio import AsyncMachine
+from transitions.extensions import AsyncGraphMachine
 
 from src.core.config_types import SessionTemplate, Step
 from .embedded_type import PydanticType
@@ -65,7 +65,7 @@ class Session(Base):
     messages = relationship("Message", back_populates="session")
 
     # Instance variables - not mapped to database columns
-    machine: Optional[AsyncMachine] = None
+    machine: Optional[AsyncGraphMachine] = None
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

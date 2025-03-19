@@ -10,9 +10,13 @@
       <strong>Goal:</strong> {{ template.goal }}
     </div>
   {% endif %}
+
+<div class="block">
+    {{ session_workflow_svg | safe }}
+</div>
   
   <form
-    hx-post="/session-template/{{ template_name }}/create"
+    hx-post="/session/template-creator/{{ template_name }}/create"
     hx-target="#dashboard"
     hx-push-url="true"
   >

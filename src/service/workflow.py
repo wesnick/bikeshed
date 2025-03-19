@@ -1,13 +1,15 @@
 from typing import Any, Dict, List, Optional, Union, Callable, Awaitable
 import uuid
+import re
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from transitions.core import EventData
-from transitions.extensions.asyncio import AsyncMachine
+from transitions.extensions import AsyncGraphMachine
 
 from src.dependencies import get_db
 from src.models.models import Session, Message
-from src.core.config_types import Step, MessageStep, PromptStep, UserInputStep, InvokeStep
-from src.repository import session_repository
+from src.core.config_types import Step, MessageStep, PromptStep, UserInputStep, InvokeStep, SessionTemplate
+from src.repository import session_repository, SessionRepository
 from src.service.logging import logger
 
 async def persist_workflow(event: EventData):
@@ -131,6 +133,12 @@ async def on_prompt(event: EventData) -> None:
 
     logger.info(f"Completed prompt step: {next_step.name}")
 
+
+async def on_end(event: EventData) -> None:
+    """Handle user input step completion"""
+    session: Session = event.model
+
+
 async def has_user_input(event: EventData) -> bool:
     """Check if user input is available for the current step"""
     session: Session = event.model
@@ -219,7 +227,72 @@ class WorkflowService:
     
     def __init__(self):
         self.sessions: Dict[uuid.UUID, Session] = {}  # Keep track of initialized sessions
-        
+        self.session_repo = session_repository
+
+    async def create_ad_hoc_session(
+            self,
+            db: AsyncSession,
+            description: str,
+            goal: Optional[str] = None,
+            initial_data: Optional[Dict] = None
+    ) -> Session:
+        """
+        Create a new ad-hoc session without a workflow.
+
+        Args:
+            db: Database session
+            description: Session description
+            goal: Optional session goal
+            initial_data: Optional initial data for the session
+
+        Returns:
+            The created session
+        """
+        session_data = {
+            "id": uuid.uuid4(),
+            "description": description,
+            "goal": goal,
+            "status": "ad-hoc",
+            "workflow_data": initial_data or {}
+        }
+
+        return await self.session_repo.create(db, session_data)
+
+    async def create_session_from_template(
+            self,
+            db: AsyncSession,
+            template: SessionTemplate,
+            description: Optional[str] = None,
+            goal: Optional[str] = None,
+            initial_data: Optional[Dict] = None
+    ) -> Session:
+        """
+        Create a new session from a template.
+
+        Args:
+            db: Database session
+            template: Session template
+            description: Optional description override
+            goal: Optional goal override
+            initial_data: Optional initial data for the workflow
+
+        Returns:
+            The created session
+        """
+        # Use template values but override with provided values if any
+        session_data = {
+            "id": uuid.uuid4(),
+            "description": description or template.description,
+            "goal": goal or template.goal,
+            "template": template,
+            "status": "pending",
+            "current_state": "initial",
+            "workflow_data": initial_data or {}
+        }
+
+        # Create and return the session
+        return await self.session_repo.create(db, session_data)
+
     async def initialize_session(self, session: Session) -> Session:
         """Initialize a state machine for a session based on its template"""
         if not session.template:
@@ -227,31 +300,42 @@ class WorkflowService:
         
         # Extract step names for states, ensuring the index reflects disabled elements
         steps = session.template.steps
-        states = ['start']
+        states = ['start', 'end']
 
         # Create transitions between states, ensuring the index reflects disabled elements
         transitions = []
         enabled_steps_count = 0
         for i, step in enumerate(steps):
             if step.enabled:
-                states.append(f'step{i}')
+                # insert state before last element
+                states.insert(len(states) - 1, f'step{i}')
                 source = 'start' if enabled_steps_count == 0 else f'step{i-1}'
-                dest = 'end' if enabled_steps_count == len([s for s in steps if s.enabled]) - 1 else f'step{i}'
-                # Add condition for user_input steps
+
                 transition = {
                     'trigger': f'run_step{i}',
                     'source': source,
-                    'dest': dest,
+                    'dest': f'step{i}',
                     'before': f'src.service.workflow.on_{step.type}'
                 }
                 
                 # Add condition for user_input steps
                 if step.type == 'user_input':
                     transition['conditions'] = 'src.service.workflow.has_user_input'
-                
+
+
                 transitions.append(transition)
                 enabled_steps_count += 1
-        states.append('end')
+
+                # add final transition
+                if enabled_steps_count == len([s for s in steps if s.enabled]):
+                    transition = {
+                        'trigger': f'finalize',
+                        'source': f'step{i}',
+                        'dest': 'end',
+                        'before': f'src.service.workflow.on_end'
+                    }
+                    transitions.append(transition)
+
         # Initialize workflow data if not fully present
         if not session.workflow_data:
             session.workflow_data = {}
@@ -265,10 +349,13 @@ class WorkflowService:
         })
         
         # Create state machine with custom callback resolver
-        machine = AsyncMachine(
+        machine = AsyncGraphMachine(
             model=session,
             states=states,
             transitions=transitions,
+            show_conditions=True,
+            show_state_attributes=True,
+            show_auto_transitions=True,
             initial='start',
             send_event=True,
             auto_transitions=False,
@@ -283,7 +370,40 @@ class WorkflowService:
         # Store session in our registry
         self.sessions[session.id] = session
         return session
-    
+
+    async def create_graph(self, session: Session) -> str:
+        svg = session.get_graph().draw(None, prog='dot', format='svg')
+
+        return self._clean_svg_for_web(svg.decode('utf-8'))
+
+    @staticmethod
+    def _clean_svg_for_web(svg_content):
+        # Remove XML declaration
+        svg_content = re.sub(r'<\?xml.*?\?>', '', svg_content)
+
+        # Remove DOCTYPE declaration
+        svg_content = re.sub(r'<!DOCTYPE[^>]*>\n?', '', svg_content)
+
+        # Replace fixed width/height with viewBox
+        width_match = re.search(r'width="(\d+)pt"', svg_content)
+        height_match = re.search(r'height="(\d+)pt"', svg_content)
+
+        if width_match and height_match:
+            width = float(width_match.group(1))
+            height = float(height_match.group(1))
+
+            # Remove fixed width/height
+            svg_content = re.sub(r'width="\d+pt"', '', svg_content)
+            svg_content = re.sub(r'height="\d+pt"', '', svg_content)
+
+            # Add viewBox if it doesn't exist
+            if 'viewBox' not in svg_content:
+                svg_content = svg_content.replace('<svg ', f'<svg viewBox="0 0 {width} {height}" ', 1)
+
+        svg_content = re.sub(r'>\n+<', '><', svg_content)
+
+        return svg_content.strip()
+
     @staticmethod
     async def get_next_step(session: Session) -> Optional[Step]:
         """Get the next step to execute in the workflow"""

@@ -1,7 +1,6 @@
 import asyncio
 import click
 import os
-import sys
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -242,7 +241,6 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
     from src.service.workflow import WorkflowService
     from src.repository.session import SessionRepository
     from src.repository.message import MessageRepository
-    from src.service.session import SessionService
 
     async def _run_workflow():
         # Load registry
@@ -258,20 +256,22 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
 
         # Create repositories and services
         workflow_service = WorkflowService()
-        session_service = SessionService()
 
         # Create and run the workflow
         async for db in get_db():
-            with console.status(f"Creating and running workflow from template '{template_name}'..."):
+            with (console.status(f"Creating and running workflow from template '{template_name}'...")):
                 try:
-                    session = await session_service.create_session_from_template(db=db, template=template)
-                    # session = await workflow_service.initialize_session(session)
-                    #
+                    session = await workflow_service.create_session_from_template(db=db, template=template)
+                    session = await workflow_service.initialize_session(session)
+
+                    result = await workflow_service.create_graph(session)
+                    print("Updated diagram saved")
+
                     # # Run the workflow
-                    step = session.get_current_step()
-                    while step:
-                        await workflow_service.execute_next_step(session)
-                        step = session.get_current_step()
+                    # step = session.get_current_step()
+                    # while step:
+                    #     await workflow_service.execute_next_step(session)
+                    #     step = session.get_current_step()
                     #
                     # # Ensure any remaining resources are cleaned up
                     # await asyncio.sleep(0.1)  # Small delay to allow async tasks to complete
