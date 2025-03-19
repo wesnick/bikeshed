@@ -61,7 +61,7 @@ class WorkflowEngine:
             send_event=True,
             auto_transitions=False,
             model_attribute='current_state',
-            after_state_change=self._after_state_change,
+            after_state_change=self._after_state_change_wrapper(session),
         )
 
         session.machine = machine
@@ -117,8 +117,15 @@ class WorkflowEngine:
             'messages': session.workflow_data.get('messages', [])
         })
 
+    def _after_state_change_wrapper(self, session):
+        """Create a bound callback for after_state_change"""
+        async def _after_state_change(event):
+            """Handle state change events"""
+            await self.persistence.save_session(session)
+        return _after_state_change
+
     async def _after_state_change(self, event):
-        """Handle state change events"""
+        """Handle state change events (legacy method)"""
         session = event.model
         await self.persistence.save_session(session)
 

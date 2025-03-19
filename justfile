@@ -7,6 +7,10 @@ setup-env:
     [ -f .env ] || cp .env.dist .env
     uv pip install transitions[asyncio]
 
+# Install or update dependencies
+install-deps:
+    uv pip install transitions[asyncio]
+
 # Start the FastAPI development server with auto-reload
 fastapi-dev:
     uvicorn src.main:app --reload --timeout-graceful-shutdown 2 --env-file .env --no-access-log
