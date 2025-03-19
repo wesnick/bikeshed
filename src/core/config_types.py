@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Literal, Optional, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 ## Session Template Configuration classes
@@ -123,6 +123,17 @@ class MessageStep(BaseStep):
         default=None,
         description="Arguments to pass to the template"
     )
+    
+    @model_validator(mode='after')
+    def validate_content_or_template(self) -> 'MessageStep':
+        """Validate that either content or template is provided, but not both."""
+        if self.content is not None and self.template is not None:
+            raise ValueError("Only one of 'content' or 'template' can be provided")
+        if self.content is None and self.template is None:
+            raise ValueError("Either 'content' or 'template' must be provided")
+        if self.template_args is not None and self.template is None:
+            raise ValueError("'template_args' can only be provided when 'template' is specified")
+        return self
 
 
 class PromptStep(BaseStep):
@@ -155,6 +166,19 @@ class PromptStep(BaseStep):
         default=None,
         description="Step-specific model configuration overrides"
     )
+    
+    @model_validator(mode='after')
+    def validate_content_or_template(self) -> 'PromptStep':
+        """Validate that either content or template is provided, but not both."""
+        if self.content is not None and self.template is not None:
+            raise ValueError("Only one of 'content' or 'template' can be provided")
+        if self.content is None and self.template is None:
+            raise ValueError("Either 'content' or 'template' must be provided")
+        if self.template_args is not None and self.template is None:
+            raise ValueError("'template_args' can only be provided when 'template' is specified")
+        if self.input_schema is not None and self.template is None:
+            raise ValueError("'input_schema' can only be provided when 'template' is specified")
+        return self
 
 class UserInputStep(BaseStep):
     """Step to wait for manual input from the user."""
@@ -190,6 +214,13 @@ class UserInputStep(BaseStep):
         default=None,
         description="Step-specific model configuration"
     )
+    
+    @model_validator(mode='after')
+    def validate_template_args(self) -> 'UserInputStep':
+        """Validate that template_args is only provided with template."""
+        if self.template_args is not None and self.template is None:
+            raise ValueError("'template_args' can only be provided when 'template' is specified")
+        return self
 
 class InvokeStep(BaseStep):
     """Step to call a code function."""
@@ -212,6 +243,15 @@ class InvokeStep(BaseStep):
         default=None,
         description="Schema to validate function result"
     )
+    
+    @model_validator(mode='after')
+    def validate_callable(self) -> 'InvokeStep':
+        """Validate that callable is provided and properly formatted."""
+        if not self.callable:
+            raise ValueError("'callable' must be provided for invoke steps")
+        if self.input_schema is not None and self.args is None:
+            raise ValueError("'input_schema' can only be provided when 'args' is specified")
+        return self
 
 
 # Union type for all possible steps
@@ -269,6 +309,31 @@ class SessionTemplate(BaseModel):
         default=None,
         description="Default error handling strategy"
     )
+    
+    @model_validator(mode='after')
+    def validate_steps(self) -> 'SessionTemplate':
+        """Validate that steps are properly configured."""
+        if not self.steps:
+            raise ValueError("At least one step must be provided")
+        
+        # Check for fallback steps that don't exist
+        step_names = {step.name for step in self.steps}
+        for step in self.steps:
+            if step.error_handling and step.error_handling.fallback_step:
+                if step.error_handling.fallback_step not in step_names:
+                    raise ValueError(
+                        f"Fallback step '{step.error_handling.fallback_step}' "
+                        f"referenced in step '{step.name}' does not exist"
+                    )
+        
+        # Check session-level error handling
+        if self.error_handling and self.error_handling.fallback_step:
+            if self.error_handling.fallback_step not in step_names:
+                raise ValueError(
+                    f"Session-level fallback step '{self.error_handling.fallback_step}' does not exist"
+                )
+                
+        return self
 
 
 SessionTemplate.model_json_schema()
