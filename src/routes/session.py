@@ -98,6 +98,10 @@ async def create_session_from_template_route(
     if not session:
         return {"error": "Failed to create session"}
 
+    session = await workflow_service.initialize_session(session)
+    while await session.may_trigger(f'run_step{session.workflow_data.get("current_step_index", 0)}'):
+        await workflow_service.execute_next_step(session)
+
     # Redirect to the session page
     from fastapi.responses import RedirectResponse
     return RedirectResponse(

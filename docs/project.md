@@ -32,6 +32,7 @@ The application uses the Transitions library to implement a state machine for se
 ## Backend
 
 - Prefer a modular structure.  The goal is for core functionality to be available via the CLI as well as the UI.
+- Create a pydantic class for request object when we have static input.  Dynamic forms should just use json.
 
 ### Python
 
@@ -41,8 +42,9 @@ The application uses the Transitions library to implement a state machine for se
 
 ## Frontend
 
-This application is a singleton intended for local use.  The goal is for it to be a SPA-like application, but managing only a single session.
-There will only ever be a single instance of the server and a lone user.  So the app state is global state.
+- This application is a singleton intended for local use.  The goal is for it to be a SPA-like application, but managing only a single session.
+- There will only ever be a single instance of the server and a lone user.  So the app state is global state.
+- When creating form, use the html extension form-json, ie `<form hx-ext="form-json">`
 
 ### Javascript
 
