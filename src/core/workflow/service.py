@@ -21,6 +21,7 @@ class WorkflowService:
         # Create persistence provider
         self.persistence = DatabasePersistenceProvider(db_factory)
 
+
         # Create step handlers
         self.handlers = {
             'message': MessageStepHandler(registry_provider),
