@@ -121,15 +121,24 @@ async def on_prompt(event: EventData) -> None:
         prompt_content = next_step.content
     elif next_step.template is not None:
         # Template-based content
-        # In a real implementation, this would use a template engine
         template_name = next_step.template
         template_args = next_step.template_args or {}
-
-        prompt_content = f"[Template: {template_name} with args: {template_args}]"
+        
+        # Replace variable references in template_args with actual values
+        variables = session.workflow_data.get('variables', {})
+        processed_args = {}
+        
+        for key, value in template_args.items():
+            if isinstance(value, str):
+                # Replace {variable} references with actual values
+                for var_name in re.findall(r'\{([^{}]+)\}', value):
+                    if var_name in variables:
+                        value = value.replace(f"{{{var_name}}}", str(variables[var_name]))
+            processed_args[key] = value
+        
         async for registry in get_registry():
             prompt = registry.get_prompt(template_name)
-            prompt_content = await prompt.render(template_args)
-
+            prompt_content = await prompt.render(processed_args)
         
         # If input schema is specified, validate template_args
         if next_step.input_schema:
@@ -200,6 +209,41 @@ async def has_user_input(event: EventData) -> bool:
     
     # Check if user_input exists in workflow_data
     return 'user_input' in session.workflow_data and session.workflow_data['user_input'] is not None
+
+async def has_prompt_variables(event: EventData) -> bool:
+    """Check if all required variables for a prompt step are available"""
+    session: Session = event.model
+    next_step = await WorkflowService.get_next_step(session)
+    
+    if not isinstance(next_step, PromptStep):
+        return False
+    
+    # If no template or no template_args, no variables are required
+    if not next_step.template or not next_step.template_args:
+        return True
+    
+    # Check if all required variables are present in workflow_data.variables
+    variables = session.workflow_data.get('variables', {})
+    
+    # Extract variable references from template_args (looking for {variable_name} patterns)
+    required_vars = []
+    for value in next_step.template_args.values():
+        if isinstance(value, str):
+            # Find all {variable} references in the string
+            var_refs = re.findall(r'\{([^{}]+)\}', value)
+            required_vars.extend(var_refs)
+    
+    # Check if all required variables exist in the variables dict
+    missing_vars = [var for var in required_vars if var not in variables]
+    
+    if missing_vars:
+        # Set status to waiting for input if variables are missing
+        session.status = 'waiting_for_input'
+        # Store which variables are missing for the UI to prompt for
+        session.workflow_data['missing_variables'] = missing_vars
+        return False
+    
+    return True
 
 async def on_user_input(event: EventData) -> None:
     """Handle user input step completion"""
@@ -372,6 +416,9 @@ class WorkflowService:
                 # Add condition for user_input steps
                 if step.type == 'user_input':
                     transition['conditions'] = 'src.service.workflow.has_user_input'
+                # Add condition for prompt steps
+                elif step.type == 'prompt':
+                    transition['conditions'] = 'src.service.workflow.has_prompt_variables'
 
 
                 transitions.append(transition)
@@ -490,19 +537,49 @@ class WorkflowService:
             logger.error(f"Trigger {trigger} not found for session {session.id}")
             return False
 
-    async def provide_user_input(self, session: Session, user_input: str) -> bool:
-        """Provide user input for a waiting user_input step"""
+    async def provide_user_input(self, session: Session, user_input: Union[str, Dict[str, Any]]) -> bool:
+        """
+        Provide user input for a waiting step
+        
+        Args:
+            session: The session requiring input
+            user_input: Either a string for simple user_input steps or a dictionary for variable inputs
+            
+        Returns:
+            True if the input was accepted and processed, False otherwise
+        """
         if session.status != 'waiting_for_input':
             return False
 
-        # Store the input in workflow data
-        session.workflow_data['user_input'] = user_input
+        next_step = await self.get_next_step(session)
+        
+        # Handle different types of waiting inputs
+        if isinstance(next_step, UserInputStep):
+            # For user_input steps, store the input directly
+            session.workflow_data['user_input'] = user_input
+        elif 'missing_variables' in session.workflow_data:
+            # For steps waiting for variables (like prompt steps)
+            if not isinstance(user_input, dict):
+                logger.error("Expected dictionary input for variables")
+                return False
+                
+            # Update the variables in workflow_data
+            variables = session.workflow_data.get('variables', {})
+            variables.update(user_input)
+            session.workflow_data['variables'] = variables
+            
+            # Clear the missing_variables flag
+            session.workflow_data.pop('missing_variables', None)
+        else:
+            logger.error(f"Unknown input type needed for step {next_step.name if next_step else 'unknown'}")
+            return False
 
         # Execute the step now that we have input
         result = await self.execute_next_step(session)
         
         # If the step didn't execute (condition not met), clear the input
         if not result:
-            session.workflow_data.pop('user_input', None)
+            if isinstance(next_step, UserInputStep):
+                session.workflow_data.pop('user_input', None)
             
         return result
