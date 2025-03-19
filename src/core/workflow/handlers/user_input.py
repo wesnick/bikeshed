@@ -5,7 +5,7 @@ from src.core.workflow.engine import StepHandler
 from src.core.config_types import UserInputStep, Step
 from src.models.models import Session, Message
 
-class UserInputHandler(StepHandler):
+class UserInputStepHandler(StepHandler):
     """Handler for user_input steps"""
 
     async def can_handle(self, session: Session, step: Step) -> bool:

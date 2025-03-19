@@ -6,7 +6,7 @@ from src.core.config_types import MessageStep, Step
 from src.models.models import Session, Message
 
 
-class MessageHandler(StepHandler):
+class MessageStepHandler(StepHandler):
     """Handler for message steps"""
 
     def __init__(self, registry_provider):
