@@ -16,32 +16,37 @@ async def persist_workflow(event: EventData):
     logger.info(f"Persisting state: {session.status} machine_state: {session.machine.get_model_state(session).name} current_state: {session.current_state} for session: {session.id} event: {event.event.name}")
 
     async for db in get_db():
-        # First, ensure the session exists in the database
-        db_session = await session_repository.get_by_id(db, session.id)
-        if not db_session:
-            # In a test environment, we might need to create the session first
-            db.add(session)
-            await db.flush()  # This assigns an ID if needed and makes it available in the session
-        
-        # Update session data
-        await session_repository.update(db, session.id, {
-            'status': session.status,
-            'current_state': session.machine.get_model_state(session).name,
-            'workflow_data': session.workflow_data
-        })
+        try:
+            # First, ensure the session exists in the database
+            db_session = await session_repository.get_by_id(db, session.id)
+            if not db_session:
+                # Create the session in the database
+                db.add(session)
+                await db.flush()  # This assigns an ID if needed and makes it available in the session
+            
+            # Update session data
+            await session_repository.update(db, session.id, {
+                'status': session.status,
+                'current_state': session.machine.get_model_state(session).name,
+                'workflow_data': session.workflow_data
+            })
 
-        # Save any temporary messages
-        if hasattr(session, '_temp_messages') and session._temp_messages:
-            for msg in session._temp_messages:
-                # Ensure message has session_id and ID
-                if not msg.session_id:
-                    msg.session_id = session.id
-                if not msg.id:
-                    msg.id = uuid.uuid4()
-                db.add(msg)
-            session._temp_messages = []  # Clear the temporary messages
+            # Save any temporary messages
+            if hasattr(session, '_temp_messages') and session._temp_messages:
+                for msg in session._temp_messages:
+                    # Ensure message has session_id and ID
+                    if not msg.session_id:
+                        msg.session_id = session.id
+                    if not msg.id:
+                        msg.id = uuid.uuid4()
+                    db.add(msg)
+                session._temp_messages = []  # Clear the temporary messages
 
-        await db.commit()
+            await db.commit()
+        except Exception as e:
+            logger.error(f"Error persisting workflow: {e}")
+            await db.rollback()
+            raise  # Re-raise the exception to properly handle errors
 
 async def on_message(event: EventData) -> None:
     """Prepare for message step execution"""
@@ -199,23 +204,26 @@ class WorkflowService:
         if not session.template:
             raise ValueError("Session must have a template to initialize workflow")
         
-        # Extract step names for states
+        # Extract step names for states, ensuring the index reflects disabled elements
         steps = session.template.steps
-        states = ['start'] + [f'step{i}' for i, step in enumerate(steps) if step.enabled] + ['end']
-        
-        # Create transitions between states
+        states = ['start']
+
+        # Create transitions between states, ensuring the index reflects disabled elements
         transitions = []
-        for i, step in enumerate([s for s in steps if s.enabled]):
-            source = 'start' if i == 0 else f'step{i}'
-            dest = 'end' if i == len([s for s in steps if s.enabled]) - 1 else f'step{i+1}'
-            
-            transitions.append({
-                'trigger': f'run_step{i}',
-                'source': source,
-                'dest': dest,
-                'before': f'src.service.workflow.on_{step.type}'
-            })
-        
+        enabled_steps_count = 0
+        for i, step in enumerate(steps):
+            if step.enabled:
+                states.append(f'step{i}')
+                source = 'start' if enabled_steps_count == 0 else f'step{i-1}'
+                dest = 'end' if enabled_steps_count == len([s for s in steps if s.enabled]) - 1 else f'step{i}'
+                transitions.append({
+                    'trigger': f'run_step{i}',
+                    'source': source,
+                    'dest': dest,
+                    'before': f'src.service.workflow.on_{step.type}'
+                })
+                enabled_steps_count += 1
+        states.append('end')
         # Initialize workflow data if not fully present
         if not session.workflow_data:
             session.workflow_data = {}

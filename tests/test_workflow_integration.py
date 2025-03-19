@@ -14,6 +14,7 @@ def complex_session_template():
     return SessionTemplate(
         name="Complex Test Template",
         description="A complex template for integration testing",
+        model="test-model",
         steps=[
             MessageStep(
                 name="welcome",
