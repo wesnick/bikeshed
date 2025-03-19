@@ -1,4 +1,5 @@
 from typing import AsyncGenerator, Annotated
+import asyncio
 
 from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
@@ -8,7 +9,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from src.service.cache import RedisService
 from src.service.mcp_client import MCPClient
 from src.config import get_config
-from src.core.registry_loader import RegistryLoader
+from src.core.registry import Registry
+from src.core.registry_loader import RegistryBuilder
 
 settings = get_config()
 
@@ -48,14 +50,23 @@ async def get_mcp_client() -> AsyncGenerator[MCPClient, None]:
     # Simply yield the singleton instance
     yield mcp_client
 
-# Create the singleton instance
-mcp_client = Registry()
-_mcp_client_initialized = False
+# Create the singleton Registry instance
+registry = Registry()
+_registry_initialized = False
+_registry_lock = asyncio.Lock()
 
-async def get_registry():
-    loader = RegistryLoader()
-
-    app.state.registry = await loader.load()
+async def get_registry() -> AsyncGenerator[Registry, None]:
+    """Dependency for getting the singleton Registry instance"""
+    global _registry_initialized
+    
+    # Use a lock to prevent multiple initialization attempts
+    async with _registry_lock:
+        if not _registry_initialized:
+            builder = RegistryBuilder(registry)
+            await builder.build()
+            _registry_initialized = True
+    
+    yield registry
 
 def markdown2html(text: str):
     from src.main import logger

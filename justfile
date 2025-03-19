@@ -59,6 +59,10 @@ create-ad-hoc description:
 test:
     pytest tests/ -v
 
+# Test registry loading
+test-registry:
+    python -c "import asyncio; from src.dependencies import get_registry; async def main(): async for reg in get_registry(): print(f'Registry loaded with {len(reg.schemas)} schemas, {len(reg.prompts)} prompts, {len(reg.tools)} tools'); asyncio.run(main())"
+
 # Run workflow tests
 test-workflow:
     pytest tests/test_workflow.py -v

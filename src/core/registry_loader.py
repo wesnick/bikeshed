@@ -9,21 +9,22 @@ from src.service.logging import logger
 from src.dependencies import get_jinja, get_mcp_client
 
 
-class RegistryLoader:
+class RegistryBuilder:
     """
-    Loads configuration from bs.yaml and populates the Registry with schemas, templates,
-    MCP servers, and session templates.
+    Builds and populates a Registry instance from bs.yaml configuration.
+    Factory pattern for creating a populated Registry singleton.
     """
 
-    def __init__(self, config_path: str = "config/bs.yaml"):
+    def __init__(self, registry: Registry, config_path: str = "config/bs.yaml"):
         """
-        Initialize the registry loader with a path to the configuration file.
+        Initialize the registry builder with a Registry instance and path to the configuration file.
 
         Args:
+            registry: The Registry instance to populate
             config_path: Path to the bs.yaml configuration file
         """
         self.config_path = config_path
-        self.registry = Registry()
+        self.registry = registry
         self.config = {}
         self.jinja_env = get_jinja().templates.env
 
@@ -123,9 +124,9 @@ class RegistryLoader:
         except Exception as e:
             logger.error(f"Failed to load session templates from {templates_dir}: {str(e)}")
 
-    async def load(self) -> Registry:
+    async def build(self) -> Registry:
         """
-        Load all configuration and populate the registry.
+        Build and populate the registry with configuration.
 
         Returns:
             The populated Registry instance
@@ -155,7 +156,7 @@ class RegistryLoader:
         templates_dir = self.config.get('session_templates_dir', 'config')
         self._load_session_templates(templates_dir)
 
-        logger.info("Registry loading completed")
+        logger.info("Registry building completed")
         return self.registry
 
     async def connect_mcp_servers(self) -> None:
