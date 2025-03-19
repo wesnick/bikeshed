@@ -11,6 +11,7 @@ from src.service.mcp_client import MCPClient
 from src.config import get_config
 from src.core.registry import Registry
 from src.core.registry_loader import RegistryBuilder
+from src.core.workflow.service import WorkflowService
 
 settings = get_config()
 
@@ -83,5 +84,26 @@ async def get_registry() -> AsyncGenerator[Registry, None]:
             _registry_initialized = True
     
     yield registry
+
+# Create the singleton WorkflowService instance
+_workflow_service = None
+_workflow_service_lock = asyncio.Lock()
+
+async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
+    """Dependency for getting the singleton WorkflowService instance"""
+    global _workflow_service
+    
+    # Use a lock to prevent multiple initialization attempts
+    async with _workflow_service_lock:
+        if _workflow_service is None:
+            # Get the dependencies needed for WorkflowService
+            db_factory = async_session_factory
+            registry_provider = registry
+            llm_service = mcp_client
+            
+            # Create the WorkflowService instance
+            _workflow_service = WorkflowService(db_factory, registry_provider, llm_service)
+    
+    yield _workflow_service
 
 

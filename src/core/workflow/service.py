@@ -18,9 +18,16 @@ class WorkflowService:
     """Service for managing workflow state machines"""
 
     def __init__(self, db_factory, registry_provider, llm_service):
+        """
+        Initialize the WorkflowService with required dependencies.
+        
+        Args:
+            db_factory: Factory function for creating database sessions
+            registry_provider: Registry instance for accessing prompts and tools
+            llm_service: Service for interacting with language models
+        """
         # Create persistence provider
         self.persistence = DatabasePersistenceProvider(db_factory)
-
 
         # Create step handlers
         self.handlers = {
