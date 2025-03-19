@@ -131,20 +131,35 @@ async def on_prompt(event: EventData) -> None:
 
     logger.info(f"Completed prompt step: {next_step.name}")
 
+async def has_user_input(event: EventData) -> bool:
+    """Check if user input is available for the current step"""
+    session: Session = event.model
+    next_step = await WorkflowService.get_next_step(session)
+    
+    if not isinstance(next_step, UserInputStep):
+        return False
+    
+    # Check if user_input exists in workflow_data
+    return 'user_input' in session.workflow_data and session.workflow_data['user_input'] is not None
+
 async def on_user_input(event: EventData) -> None:
     """Handle user input step completion"""
-    session = event.model
+    session: Session = event.model
     next_step = await WorkflowService.get_next_step(session)
     if not isinstance(next_step, UserInputStep):
         return
 
     logger.info(f"Preparing user input step: {next_step.name}")
-    session.status = 'waiting_for_input'
-
-    # In a real implementation, this would wait for user input
-    # For now, just create a placeholder
-    user_input = session.workflow_data.get('user_input', "Sample user input")
-
+    
+    # Get the user input from workflow data
+    user_input = session.workflow_data.get('user_input')
+    
+    if not user_input:
+        # If no user input is available, set status to waiting and exit
+        session.status = 'waiting_for_input'
+        logger.info(f"Waiting for user input for step: {next_step.name}")
+        return
+    
     # Create a message for the user input
     message = Message(
         id=uuid.uuid4(),  # Ensure ID is set
@@ -166,6 +181,12 @@ async def on_user_input(event: EventData) -> None:
         'message_id': str(message.id),
         'input': user_input
     }
+    
+    # Clear the user_input after processing
+    session.workflow_data.pop('user_input', None)
+    
+    # Update status to running
+    session.status = 'running'
 
     logger.info(f"Completed user input step: {next_step.name}")
 
@@ -216,12 +237,19 @@ class WorkflowService:
                 states.append(f'step{i}')
                 source = 'start' if enabled_steps_count == 0 else f'step{i-1}'
                 dest = 'end' if enabled_steps_count == len([s for s in steps if s.enabled]) - 1 else f'step{i}'
-                transitions.append({
+                # Add condition for user_input steps
+                transition = {
                     'trigger': f'run_step{i}',
                     'source': source,
                     'dest': dest,
                     'before': f'src.service.workflow.on_{step.type}'
-                })
+                }
+                
+                # Add condition for user_input steps
+                if step.type == 'user_input':
+                    transition['conditions'] = 'src.service.workflow.has_user_input'
+                
+                transitions.append(transition)
                 enabled_steps_count += 1
         states.append('end')
         # Initialize workflow data if not fully present
@@ -300,4 +328,10 @@ class WorkflowService:
         session.workflow_data['user_input'] = user_input
 
         # Execute the step now that we have input
-        return await self.execute_next_step(session)
+        result = await self.execute_next_step(session)
+        
+        # If the step didn't execute (condition not met), clear the input
+        if not result:
+            session.workflow_data.pop('user_input', None)
+            
+        return result

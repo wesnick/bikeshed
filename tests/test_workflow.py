@@ -229,16 +229,18 @@ async def test_on_user_input(session):
     # Set up the event data
     event_data = MagicMock()
     event_data.model = session
-    
+
+    # Mock the next step
+    mock_step = UserInputStep(
+        name="user_response",
+        type="user_input",
+        prompt="Please provide your input",
+        enabled=True
+    )
+
     # Execute the handler
     with patch('src.service.workflow.WorkflowService.get_next_step') as mock_get_next_step:
-        # Mock the next step
-        mock_step = UserInputStep(
-            name="user_response",
-            type="user_input",
-            prompt="Please provide your input",
-            enabled=True
-        )
+
         mock_get_next_step.return_value = mock_step
         
         # Call the handler
@@ -246,6 +248,17 @@ async def test_on_user_input(session):
         
         # Verify the session was updated
         assert session.status == 'waiting_for_input'
+        assert len(session._temp_messages) == 0
+        assert session.workflow_data['current_step_index'] == 0
+
+    with patch('src.service.workflow.WorkflowService.get_next_step') as mock_get_next_step:
+        session.workflow_data['user_input'] = "Sample user input"
+
+        mock_get_next_step.return_value = mock_step
+
+        # Call the handler
+        await on_user_input(event_data)
+
         assert len(session._temp_messages) == 1
         assert session._temp_messages[0].role == "user"
         assert session._temp_messages[0].text == "Sample user input"

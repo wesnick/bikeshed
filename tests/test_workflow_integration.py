@@ -96,7 +96,7 @@ class TestWorkflowIntegration:
         with patch('src.service.workflow.on_user_input', new_callable=AsyncMock) as mock_on_user_input:
             complex_session.workflow_data['current_step_index'] = 2
             await workflow_service.execute_next_step(complex_session)
-            mock_on_user_input.assert_called_once()
+            mock_on_user_input.assert_not_called()
         
         # Provide user input
         with patch.object(workflow_service, 'execute_next_step', new_callable=AsyncMock) as mock_execute:
@@ -107,6 +107,7 @@ class TestWorkflowIntegration:
         
         # Execute the invoke step
         with patch('src.service.workflow.on_invoke', new_callable=AsyncMock) as mock_on_invoke:
+            complex_session.current_state = 'step2'
             complex_session.workflow_data['current_step_index'] = 3
             await workflow_service.execute_next_step(complex_session)
             mock_on_invoke.assert_called_once()
