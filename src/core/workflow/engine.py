@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Type, Protocol, Any
+from typing import Dict, List, Optional, Type, Protocol, Any, TypeVar
 import uuid
 from transitions.extensions import AsyncGraphMachine
 from dataclasses import dataclass
@@ -9,7 +9,7 @@ from src.models.models import Session
 class StepHandler(Protocol):
     """Protocol defining the interface for step handlers"""
     async def can_handle(self, session: Session, step: Step) -> bool: ...
-    async def handle(self, session: Session, step: Step) -> dict[str, Any]: ...
+    async def handle(self, session: Session, step: Step) -> Dict[str, Any]: ...
 
 class PersistenceProvider(Protocol):
     """Protocol defining the interface for persistence providers"""
