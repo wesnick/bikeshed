@@ -58,8 +58,8 @@ class PromptStepHandler(StepHandler):
         # Create messages for tracking
         messages = await self._create_prompt_messages(session, prompt_content)
 
-        # Call LLM service
-        response = await self.llm_service.generate_response(messages)
+        # Call LLM service @TODO
+        response = "Test response" # await self.llm_service.generate_response(messages)
 
         # Create response message
         response_message = Message(
