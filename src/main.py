@@ -13,13 +13,13 @@ from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from sse_starlette.sse import EventSourceResponse
 
-from src.core.registry_loader import RegistryLoader
+from src.core.registry import Registry
 from src.types import MessageCreate
 from src.models import Message
 from src.service.logging import logger, setup_logging
 from src.service.mcp_client import MCPClient
 from src.http.middleware import HTMXRedirectMiddleware
-from src.dependencies import get_db, get_jinja, get_mcp_client
+from src.dependencies import get_db, get_jinja, get_registry
 from src.routes import api_router
 from src.repository import session_repository
 
@@ -27,16 +27,11 @@ from src.repository import session_repository
 async def lifespan(app: FastAPI):
     setup_logging()
 
-    loader = RegistryLoader()
-    app.state.registry = await loader.load()
+    # Boot the registry
+    async for registry in get_registry():
+        app.state.registry = registry
 
     yield
-
-    # Clean up the mcp_client when the application shuts down
-    from src.dependencies import mcp_client, _mcp_client_initialized
-    if _mcp_client_initialized:
-        logger.info("Cleaning up MCP client...")
-        await mcp_client.__aexit__(None, None, None)
 
 
 app = FastAPI(title="BikeShed", lifespan=lifespan)
@@ -140,12 +135,11 @@ async def session_component() -> dict:
 
 @app.get("/components/left-sidebar")
 @jinja.hx('components/left_sidebar.html.j2')
-async def left_sidebar_component(db: AsyncSession = Depends(get_db)) -> dict:
+async def left_sidebar_component(db: AsyncSession = Depends(get_db), registry: Registry = Depends(get_registry)) -> dict:
     """This route serves the left sidebar component for htmx requests."""
     sessions = await session_repository.get_recent_sessions(db)
-    
-    # Get session templates from registry
-    session_templates = app.state.registry.session_templates if hasattr(app.state, 'registry') else {}
+
+    session_templates = registry.session_templates
     
     return {
         "flows": [],

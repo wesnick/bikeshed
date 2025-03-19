@@ -198,8 +198,7 @@ class TemplateLoader:
                 continue
 
             template_path = os.path.join(directory, filename)
-            template_name = os.path.splitext(filename)[0]
-            qualified_name = f"{alias}/{template_name}"
+            qualified_name = f"{alias}/{filename}"
 
             try:
                 # Read the template file

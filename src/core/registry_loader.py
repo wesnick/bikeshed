@@ -6,7 +6,7 @@ from mcp import StdioServerParameters
 from src.core.registry import Registry
 from src.core.config_loader import SchemaLoader, TemplateLoader, SessionTemplateLoader
 from src.service.logging import logger
-from src.dependencies import get_jinja, get_mcp_client
+
 
 
 class RegistryBuilder:
@@ -26,7 +26,6 @@ class RegistryBuilder:
         self.config_path = config_path
         self.registry = registry
         self.config = {}
-        self.jinja_env = get_jinja().templates.env
 
     def _load_config(self) -> Dict[str, Any]:
         """
@@ -73,9 +72,10 @@ class RegistryBuilder:
         if not template_paths:
             logger.warning("No template paths specified in configuration")
             return
+        from src.dependencies import get_jinja
 
         logger.info(f"Loading templates from paths: {template_paths}")
-        template_loader = TemplateLoader(self.registry, self.jinja_env)
+        template_loader = TemplateLoader(self.registry, get_jinja().templates.env)
         for alias, path in template_paths.items():
             try:
                 template_loader.load_from_directory(path, alias)
@@ -164,6 +164,7 @@ class RegistryBuilder:
         Connect to all configured MCP servers.
         """
         logger.info("Connecting to MCP servers")
+        from src.dependencies import get_mcp_client
         for name, server_params in self.registry.mcp_servers.items():
             try:
                 # Get the singleton mcp_client instance

@@ -6,10 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from transitions.core import EventData
 from transitions.extensions import AsyncGraphMachine
 
-from src.dependencies import get_db
+from src.dependencies import get_db, get_registry
 from src.models.models import Session, Message
 from src.core.config_types import Step, MessageStep, PromptStep, UserInputStep, InvokeStep, SessionTemplate
-from src.repository import session_repository, SessionRepository
+from src.repository import session_repository
 from src.service.logging import logger
 
 async def persist_workflow(event: EventData):
@@ -124,9 +124,12 @@ async def on_prompt(event: EventData) -> None:
         # In a real implementation, this would use a template engine
         template_name = next_step.template
         template_args = next_step.template_args or {}
-        
-        # Placeholder for template rendering
+
         prompt_content = f"[Template: {template_name} with args: {template_args}]"
+        async for registry in get_registry():
+            prompt = registry.get_prompt(template_name)
+            prompt_content = await prompt.render(template_args)
+
         
         # If input schema is specified, validate template_args
         if next_step.input_schema:

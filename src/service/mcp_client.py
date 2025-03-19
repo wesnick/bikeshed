@@ -1,9 +1,7 @@
 from typing import Optional, Dict, Any, Union
 from contextlib import AsyncExitStack
-import json
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
-from src.service.cache import RedisService
 from src.service.logging import logger
 
 
