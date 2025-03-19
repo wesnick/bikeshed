@@ -98,7 +98,7 @@ async def on_message(event: EventData) -> None:
     session.workflow_data['step_results'][next_step.name] = {
         'completed': True,
         'message_id': str(message.id),
-        'message_content': message_content
+        # 'message_content': message_content.model_dump() if isinstance(message_content, BaseModel) else message_content
     }
 
     logger.info(f"Completed message step: {next_step.name}")
@@ -122,45 +122,63 @@ async def on_prompt(event: EventData) -> None:
     elif next_step.template is not None:
         # Template-based content
         template_name = next_step.template
-        template_args = next_step.template_args or {}
-        
+
         # Replace variable references in template_args with actual values
         variables = session.workflow_data.get('variables', {})
+        # Static template_args override any variables
+        for key, value in next_step.template_args.items():
+            variables[key] = value
+
         processed_args = {}
-        
-        for key, value in template_args.items():
-            if isinstance(value, str):
-                # Replace {variable} references with actual values
-                for var_name in re.findall(r'\{([^{}]+)\}', value):
-                    if var_name in variables:
-                        value = value.replace(f"{{{var_name}}}", str(variables[var_name]))
-            processed_args[key] = value
-        
+
         async for registry in get_registry():
             prompt = registry.get_prompt(template_name)
+
+            for prompt_argument in prompt.arguments:
+                processed_args[prompt_argument.name] = variables[prompt_argument.name]
+
             prompt_content = await prompt.render(processed_args)
         
         # If input schema is specified, validate template_args
         if next_step.input_schema:
             # In a real implementation, this would validate against the schema
             logger.info(f"Validating template args against schema: {next_step.input_schema}")
-    else:
-        # This shouldn't happen due to model validation, but handle it anyway
-        logger.error(f"Step {next_step.name} has neither content nor template")
-        prompt_content = "[Error: No content or template specified]"
 
-    # Create messages for the prompt and response
-    user_message = Message(
-        id=uuid.uuid4(),
-        session_id=session.id,
-        role="user",
-        text=prompt_content,
-        status='delivered'
-    )
+    input_text = ''
+    # @TODO: previous message id
+    previous_message_id = None
+    if isinstance(prompt_content, list):
+        for inner_prompt in prompt_content:
+            user_message = Message(
+                id=uuid.uuid4(),
+                session_id=session.id,
+                role=inner_prompt.role,
+                text=inner_prompt.content.text,
+                mime_type=inner_prompt.content.type,  # "text" or "image" not exactly our mime
+                status='delivered',
+                parent_id=previous_message_id
+            )
+
+            session._temp_messages.append(user_message)
+            input_text += inner_prompt.content.text + ' '
+            previous_message_id = user_message.id
+    else:
+        # Create messages for the prompt and response
+        user_message = Message(
+            id=uuid.uuid4(),
+            session_id=session.id,
+            role="user",
+            text=prompt_content,
+            status='delivered'
+        )
+        session._temp_messages.append(user_message)
+        input_text += prompt_content
+        previous_message_id =user_message.id
+
 
     # This would call the LLM service in a real implementation
     # For now, just create a placeholder response
-    response = f"LLM response for prompt: {prompt_content}"
+    response = f"LLM response for prompt: {input_text}"
 
     # If output schema is specified, validate the response
     if next_step.output_schema:
@@ -173,13 +191,11 @@ async def on_prompt(event: EventData) -> None:
         role="assistant",
         text=response,
         status='delivered',
-        parent_id=user_message.id
+        parent_id=previous_message_id
     )
 
     # Add to session's messages
-    if not hasattr(session, '_temp_messages') or session._temp_messages is None:
-        session._temp_messages = []
-    session._temp_messages = [user_message, assistant_message]  # Replace instead of extend
+    session._temp_messages.append(assistant_message)
 
     # Update workflow data
     session.workflow_data['current_step_index'] += 1
@@ -188,7 +204,7 @@ async def on_prompt(event: EventData) -> None:
         'prompt_message_id': str(user_message.id),
         'response_message_id': str(assistant_message.id),
         'response': response,
-        'prompt_content': prompt_content
+        # 'prompt_content': prompt_content
     }
 
     logger.info(f"Completed prompt step: {next_step.name}")
@@ -218,21 +234,27 @@ async def has_prompt_variables(event: EventData) -> bool:
     if not isinstance(next_step, PromptStep):
         return False
     
-    # If no template or no template_args, no variables are required
-    if not next_step.template or not next_step.template_args:
+    # If no template no variables are required (@TODO: do we want to allow interpolation in `content`?)
+    if not next_step.template:
         return True
     
     # Check if all required variables are present in workflow_data.variables
     variables = session.workflow_data.get('variables', {})
-    
-    # Extract variable references from template_args (looking for {variable_name} patterns)
+
+    # Extract static variable from template_args (if any)
     required_vars = []
-    for value in next_step.template_args.values():
-        if isinstance(value, str):
-            # Find all {variable} references in the string
-            var_refs = re.findall(r'\{([^{}]+)\}', value)
-            required_vars.extend(var_refs)
-    
+    async for registry in get_registry():
+        prompt = registry.get_prompt(next_step.template)
+
+        for prompt_argument in prompt.arguments:
+            required_vars.append(prompt_argument.name)
+
+    # remove any static vars provided in template_args
+    template_args = next_step.template_args or {}
+    for key in template_args.keys():
+        if key in required_vars:
+            required_vars.remove(key)
+
     # Check if all required variables exist in the variables dict
     missing_vars = [var for var in required_vars if var not in variables]
     
@@ -241,6 +263,10 @@ async def has_prompt_variables(event: EventData) -> bool:
         session.status = 'waiting_for_input'
         # Store which variables are missing for the UI to prompt for
         session.workflow_data['missing_variables'] = missing_vars
+
+        # save state to database
+        await persist_workflow(event)
+
         return False
     
     return True
@@ -380,8 +406,6 @@ class WorkflowService:
             "description": description or template.description,
             "goal": goal or template.goal,
             "template": template,
-            "status": "pending",
-            "current_state": "initial",
             "workflow_data": initial_data or {}
         }
 
@@ -454,13 +478,12 @@ class WorkflowService:
             show_conditions=True,
             show_state_attributes=True,
             show_auto_transitions=True,
-            initial='start',
+            initial=session.current_state or 'start',
             send_event=True,
             auto_transitions=False,
             model_attribute='current_state',
             after_state_change=f'src.service.workflow.persist_workflow',
         )
-      
         
         # Store the machine on the session
         session.machine = machine

@@ -6,6 +6,12 @@
       {% if session.goal %}
         <p class="subtitle">Goal: {{ session.goal }}</p>
       {% endif %}
+        <div class="block">
+            {{ session_workflow_svg | safe }}
+            <p class="subtitle">Status: {{ session.status }}</p>
+            <p class="subtitle">Status: {{ session.current_state }}</p>
+        </div>
+
     </div>
   {% endif %}
 

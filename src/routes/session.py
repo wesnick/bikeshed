@@ -28,7 +28,14 @@ async def get_session(session_id: UUID, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Session not found")
 
     messages = await message_repository.get_by_session(db, session_id)
-    return {"session": session, "messages": messages}
+    workflow_service = WorkflowService()
+    session = await workflow_service.initialize_session(session)
+    session_workflow_svg = await workflow_service.create_graph(session)
+    return {
+        "session": session,
+        "messages": messages,
+        "session_workflow_svg": session_workflow_svg,
+    }
 
 @router.post("/")
 @jinja.hx('components/session.html.j2')
@@ -98,6 +105,7 @@ async def create_session_from_template_route(
     if not session:
         return {"error": "Failed to create session"}
 
+    # @TODO: this need to go to background
     session = await workflow_service.initialize_session(session)
     while await session.may_trigger(f'run_step{session.workflow_data.get("current_step_index", 0)}'):
         await workflow_service.execute_next_step(session)
