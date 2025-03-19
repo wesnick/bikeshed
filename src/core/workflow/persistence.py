@@ -113,7 +113,8 @@ class DatabasePersistenceProvider(PersistenceProvider):
         Returns:
             The created session
         """
-        logger.info(f"Creating new session with template {session_data.get('template', {}).get('name', 'None')}")
+        session_template = session_data.get('template', {})
+        logger.info(f"Creating new session with template {session_template.name}")
         
         try:
             # Create the session
