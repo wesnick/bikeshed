@@ -1,9 +1,13 @@
+import asyncio
+from typing import Set
+
 from mcp import StdioServerParameters
 from pydantic import BaseModel, Field
 from mcp.server.fastmcp.prompts import Prompt
 from mcp.server.fastmcp.tools import Tool
 from mcp.server.fastmcp.resources import Resource, ResourceTemplate
 from fastapi_events.registry.payload_schema import registry as event_registry
+from watchfiles import awatch
 
 from src.core.config_types import SessionTemplate
 from src.service.logging import logger
@@ -31,6 +35,8 @@ class Registry:
         self.session_templates: dict[str, SessionTemplate] = {}
         self.mcp_servers: dict[str, StdioServerParameters] = {}
         self.warn_on_duplicate_schemas = warn_on_duplicate
+        self.active_root_watchers: dict[str, asyncio.Task] = {}
+        self.watched_root_paths: Set[str] = set()
 
     def get_schema(self, name: str) -> Schema | None:
         """Get schema by name."""
@@ -156,6 +162,29 @@ class Registry:
         """Get a session template by name."""
         return self.session_templates.get(name)
 
+    async def watch_directory(self, directory_path: str):
+        """Watch a directory for changes."""
+        from src.service.logging import logger
+        try:
+            async for changes in awatch(directory_path):
+                for change_type, file_path in changes:
+                    logger.info(f"Root: change detected in {directory_path}: {change_type} - {file_path}")
+                    # Process the change here
+        except Exception as e:
+            logger.error(f"Root: error watching directory {directory_path}: {e}")
+        finally:
+            # Clean up when the task ends for any reason
+            if directory_path in self.watched_root_paths:
+                self.watched_root_paths.remove(directory_path)
+            if directory_path in self.active_root_watchers:
+                del self.active_root_watchers[directory_path]
+            logger.info(f"Root: stopped watching {directory_path}")
 
-
-
+    async def stop_watching(self):
+        """Stop watching all directories."""
+        from src.service.logging import logger
+        for key, task in self.active_root_watchers.items():
+            task.cancel()
+            logger.info(f"Root: stopped watching {key}")
+        self.active_root_watchers.clear()
+        self.watched_root_paths.clear()

@@ -30,9 +30,11 @@ async def lifespan(app: FastAPI):
     # Boot the registry
     async for registry in get_registry():
         app.state.registry = registry
+        await registry.watch_directory('/home/wes/Downloads')
 
     yield
 
+    await app.state.registry.stop_watching()
 
 app = FastAPI(title="BikeShed", lifespan=lifespan)
 app.add_middleware(HTMXRedirectMiddleware)
