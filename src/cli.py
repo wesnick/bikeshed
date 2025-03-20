@@ -342,7 +342,7 @@ def add_root(directory_path: str):
                     await db.refresh(root) # Refresh to load
 
                     console.print(f"[bold green]Root added:[/bold green] {root.uri} (ID: {root.id})")
-                    # Scan directory *inside* the transaction
+
                     scanner = FileScanner(async_session_factory)
                     await scanner.scan_directory(root)
 
