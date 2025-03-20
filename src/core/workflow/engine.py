@@ -164,6 +164,7 @@ class WorkflowEngine:
         except Exception as e:
             session.workflow_data['errors'].append(str(e))
             session.status = 'error'
+            raise e
 
     async def _finalize_workflow(self, event):
         """Finalize the workflow"""
