@@ -37,6 +37,7 @@ class Registry:
         self.warn_on_duplicate_schemas = warn_on_duplicate
         self.active_root_watchers: dict[str, asyncio.Task] = {}
         self.watched_root_paths: Set[str] = set()
+        self.watcher_task = None  # Store the watcher task here
 
     def get_schema(self, name: str) -> Schema | None:
         """Get schema by name."""
@@ -183,8 +184,15 @@ class Registry:
     async def stop_watching(self):
         """Stop watching all directories."""
         from src.service.logging import logger
-        for key, task in self.active_root_watchers.items():
-            task.cancel()
-            logger.info(f"Root: stopped watching {key}")
+
+        if self.watcher_task:
+            self.watcher_task.cancel()
+            try:
+                await self.watcher_task  # Ensure task is fully cleaned up
+            except asyncio.CancelledError:
+                logger.info("File watcher task cancelled successfully.")
+        else:
+            logger.info("No file watcher task to cancel.")
+
         self.active_root_watchers.clear()
         self.watched_root_paths.clear()

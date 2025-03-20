@@ -30,10 +30,14 @@ async def lifespan(app: FastAPI):
     # Boot the registry
     async for registry in get_registry():
         app.state.registry = registry
-        await registry.watch_directory('/home/wes/Downloads')
+        # Start watching the directory and store the task
+        app.state.watcher_task = asyncio.create_task(
+            registry.watch_directory('/home/wes/Downloads')
+        )
 
     yield
 
+    # Stop the watcher task
     await app.state.registry.stop_watching()
 
 app = FastAPI(title="BikeShed", lifespan=lifespan)
@@ -103,6 +107,11 @@ async def shutdown_sse_connections():
                 await queue.put(None)  # Signal to close the connection
             except Exception as e:
                 logger.error(f"Error closing connection for client {client_id}: {e}")
+
+        # Shutdown the file watcher
+        if hasattr(app.state, 'registry'):
+            await app.state.registry.stop_watching()
+
     except Exception as e:
         logger.error(f"Error during shutdown of SSE connections: {e}")
     finally:
