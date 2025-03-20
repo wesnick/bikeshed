@@ -22,16 +22,20 @@ async def list_sessions(db: AsyncSession = Depends(get_db)):
 
 @router.get("/{session_id}")
 @jinja.hx('components/session.html.j2')
-async def get_session(session_id: UUID, workflow_service: WorkflowService = Depends(get_workflow_service)):
+async def get_session(session_id: UUID,
+                      workflow_service: WorkflowService = Depends(get_workflow_service),
+                      db: AsyncSession = Depends(get_db)):
     """Get a specific session with its messages"""
     session = await workflow_service.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
+    messages = await message_repository.get_by_session(db, session.id)
     session_workflow_svg = await workflow_service.create_workflow_graph(session)
     return {
         "session": session,
-        "messages": session.messages,
+        "messages": messages,
+        "workflow_svg": session_workflow_svg,
         "session_workflow_svg": session_workflow_svg,
     }
 
@@ -53,18 +57,19 @@ async def create_session(summary: Optional[str] = None, goal: Optional[str] = No
 
 @router.get("/template-creator/{template_name}")
 @jinja.hx('components/session_template_form.html.j2')
-async def session_template_form(template_name: str, request: Request):
+async def session_template_form(template_name: str,
+                                request: Request,
+                                workflow_service: WorkflowService = Depends(get_workflow_service)):
     """This route serves the session template form for creating a new session."""
     # Get the template from the registry
     template = request.app.state.registry.get_session_template(template_name)
     if not template:
         return {"error": f"Template {template_name} not found"}
 
-    workflow_service = WorkflowService()
-    session = Session(template=template)
-    session = await workflow_service.initialize_session(session)
+    session = Session()
+    session.template = template
 
-    session_workflow_svg = await workflow_service.create_graph(session)
+    session_workflow_svg = await workflow_service.create_workflow_graph(session)
 
     return {
         "template": template,
