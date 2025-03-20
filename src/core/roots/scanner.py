@@ -5,6 +5,7 @@ from src.models.models import Root, RootFile
 import aiofiles
 import aiofiles.os
 import magic
+from sqlalchemy import select
 
 
 class FileScanner:
@@ -62,4 +63,31 @@ class FileScanner:
             async with session.begin():
                 directory_path = Path(root.uri)
                 await self._scan_directory_recursive(root, directory_path, session)
+
+    async def create_root_and_scan(self, directory_path: str) -> None:
+        """
+        Create a Root if it doesn't exist, and then scan the directory.
+        """
+        async with self.async_session_factory() as session:
+            async with session.begin():
+                path = Path(directory_path).resolve()
+                if not path.is_dir():
+                    raise ValueError(f"'{directory_path}' is not a valid directory.")
+
+                # Check if Root exists
+                stmt = select(Root).where(Root.uri == str(path))
+                result = await session.execute(stmt)
+                root = result.scalar_one_or_none()
+
+                if root is None:
+                    # Create Root object
+                    root = Root(uri=str(path))
+                    session.add(root)
+                    await session.commit()  # Commit to get the root ID
+                    await session.refresh(root) # Refresh to load
+                    print(f"Root created: {root.uri} (ID: {root.id})") # Use logger
+                else:
+                    print(f"Root already exists: {root.uri} (ID: {root.id})") # Use logger
+
+                await self.scan_directory(root)
 

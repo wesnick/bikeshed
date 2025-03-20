@@ -327,31 +327,13 @@ def add_root(directory_path: str):
     from src.core.roots.scanner import FileScanner
 
     async def _add_root(directory_path: str):
-        async with async_session_factory() as db:
-            async with db.begin():
-                try:
-                    # Create Root object
-                    path = Path(directory_path).resolve()
-                    if not path.is_dir():
-                        console.print(f"[bold red]Error:[/bold red] '{directory_path}' is not a valid directory.")
-                        return
+        scanner = FileScanner(async_session_factory)
+        try:
+            await scanner.create_root_and_scan(directory_path)
+            console.print(f"[bold green]Successfully scanned directory '{directory_path}'[/bold green]")
+        except Exception as e:
+            console.print(f"[bold red]Error:[/bold red] {str(e)}")
 
-                    root = Root(uri=str(path))
-                    db.add(root)
-                    await db.commit()  # Commit to get the root ID
-                    await db.refresh(root) # Refresh to load
-
-                    console.print(f"[bold green]Root added:[/bold green] {root.uri} (ID: {root.id})")
-
-                    scanner = FileScanner(async_session_factory)
-                    await scanner.scan_directory(root)
-
-
-                except Exception as e:
-                    await db.rollback()
-                    console.print(f"[bold red]Error:[/bold red] {str(e)}")
-
-        console.print(f"[bold green]Successfully scanned directory '{directory_path}'[/bold green]")
 
     asyncio.run(_add_root(directory_path))
 
