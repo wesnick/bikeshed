@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Callable, Awaitable, ClassVar
 
-from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, JSON, Table
+from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, JSON, Table, Integer
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import declarative_base, relationship, mapped_column
 from transitions.extensions import AsyncGraphMachine
