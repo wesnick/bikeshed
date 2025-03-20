@@ -20,14 +20,14 @@ class WorkflowService:
 
     def __init__(self,
                  get_db: async_sessionmaker[AsyncSession],
-                 registry_provider: AsyncGenerator[Registry, None],
+                 registry: Registry,
                  llm_service):
         """
         Initialize the WorkflowService with required dependencies.
         
         Args:
             get_db: async generator for getting database session
-            registry_provider: async generator for getting registry
+            registry: Registry instance
             llm_service: Service for interacting with language models
         """
         # Create persistence provider
@@ -35,8 +35,8 @@ class WorkflowService:
 
         # Create step handlers
         self.handlers = {
-            'message': MessageStepHandler(lambda: registry_provider),
-            'prompt': PromptStepHandler(lambda: registry_provider, llm_service),
+            'message': MessageStepHandler(registry),
+            'prompt': PromptStepHandler(registry, llm_service),
             'user_input': UserInputStepHandler(),
             'invoke': InvokeStepHandler()
         }

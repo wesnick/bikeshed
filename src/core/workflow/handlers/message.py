@@ -10,14 +10,14 @@ from src.models.models import Session, Message
 class MessageStepHandler(StepHandler):
     """Handler for message steps"""
 
-    def __init__(self, registry_provider):
+    def __init__(self, registry: Registry):
         """
         Initialize the MessageStepHandler
         
         Args:
-            registry_provider: Function that returns an AsyncGenerator for Registry
+            registry: Registry instance
         """
-        self.registry_provider = registry_provider
+        self.registry = registry
 
     async def can_handle(self, session: Session, step: Step) -> bool:
         """Check if the step can be handled"""
@@ -54,12 +54,6 @@ class MessageStepHandler(StepHandler):
             'content': message_content
         }
 
-    async def _get_registry(self) -> Registry:
-        """Get the registry instance"""
-        async for registry in self.registry_provider():
-            return registry
-        raise RuntimeError("Failed to get registry")
-
     async def _get_message_content(self, session: Session, step: MessageStep) -> str:
         """Get the content for a message step"""
         if step.content is not None:
@@ -73,9 +67,8 @@ class MessageStepHandler(StepHandler):
             # Combine variables and template args
             args = {**variables, **template_args}
 
-            # Get registry and prompt
-            registry = await self._get_registry()
-            prompt = registry.get_prompt(step.template)
+            # Get prompt from registry
+            prompt = self.registry.get_prompt(step.template)
 
             # @TODO: fix me, prompt is a list here
             return await prompt.render(args)

@@ -96,11 +96,19 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
     # Use a lock to prevent multiple initialization attempts
     async with _workflow_service_lock:
         if _workflow_service is None:
+            # Get the registry first
+            registry_instance = None
+            async for reg in get_registry():
+                registry_instance = reg
+                break
+                
+            if not registry_instance:
+                raise RuntimeError("Failed to get registry instance")
 
-            # Create the WorkflowService instance
+            # Create the WorkflowService instance with the actual registry
             _workflow_service = WorkflowService(
                 async_session_factory,
-                get_registry(),
+                registry_instance,
                 None # @TODO
             )
     

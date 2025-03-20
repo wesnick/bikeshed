@@ -10,15 +10,15 @@ from src.core.workflow.engine import StepHandler
 class PromptStepHandler(StepHandler):
     """Handler for prompt steps"""
 
-    def __init__(self, registry_provider, llm_service):
+    def __init__(self, registry: Registry, llm_service):
         """
         Initialize the PromptStepHandler
         
         Args:
-            registry_provider: Function that returns an AsyncGenerator for Registry
+            registry: Registry instance
             llm_service: Service for LLM interactions
         """
-        self.registry_provider = registry_provider
+        self.registry = registry
         self.llm_service = llm_service
 
     async def can_handle(self, session: Session, step: Step) -> bool:
@@ -34,9 +34,8 @@ class PromptStepHandler(StepHandler):
         variables = session.workflow_data.get('variables', {})
         template_args = step.template_args or {}
 
-        # Get registry and prompt
-        registry = await self._get_registry()
-        prompt = registry.get_prompt(step.template)
+        # Get prompt from registry
+        prompt = self.registry.get_prompt(step.template)
 
         if not prompt:
             raise ValueError(f"Prompt template '{step.template}' not found")
@@ -96,12 +95,6 @@ class PromptStepHandler(StepHandler):
             'response': response
         }
 
-    async def _get_registry(self) -> Registry:
-        """Get the registry instance"""
-        async for registry in self.registry_provider():
-            return registry
-        raise RuntimeError("Failed to get registry")
-
     async def _get_prompt_content(self, session: Session, step: PromptStep) -> str:
         """Get the content for a prompt step"""
         if step.content is not None:
@@ -115,9 +108,8 @@ class PromptStepHandler(StepHandler):
             # Combine variables and template args
             args = {**variables, **template_args}
 
-            # Get registry and prompt
-            registry = await self._get_registry()
-            prompt = registry.get_prompt(step.template)
+            # Get prompt from registry
+            prompt = self.registry.get_prompt(step.template)
 
             return await prompt.render(args)
 
