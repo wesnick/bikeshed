@@ -62,7 +62,7 @@ class Session(Base):
     error = Column(Text, nullable=True)  # For storing error information
 
     # Relationships
-    messages = relationship("Message", back_populates="session")
+    messages = relationship("Message", back_populates="session", lazy="selectin")
 
     # Instance variables - not mapped to database columns
     machine: Optional[AsyncGraphMachine] = None

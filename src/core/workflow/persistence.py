@@ -38,13 +38,6 @@ class DatabasePersistenceProvider(PersistenceProvider):
             try:
                 async with self.get_db() as db:
 
-                    # First, ensure the session exists in the database
-                    db_session = await self.session_repo.get_by_id(db, session.id)
-                    if not db_session:
-                        # Create the session in the database
-                        db.add(session)
-                        await db.flush()
-                    
                     # Update session data
                     await self.session_repo.update(db, session.id, {
                         'status': session.status,
@@ -97,6 +90,9 @@ class DatabasePersistenceProvider(PersistenceProvider):
             if not session:
                 logger.warning(f"Session {session_id} not found")
                 return None
+
+            if not isinstance(list, session.messages):
+                raise "Session messages are not a list"
             
             # Initialize temporary messages list
             session._temp_messages = []
@@ -133,6 +129,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
                 await db.flush()
                 await db.commit()
                 logger.info(f"Successfully created session {session.id}")
+                await db.refresh(session)
         except Exception as e:
             logger.error(f"Error creating session: {e}")
             if db:

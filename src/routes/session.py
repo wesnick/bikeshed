@@ -31,11 +31,14 @@ async def get_session(session_id: UUID,
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    messages = await message_repository.get_by_session(db, session.id)
+
+    from src.service.logging import logger
+    logger.info(f"MESSAGES: {session.messages}")
+
     session_workflow_svg = await workflow_service.create_workflow_graph(session)
     return {
         "session": session,
-        "messages": messages,
+        "messages": session.messages,
         "workflow_svg": session_workflow_svg,
         "session_workflow_svg": session_workflow_svg,
     }

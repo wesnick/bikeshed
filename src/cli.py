@@ -254,12 +254,16 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
 
         with (console.status(f"Creating and running workflow from template '{template_name}'...")):
             try:
-                session = await service.create_session_from_template(template=template)
+                session = await service.create_session_from_template(
+                    template=template,
+                    initial_data ={
+                        'variables': {
+                            'initial_idea': 'Chuckee cheese'
+                        }
+                    }
+                )
 
-                res = await service.engine.execute_next_step(session)
-                res1 = await service.engine.execute_next_step(session)
-                res2 = await service.engine.execute_next_step(session)
-                res3 = await service.engine.execute_next_step(session)
+                res = await service.run_workflow(session)
 
                 print("Updated diagram saved")
 

@@ -91,11 +91,7 @@ class WorkflowService:
 
         return await self.engine.execute_next_step(session)
 
-    async def run_workflow(self, session_id: uuid.UUID) -> None:
-        session = await self.get_session(session_id)
-        if not session:
-            return
-
+    async def run_workflow(self, session: Session) -> None:
         while True:
             exec_result = await self.engine.execute_next_step(session)
 
