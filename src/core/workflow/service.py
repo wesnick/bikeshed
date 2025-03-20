@@ -150,6 +150,22 @@ class WorkflowService:
         """Create a visualization of the workflow"""
         return await WorkflowVisualizer.create_graph(session)
         
+    async def visualize_workflow(self, session: Session) -> Optional[str]:
+        """
+        Generate a visual representation of the workflow
+        
+        Args:
+            session: The session to visualize
+            
+        Returns:
+            SVG representation of the workflow graph
+        """
+        # Make sure the session has a state machine
+        if not hasattr(session, 'machine'):
+            await self.engine.initialize_session(session)
+            
+        return await WorkflowVisualizer.create_graph(session)
+        
     async def analyze_workflow_dependencies(self, template: SessionTemplate) -> Dict[str, Any]:
         """
         Analyze a workflow template to identify input requirements and output provisions.

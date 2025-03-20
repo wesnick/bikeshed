@@ -1,9 +1,10 @@
-from typing import Dict, List, Optional, Type, Protocol, Any, TypeVar
+from typing import Dict, List, Optional, Type, Protocol, Any, TypeVar, Tuple
 import uuid
 from transitions.extensions import AsyncGraphMachine
 from dataclasses import dataclass
 
 from src.core.config_types import Step, SessionTemplate
+from src.core.workflow.visualization import BikeShedState, BikeShedTransition
 from src.models.models import Session
 
 class StepHandler(Protocol):
@@ -56,13 +57,16 @@ class WorkflowEngine:
         machine = AsyncGraphMachine(
             model=session,
             states=states,
-            transitions=transitions,
             initial=session.current_state or 'start',
             send_event=True,
             auto_transitions=False,
             model_attribute='current_state',
             after_state_change=self._after_state_change,
         )
+
+        for transition in transitions:
+            machine.add_transition(**transition)
+
 
         session.machine = machine
 
@@ -71,19 +75,24 @@ class WorkflowEngine:
 
         return session
 
-    def _build_state_machine_config(self, template: SessionTemplate):
+    def _build_state_machine_config(self, template: SessionTemplate) -> Tuple[List, List]:
         """Build states and transitions config for state machine"""
-        states = ['start', 'end']
+        # Create start and end states with custom labels
+        states = [
+            BikeShedState('start', label='Start'),
+            BikeShedState('end', label='End', final=True)
+        ]
         transitions = []
 
         enabled_steps = [step for step in template.steps if step.enabled]
 
         for i, step in enumerate(enabled_steps):
-            # Add state
+            # Add state with step data for better visualization
             state_name = f'step_{i}'
-            states.insert(len(states) - 1, state_name)
+            state = BikeShedState(state_name, step_data=step)
+            states.insert(len(states) - 1, state)
 
-            # Add transition to this state
+            # Add transition to this state with step data for better visualization
             source = 'start' if i == 0 else f'step_{i-1}'
 
             transition = {
@@ -91,7 +100,8 @@ class WorkflowEngine:
                 'source': source,
                 'dest': state_name,
                 'before': self._execute_step,
-                'conditions': self._can_execute_step
+                'conditions': self._can_execute_step,
+                # 'label': step
             }
             transitions.append(transition)
 
@@ -101,7 +111,8 @@ class WorkflowEngine:
                     'trigger': 'finalize',
                     'source': state_name,
                     'dest': 'end',
-                    'before': self._finalize_workflow
+                    'before': self._finalize_workflow,
+                    # 'label': 'Complete'
                 })
 
         return states, transitions

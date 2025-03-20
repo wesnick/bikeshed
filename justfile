@@ -63,27 +63,7 @@ create-ad-hoc description:
 test:
     pytest tests/ -v
 
-# Test registry loading
-test-registry:
-    python -c "import asyncio; from src.dependencies import get_registry; async def main(): async for reg in get_registry(): print(f'Registry loaded with {len(reg.schemas)} schemas, {len(reg.prompts)} prompts, {len(reg.tools)} tools'); asyncio.run(main())"
-
-# Run workflow tests
-test-workflow:
-    pytest tests/test_workflow.py -v
-
 # Set up test database
 setup-test-db:
     PGPASSWORD=postgres createdb -U postgres app_test || echo "Test database already exists"
     PGPASSWORD=postgres psql -U postgres -d app_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
-
-# Run tests with coverage report
-test-cov:
-    pytest tests/ --cov=src --cov-report=term-missing -v
-
-# Run tests and watch for changes
-test-watch:
-    pytest-watch -- tests/ -v
-
-# Start both frontend and backend development servers
-dev:
-    just frontend-dev & just fastapi-dev

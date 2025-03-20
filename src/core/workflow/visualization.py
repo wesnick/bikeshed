@@ -1,28 +1,89 @@
 import re
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from transitions.core import State, Transition
 
+from src.core.config_types import Step
 from src.models.models import Session
 from src.service.logging import logger
 
 
 class BikeShedState(State):
+    """Enhanced state class with improved labeling for visualization"""
 
-    def __init__(self, name, label=..., on_enter=..., on_exit=..., ignore_invalid_triggers=..., final=...):
+    def __init__(self, name, label=None, on_enter=None, on_exit=None, ignore_invalid_triggers=None, final=None, step_data=None):
+        self.step_data = step_data
+        if label is None and step_data:
+            label = WorkflowVisualizer.create_state_label(step_data)
         self.label = label
         super().__init__(name, on_enter, on_exit, ignore_invalid_triggers, final)
 
 
 class BikeShedTransition(Transition):
+    """Enhanced transition class with improved labeling for visualization"""
 
-    def __init__(self, source, dest, label=..., conditions=..., unless=..., before=..., after=..., prepare=...):
+    def __init__(self, source, dest, label=None, conditions=None, unless=None, before=None, after=None, prepare=None, step_data=None):
+        self.step_data = step_data
+        if label is None and step_data:
+            label = WorkflowVisualizer.create_transition_label(step_data)
         self.label = label
         super().__init__(source, dest, conditions, unless, before, after, prepare)
 
 
 class WorkflowVisualizer:
     """Generates visual representations of workflow state machines"""
+
+    @staticmethod
+    def create_state_label(step: Step) -> str:
+        """
+        Create a readable label for a state based on step data
+        
+        Args:
+            step: The step configuration
+            
+        Returns:
+            A formatted label string
+        """
+        if not step:
+            return "Unknown"
+            
+        step_type = step.type.capitalize()
+        step_name = step.name
+        
+        # Add more specific details based on step type
+        details = ""
+        if step.type == "prompt":
+            if step.template:
+                details = f"\nTemplate: {step.template}"
+            elif step.content and len(step.content) > 30:
+                details = f"\n{step.content[:30]}..."
+            elif step.content:
+                details = f"\n{step.content}"
+        elif step.type == "message":
+            details = f"\nRole: {step.role}"
+        elif step.type == "invoke":
+            details = f"\nCall: {step.callable}"
+        elif step.type == "user_input":
+            if step.prompt:
+                details = f"\nPrompt: {step.prompt}"
+                
+        return f"{step_name}\n({step_type}){details}"
+
+    @staticmethod
+    def create_transition_label(step: Step) -> str:
+        """
+        Create a readable label for a transition based on step data
+        
+        Args:
+            step: The step configuration
+            
+        Returns:
+            A formatted label string
+        """
+        if not step:
+            return "next"
+            
+        return f"run {step.type}"
 
     @staticmethod
     async def create_graph(session: Session) -> Optional[str]:
