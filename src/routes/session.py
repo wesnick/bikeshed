@@ -3,11 +3,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.registry import Registry
 from src.core.workflow.service import WorkflowService
-from src.dependencies import get_db, get_jinja, get_workflow_service
+from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry
 from src.repository import session_repository, message_repository
 from src.models import Session
-
+from src.types import SessionTemplateCreationRequest
 
 router = APIRouter(prefix="/session", tags=["session"])
 
@@ -71,7 +72,8 @@ async def session_template_form(template_name: str,
 
     # Analyze workflow dependencies
     workflow_analysis = await workflow_service.analyze_workflow_dependencies(template)
-    
+
+    await workflow_service.engine.initialize_session(session)
     session_workflow_svg = await workflow_service.create_workflow_graph(session)
 
     return {
@@ -85,27 +87,25 @@ async def session_template_form(template_name: str,
 @router.post("/template-creator/{template_name}/create")
 async def create_session_from_template_route(
         template_name: str,
-        request: Request,
+        session_create: SessionTemplateCreationRequest,
         background_tasks: BackgroundTasks,
         workflow_service: WorkflowService = Depends(get_workflow_service),
+        registry: Registry = Depends(get_registry)
+
 ):
     """Create a new session from a template and redirect to it."""
-    # Get form data
-    form_data = await request.form()
-    description = form_data.get("description")
-    goal = form_data.get("goal")
+    description = session_create.description
+    goal = session_create.goal
     
     # Extract workflow input variables from form data
     initial_data = {"variables": {}}
     
     # Process all form fields that start with "input_" as workflow variables
-    for key, value in form_data.items():
-        if key.startswith("input_") and value:  # Only include non-empty values
-            var_name = key[6:]  # Remove "input_" prefix
-            initial_data["variables"][var_name] = value
+    for key, value in session_create.input.items():
+        initial_data["variables"][key] = value
 
     # Get the template from the registry
-    template = request.app.state.registry.get_session_template(template_name)
+    template = registry.get_session_template(template_name)
     if not template:
         return {"error": f"Template {template_name} not found"}
 
@@ -122,7 +122,7 @@ async def create_session_from_template_route(
 
     # @TODO: trigger htmx get rather than use redirection
 
-    background_tasks.add_task(workflow_service.execute_next_step, session.id)
+    background_tasks.add_task(workflow_service.run_workflow, session.id)
 
     # Redirect to the session page
     from fastapi.responses import RedirectResponse

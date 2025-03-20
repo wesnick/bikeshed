@@ -95,7 +95,7 @@ class PromptStepHandler(StepHandler):
             'response': response
         }
 
-    async def _get_prompt_content(self, session: Session, step: PromptStep) -> str:
+    async def _get_prompt_content(self, session: Session, step: PromptStep) -> str | list:
         """Get the content for a prompt step"""
         if step.content is not None:
             return step.content
@@ -116,7 +116,7 @@ class PromptStepHandler(StepHandler):
         return ""
 
     async def _create_prompt_messages(
-            self, session: Session, prompt_content: str
+            self, session: Session, prompt_content: str | list
     ) -> List[Message]:
         """Create messages for a prompt"""
         if isinstance(prompt_content, list):

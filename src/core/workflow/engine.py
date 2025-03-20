@@ -65,7 +65,9 @@ class WorkflowEngine:
         )
 
         session.machine = machine
-        self.sessions[session.id] = session
+
+        if session.id is not None:
+            self.sessions[session.id] = session
 
         return session
 

@@ -4,6 +4,15 @@ from pydantic import BaseModel, Field
 from src.core.config_loader import register_schema
 
 
+class SessionTemplateCreationRequest(BaseModel):
+    description: Optional[str] = None
+    goal: Optional[str] = None
+    input: Optional[dict[str, Any]] = None
+
+    model_config = {
+        'allow_extra': 'allow'
+    }
+
 class MessageBase(BaseModel):
     role: str = 'user'
     model: Optional[str] = None

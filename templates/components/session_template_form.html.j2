@@ -68,6 +68,7 @@
     hx-post="/session/template-creator/{{ template_name }}/create"
     hx-target="#dashboard"
     hx-push-url="true"
+    hx-ext="form-json"
   >
     <div class="field">
       <label class="label">Description (optional)</label>
@@ -98,7 +99,7 @@
               <div class="field">
                 <label class="label">{{ input_name }}</label>
                 <div class="control">
-                  <input class="input" type="text" name="input_{{ input_name }}" placeholder="{{ input_info.description }}">
+                  <input class="input" type="text" name="input[{{ input_name }}]" placeholder="{{ input_info.description }}">
                 </div>
                 <p class="help">{{ input_info.description }}</p>
               </div>

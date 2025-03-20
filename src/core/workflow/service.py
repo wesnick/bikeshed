@@ -43,6 +43,7 @@ class WorkflowService:
 
         # Create workflow engine
         self.engine = WorkflowEngine(self.persistence, self.handlers)
+        self.registry = registry
 
     async def create_session_from_template(
             self,
@@ -89,6 +90,17 @@ class WorkflowService:
             )
 
         return await self.engine.execute_next_step(session)
+
+    async def run_workflow(self, session_id: uuid.UUID) -> None:
+        session = await self.get_session(session_id)
+        if not session:
+            return
+
+        while True:
+            exec_result = await self.engine.execute_next_step(session)
+
+            if not exec_result.success:
+                break
 
     async def provide_user_input(
             self,
@@ -190,12 +202,18 @@ class WorkflowService:
         
         # Extract based on step type
         if step.type == "prompt":
+            if step.template:
+                prompt = self.registry.get_prompt(step.template)
+                for arg in prompt.arguments:
+                    inputs[arg.name] = {
+                        "description": arg.description,
+                        "required": arg.required
+                    }
             if step.template_args:
                 for arg_name in step.template_args:
-                    inputs[arg_name] = {
-                        "description": f"Input for prompt template argument: {arg_name}",
-                        "required": True
-                    }
+                    if arg_name in inputs:
+                        inputs[arg_name]["description"] = inputs[arg_name]["description"] + ' (superseded by `template_args`)'
+                        inputs[arg_name]["required"] = False
         
         elif step.type == "invoke":
             if step.args:
@@ -229,13 +247,13 @@ class WorkflowService:
                 "description": f"Output from prompt step: {step.name}",
                 "source_step": step.name
             }
-        
+
         elif step.type == "invoke":
             outputs["result"] = {
                 "description": f"Output from function call: {step.name}",
                 "source_step": step.name
             }
-        
+
         elif step.type == "user_input":
             outputs["user_input"] = {
                 "description": f"User provided input from step: {step.name}",
