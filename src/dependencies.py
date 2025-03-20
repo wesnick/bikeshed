@@ -6,6 +6,8 @@ from fasthx import Jinja
 from markdown2 import markdown
 from sqlalchemy.ext.asyncio import  AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+
+from src.core.llm import DummyLLMService
 from src.service.cache import RedisService
 from src.service.mcp_client import MCPClient
 from src.config import get_config
@@ -108,7 +110,7 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
             _workflow_service = WorkflowService(
                 async_session_factory,
                 registry_instance,
-                None # @TODO
+                DummyLLMService()
             )
     
     yield _workflow_service

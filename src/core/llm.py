@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field, model_validator
 from datetime import datetime
 from enum import Enum
 
+from src.models import Session, Message
+
 # Try to import litellm, but don't fail if it's not available
 try:
     import litellm
@@ -85,34 +87,34 @@ class LLMMessageFactory:
     """Factory for creating LLM message sequences"""
     
     @staticmethod
-    def from_session_messages(messages: List[Any], system_prompt: Optional[str] = None) -> List[LLMMessage]:
+    def from_session_messages(session: Session, messages: List[Message]) -> List[LLMMessage]:
         """
         Create a list of LLMMessages from session messages
         
         Args:
+            session: Session object
             messages: List of Message objects from the session
-            system_prompt: Optional system prompt to prepend
             
         Returns:
             List of LLMMessage objects
         """
         result = []
-        
-        # Add system prompt if provided
-        if system_prompt:
-            result.append(LLMMessage.system(system_prompt))
-        
-        # Convert session messages to LLMMessages
-        for msg in messages:
-            if hasattr(msg, 'role') and hasattr(msg, 'text'):
-                # Determine the role
-                try:
-                    role = MessageRole(msg.role)
-                except ValueError:
-                    # Default to user if role is not recognized
-                    role = MessageRole.USER
-                
-                # Create the message
+
+        # combine 2 lists
+        all_messages = session.messages + messages
+
+        for msg in all_messages:
+            msg: Message
+            # Determine the role
+            try:
+                role = MessageRole(msg.role)
+            except ValueError:
+                # Default to user if role is not recognized
+                role = MessageRole.USER
+
+            if msg.role == 'system':
+                result.insert(0, LLMMessage.system(msg.text))
+            else:
                 llm_msg = LLMMessage(
                     role=role,
                     content=msg.text,

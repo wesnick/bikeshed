@@ -5,13 +5,13 @@ from src.core.config_types import PromptStep, Step
 from src.core.registry import Registry
 from src.models.models import Session, Message
 from src.core.workflow.engine import StepHandler
-from src.core.llm import LLMMessage, LLMMessageFactory
+from src.core.llm import LLMMessage, LLMMessageFactory, LLMService
 
 
 class PromptStepHandler(StepHandler):
     """Handler for prompt steps"""
 
-    def __init__(self, registry: Registry, llm_service):
+    def __init__(self, registry: Registry, llm_service: LLMService):
         """
         Initialize the PromptStepHandler
         
@@ -70,13 +70,8 @@ class PromptStepHandler(StepHandler):
         # Create messages for tracking
         db_messages = await self._create_prompt_messages(session, prompt_content)
 
-        # Get system prompt if available
-        system_prompt = None
-        if session.workflow_data and 'variables' in session.workflow_data:
-            system_prompt = session.workflow_data['variables'].get('system_prompt')
-
         # Convert to LLM messages
-        llm_messages = LLMMessageFactory.from_session_messages(db_messages, system_prompt)
+        llm_messages = LLMMessageFactory.from_session_messages(session, db_messages)
 
         # Call LLM service
         response = await self.llm_service.generate_response(llm_messages)
