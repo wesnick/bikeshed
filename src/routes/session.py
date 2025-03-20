@@ -69,12 +69,16 @@ async def session_template_form(template_name: str,
     session = Session()
     session.template = template
 
+    # Analyze workflow dependencies
+    workflow_analysis = await workflow_service.analyze_workflow_dependencies(template)
+    
     session_workflow_svg = await workflow_service.create_workflow_graph(session)
 
     return {
         "template": template,
         "template_name": template_name,
         "session_workflow_svg": session_workflow_svg,
+        "workflow_analysis": workflow_analysis,
     }
 
 
@@ -90,17 +94,27 @@ async def create_session_from_template_route(
     form_data = await request.form()
     description = form_data.get("description")
     goal = form_data.get("goal")
+    
+    # Extract workflow input variables from form data
+    initial_data = {"variables": {}}
+    
+    # Process all form fields that start with "input_" as workflow variables
+    for key, value in form_data.items():
+        if key.startswith("input_") and value:  # Only include non-empty values
+            var_name = key[6:]  # Remove "input_" prefix
+            initial_data["variables"][var_name] = value
 
     # Get the template from the registry
     template = request.app.state.registry.get_session_template(template_name)
     if not template:
         return {"error": f"Template {template_name} not found"}
 
-    # Create the session
+    # Create the session with initial data
     session = await workflow_service.create_session_from_template(
         template=template,
         description=description if description else None,
-        goal=goal if goal else None
+        goal=goal if goal else None,
+        initial_data=initial_data
     )
 
     if not session:

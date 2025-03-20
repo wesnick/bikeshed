@@ -141,3 +141,105 @@ class WorkflowService:
     async def create_workflow_graph(self, session: Session) -> Optional[str]:
         """Create a visualization of the workflow"""
         return await WorkflowVisualizer.create_graph(session)
+        
+    async def analyze_workflow_dependencies(self, template: SessionTemplate) -> Dict[str, Any]:
+        """
+        Analyze a workflow template to identify input requirements and output provisions.
+        
+        Returns a dictionary with:
+        - required_inputs: Dict of input variables needed by steps
+        - provided_outputs: Dict of output variables provided by steps
+        - missing_inputs: Dict of inputs not satisfied by previous steps
+        """
+        required_inputs = {}
+        provided_outputs = {}
+        missing_inputs = {}
+        
+        # Analyze each step for inputs and outputs
+        for i, step in enumerate(template.steps):
+            step_id = step.name
+            
+            # Analyze step for required inputs
+            step_inputs = self._extract_step_inputs(step)
+            if step_inputs:
+                required_inputs[step_id] = step_inputs
+                
+                # Check if these inputs are satisfied by previous steps
+                unsatisfied_inputs = {}
+                for input_name, input_info in step_inputs.items():
+                    if not any(input_name in outputs for outputs in list(provided_outputs.values())):
+                        unsatisfied_inputs[input_name] = input_info
+                
+                if unsatisfied_inputs:
+                    missing_inputs[step_id] = unsatisfied_inputs
+            
+            # Analyze step for provided outputs
+            step_outputs = self._extract_step_outputs(step)
+            if step_outputs:
+                provided_outputs[step_id] = step_outputs
+        
+        return {
+            "required_inputs": required_inputs,
+            "provided_outputs": provided_outputs,
+            "missing_inputs": missing_inputs
+        }
+
+    def _extract_step_inputs(self, step: Step) -> Dict[str, Dict[str, Any]]:
+        """Extract input requirements from a step"""
+        inputs = {}
+        
+        # Extract based on step type
+        if step.type == "prompt":
+            if step.template_args:
+                for arg_name in step.template_args:
+                    inputs[arg_name] = {
+                        "description": f"Input for prompt template argument: {arg_name}",
+                        "required": True
+                    }
+        
+        elif step.type == "invoke":
+            if step.args:
+                for arg_name in step.args:
+                    inputs[arg_name] = {
+                        "description": f"Input for function argument: {arg_name}",
+                        "required": True
+                    }
+        
+        elif step.type == "user_input":
+            # User input steps themselves don't require inputs, they provide them
+            pass
+        
+        elif step.type == "message":
+            if step.template_args:
+                for arg_name in step.template_args:
+                    inputs[arg_name] = {
+                        "description": f"Input for message template argument: {arg_name}",
+                        "required": True
+                    }
+        
+        return inputs
+
+    def _extract_step_outputs(self, step: Step) -> Dict[str, Dict[str, Any]]:
+        """Extract outputs provided by a step"""
+        outputs = {}
+        
+        # Extract based on step type
+        if step.type == "prompt":
+            outputs["result"] = {
+                "description": f"Output from prompt step: {step.name}",
+                "source_step": step.name
+            }
+        
+        elif step.type == "invoke":
+            outputs["result"] = {
+                "description": f"Output from function call: {step.name}",
+                "source_step": step.name
+            }
+        
+        elif step.type == "user_input":
+            outputs["user_input"] = {
+                "description": f"User provided input from step: {step.name}",
+                "source_step": step.name
+            }
+        
+        return outputs

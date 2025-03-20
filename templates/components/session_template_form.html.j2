@@ -11,9 +11,58 @@
     </div>
   {% endif %}
 
-<div class="block">
+  <div class="block">
     {{ session_workflow_svg | safe }}
-</div>
+  </div>
+  
+  {% if workflow_analysis %}
+    <div class="block">
+      <div class="columns">
+        {% if workflow_analysis.missing_inputs %}
+          <div class="column">
+            <h3 class="title is-5">Required Inputs</h3>
+            <div class="content">
+              <p>The following inputs may be required during workflow execution:</p>
+              <ul>
+                {% for step_id, inputs in workflow_analysis.missing_inputs.items() %}
+                  <li>
+                    <strong>{{ step_id }}</strong>:
+                    <ul>
+                      {% for input_name, input_info in inputs.items() %}
+                        <li>{{ input_name }} - {{ input_info.description }}</li>
+                      {% endfor %}
+                    </ul>
+                  </li>
+                {% endfor %}
+              </ul>
+              <p class="is-italic">These inputs are optional. If not provided now, the workflow will pause when needed.</p>
+            </div>
+          </div>
+        {% endif %}
+        
+        {% if workflow_analysis.provided_outputs %}
+          <div class="column">
+            <h3 class="title is-5">Provided Outputs</h3>
+            <div class="content">
+              <p>The following outputs will be generated during workflow execution:</p>
+              <ul>
+                {% for step_id, outputs in workflow_analysis.provided_outputs.items() %}
+                  <li>
+                    <strong>{{ step_id }}</strong>:
+                    <ul>
+                      {% for output_name, output_info in outputs.items() %}
+                        <li>{{ output_name }} - {{ output_info.description }}</li>
+                      {% endfor %}
+                    </ul>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
   
   <form
     hx-post="/session/template-creator/{{ template_name }}/create"
@@ -35,6 +84,29 @@
       </div>
       <p class="help">Override the default goal</p>
     </div>
+    
+    {% if workflow_analysis and workflow_analysis.missing_inputs %}
+      <div class="block">
+        <h3 class="title is-5">Optional Input Values</h3>
+        <p class="help mb-3">Provide values for any inputs you want to pre-fill. Leave empty to be prompted during execution.</p>
+        
+        {% for step_id, inputs in workflow_analysis.missing_inputs.items() %}
+          <div class="box">
+            <h4 class="title is-6">Step: {{ step_id }}</h4>
+            
+            {% for input_name, input_info in inputs.items() %}
+              <div class="field">
+                <label class="label">{{ input_name }}</label>
+                <div class="control">
+                  <input class="input" type="text" name="input_{{ input_name }}" placeholder="{{ input_info.description }}">
+                </div>
+                <p class="help">{{ input_info.description }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
     
     <div class="field is-grouped">
       <div class="control">
