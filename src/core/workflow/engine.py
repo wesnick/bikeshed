@@ -207,13 +207,15 @@ class WorkflowEngine:
                 # Check if we're waiting for input
                 if session.status == 'waiting_for_input':
                     missing_vars = session.workflow_data.get('missing_variables', [])
+                    await self.persistence.save_session(session)
                     return WorkflowTransitionResult(
-                        success=True,
+                        success=False,
                         state=session.current_state,
                         waiting_for_input=True,
                         required_variables=missing_vars,
                         message=f"Waiting for input: {missing_vars}"
                     )
+
 
                 return WorkflowTransitionResult(
                     success=True,

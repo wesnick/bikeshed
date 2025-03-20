@@ -100,8 +100,7 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
             registry_instance = None
             async for reg in get_registry():
                 registry_instance = reg
-                break
-                
+
             if not registry_instance:
                 raise RuntimeError("Failed to get registry instance")
 
