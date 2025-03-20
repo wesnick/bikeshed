@@ -125,11 +125,7 @@ async def create_session_from_template_route(
 
     # @TODO: trigger htmx get rather than use redirection
 
-    background_tasks.add_task(workflow_service.run_workflow, session.id)
+    background_tasks.add_task(workflow_service.run_workflow, session)
 
     # Redirect to the session page
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(
-        url=f"/session/{session.id}",
-        status_code=303
-    )
+    return {"url": f"/session/{session.id}"}

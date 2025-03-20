@@ -91,7 +91,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
                 logger.warning(f"Session {session_id} not found")
                 return None
 
-            if not isinstance(list, session.messages):
+            if not isinstance(session.messages, list):
                 raise "Session messages are not a list"
             
             # Initialize temporary messages list
