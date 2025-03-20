@@ -316,7 +316,45 @@ def create_ad_hoc(description: str, goal: Optional[str] = None):
 
     asyncio.run(_create_ad_hoc())
 
+@click.command()
+@click.argument('directory_path')
+def add_root(directory_path: str):
+    """Add a directory as a root and scan its contents."""
+    import asyncio
+    from pathlib import Path
+    from src.dependencies import async_session_factory
+    from src.models.models import Root
+    from src.core.roots.scanner import FileScanner
 
+    async def _add_root(directory_path: str):
+        async with async_session_factory() as db:
+            async with db.begin():
+                try:
+                    # Create Root object
+                    path = Path(directory_path).resolve()
+                    if not path.is_dir():
+                        console.print(f"[bold red]Error:[/bold red] '{directory_path}' is not a valid directory.")
+                        return
+
+                    root = Root(uri=str(path))
+                    db.add(root)
+                    await db.commit()  # Commit to get the root ID
+                    await db.refresh(root) # Refresh to load
+
+                    console.print(f"[bold green]Root added:[/bold green] {root.uri} (ID: {root.id})")
+
+                    # Scan directory
+                    scanner = FileScanner(async_session_factory)
+                    with console.status(f"Scanning directory '{directory_path}'..."):
+                        await scanner.scan_directory(root)
+
+                    console.print(f"[bold green]Successfully scanned directory '{directory_path}'[/bold green]")
+
+                except Exception as e:
+                    await db.rollback()
+                    console.print(f"[bold red]Error:[/bold red] {str(e)}")
+
+    asyncio.run(_add_root(directory_path))
 
 
 @click.group()
@@ -330,6 +368,7 @@ group.add_command(load_templates)
 group.add_command(load_session_templates)
 group.add_command(run_workflow)
 group.add_command(create_ad_hoc)
+group.add_command(add_root)
 
 if __name__ == '__main__':
     group()
