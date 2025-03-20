@@ -184,14 +184,18 @@ class WorkflowEngine:
         """Execute the next step in the workflow"""
         next_step = await self.get_current_step(session)
         if not next_step:
-            return WorkflowTransitionResult(
+            # No more steps to execute
+            result = WorkflowTransitionResult(
                 success=False,
                 state=session.current_state,
                 message="No more steps to execute"
             )
+            # Ensure session is saved even when there are no more steps
+            await self.persistence.save_session(session)
+            return result
 
         # Find the trigger for this step
-        trigger_name = f'run_step_{session.workflow_data.get('current_step_index', 0)}'
+        trigger_name = f'run_step_{session.workflow_data.get("current_step_index", 0)}'
 
         # Check if the trigger exists
         if hasattr(session, trigger_name):
@@ -218,14 +222,23 @@ class WorkflowEngine:
                 )
 
             except Exception as e:
+                # Save error state to workflow data
+                session.workflow_data['errors'].append(str(e))
+                session.status = 'error'
+                # Ensure session is saved when an exception occurs
+                await self.persistence.save_session(session)
                 return WorkflowTransitionResult(
                     success=False,
                     state=session.current_state,
                     message=f"Error executing step: {str(e)}"
                 )
 
-        return WorkflowTransitionResult(
+        # Trigger not found
+        result = WorkflowTransitionResult(
             success=False,
             state=session.current_state,
             message=f"Trigger {trigger_name} not found"
         )
+        # Ensure session is saved even when trigger is not found
+        await self.persistence.save_session(session)
+        return result
