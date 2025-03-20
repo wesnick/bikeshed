@@ -27,7 +27,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
 
     async def save_session(self, session: Session) -> None:
         """
-        Save session state to the database
+        Save session state to the database and refresh the session object
         
         Args:
             session: The session to save
@@ -37,14 +37,10 @@ class DatabasePersistenceProvider(PersistenceProvider):
 
             try:
                 async with self.get_db() as db:
-
-                    # Update session data
-                    await self.session_repo.update(db, session.id, {
-                        'status': session.status,
-                        'current_state': session.current_state,
-                        'workflow_data': session.workflow_data
-                    })
-
+                    # Merge the session into the current db session
+                    # This will attach it to the session if it exists, or add it if it doesn't
+                    db_session = await db.merge(session)
+                    
                     # Save any temporary messages
                     if hasattr(session, '_temp_messages') and session._temp_messages:
                         for msg in session._temp_messages:
@@ -56,8 +52,17 @@ class DatabasePersistenceProvider(PersistenceProvider):
                             db.add(msg)
                         session._temp_messages = []  # Clear the temporary messages
 
+                    # Commit the changes
                     await db.commit()
-                    logger.info(f"Successfully saved session {session.id}")
+                    
+                    # Refresh the session to load all relationships (including messages)
+                    await db.refresh(db_session, ['messages'])
+                    
+                    # Update the original session object with the refreshed data
+                    # This ensures all relationships are properly loaded
+                    session.messages = db_session.messages
+                    
+                    logger.info(f"Successfully saved and refreshed session {session.id}")
 
             except Exception as e:
                 logger.error(f"Error saving session {session.id}: {e}")

@@ -14,7 +14,16 @@ class UserInputStepHandler(StepHandler):
             return False
             
         # Check if user_input exists in workflow_data
-        return 'user_input' in session.workflow_data and session.workflow_data['user_input'] is not None
+        has_user_input = 'user_input' in session.workflow_data and session.workflow_data['user_input'] is not None
+
+        if not has_user_input:
+            # Mark session as waiting for input
+            session.status = 'waiting_for_input'
+            session.workflow_data['missing_variables'] = ['user_input']
+            return False
+
+        return True
+
 
     async def handle(self, session: Session, step: Step) -> Dict[str, Any]:
         """Handle a user_input step"""

@@ -1,8 +1,24 @@
 import re
 from typing import Optional
 
+from transitions.core import State, Transition
+
 from src.models.models import Session
 from src.service.logging import logger
+
+
+class BikeShedState(State):
+
+    def __init__(self, name, label=..., on_enter=..., on_exit=..., ignore_invalid_triggers=..., final=...):
+        self.label = label
+        super().__init__(name, on_enter, on_exit, ignore_invalid_triggers, final)
+
+
+class BikeShedTransition(Transition):
+
+    def __init__(self, source, dest, label=..., conditions=..., unless=..., before=..., after=..., prepare=...):
+        self.label = label
+        super().__init__(source, dest, conditions, unless, before, after, prepare)
 
 
 class WorkflowVisualizer:
