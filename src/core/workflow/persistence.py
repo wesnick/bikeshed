@@ -2,7 +2,8 @@ from typing import Optional, Dict, Any
 import uuid
 import asyncio
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
 from src.core.workflow.engine import PersistenceProvider
 from src.models.models import Session
 from src.repository.session import SessionRepository
@@ -12,15 +13,15 @@ from src.service.logging import logger
 class DatabasePersistenceProvider(PersistenceProvider):
     """Persistence provider that saves session state to the database"""
 
-    def __init__(self, db_factory, session_repository=None):
+    def __init__(self, get_db: async_sessionmaker[AsyncSession], session_repository=None):
         """
         Initialize the persistence provider
         
         Args:
-            db_factory: Factory function that returns a database session
+            get_db: Factory function that returns a database session
             session_repository: Optional repository for session operations
         """
-        self.get_db = db_factory
+        self.get_db = get_db
         self.session_repo = session_repository or SessionRepository()
         self._lock = asyncio.Lock()  # Lock to prevent concurrent writes to the same session
 
@@ -33,12 +34,10 @@ class DatabasePersistenceProvider(PersistenceProvider):
         """
         async with self._lock:
             logger.info(f"Saving session {session.id} with state {session.current_state}")
-            
-            db = None
+
             try:
-                async for db_session in self.get_db():
-                    db = db_session
-                    
+                async with self.get_db() as db:
+
                     # First, ensure the session exists in the database
                     db_session = await self.session_repo.get_by_id(db, session.id)
                     if not db_session:
@@ -66,7 +65,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
 
                     await db.commit()
                     logger.info(f"Successfully saved session {session.id}")
-                    break
+
             except Exception as e:
                 logger.error(f"Error saving session {session.id}: {e}")
                 if db:
@@ -84,17 +83,16 @@ class DatabasePersistenceProvider(PersistenceProvider):
             The loaded session or None if not found
         """
         logger.info(f"Loading session {session_id}")
-        
-        session = None
+
         try:
-            async for db in self.get_db():
+            async with self.get_db() as db:
                 # Load the session with its messages
                 session = await self.session_repo.get_by_id(
                     db, 
                     session_id, 
                     load_relations=['messages']
                 )
-                break
+
                 
             if not session:
                 logger.warning(f"Session {session_id} not found")
@@ -128,17 +126,13 @@ class DatabasePersistenceProvider(PersistenceProvider):
         # Initialize temporary messages list
         session._temp_messages = []
         
-        # Now persist it to the database
-        db = None
         try:
-            async for db_session in self.get_db():
-                db = db_session
+            async with self.get_db() as db:
                 # Add to database
                 db.add(session)
                 await db.flush()
                 await db.commit()
                 logger.info(f"Successfully created session {session.id}")
-                break
         except Exception as e:
             logger.error(f"Error creating session: {e}")
             if db:

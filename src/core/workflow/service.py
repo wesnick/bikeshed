@@ -1,9 +1,10 @@
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional, Union, AsyncGenerator
 import uuid
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.core.config_types import SessionTemplate, Step
+from src.core.registry import Registry
 from src.models.models import Session
 from src.core.workflow.engine import WorkflowEngine, WorkflowTransitionResult
 from src.core.workflow.persistence import DatabasePersistenceProvider
@@ -17,17 +18,20 @@ from src.core.workflow.visualization import WorkflowVisualizer
 class WorkflowService:
     """Service for managing workflow state machines"""
 
-    def __init__(self, db_factory, registry_provider, llm_service):
+    def __init__(self,
+                 get_db: async_sessionmaker[AsyncSession],
+                 registry_provider: AsyncGenerator[Registry, None],
+                 llm_service):
         """
         Initialize the WorkflowService with required dependencies.
         
         Args:
-            db_factory: Factory function for creating database sessions
-            registry_provider: Registry instance for accessing prompts and tools
+            get_db: async generator for getting database session
+            registry_provider: async generator for getting registry
             llm_service: Service for interacting with language models
         """
         # Create persistence provider
-        self.persistence = DatabasePersistenceProvider(db_factory)
+        self.persistence = DatabasePersistenceProvider(get_db)
 
         # Create step handlers
         self.handlers = {
@@ -39,9 +43,6 @@ class WorkflowService:
 
         # Create workflow engine
         self.engine = WorkflowEngine(self.persistence, self.handlers)
-
-        # Create visualizer
-        self.visualizer = WorkflowVisualizer()
 
     async def create_session_from_template(
             self,
@@ -137,10 +138,6 @@ class WorkflowService:
         # Execute next step
         return await self.engine.execute_next_step(session)
 
-    async def create_workflow_graph(self, session_id: uuid.UUID) -> Optional[str]:
+    async def create_workflow_graph(self, session: Session) -> Optional[str]:
         """Create a visualization of the workflow"""
-        session = await self.get_session(session_id)
-        if not session:
-            return None
-
-        return await self.visualizer.create_graph(session)
+        return await WorkflowVisualizer.create_graph(session)

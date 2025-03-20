@@ -1,7 +1,8 @@
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, AsyncGenerator
 import uuid
 
 from src.core.config_types import PromptStep, Step
+from src.core.registry import Registry
 from src.models.models import Session, Message
 from src.core.workflow.engine import StepHandler
 
@@ -9,7 +10,7 @@ from src.core.workflow.engine import StepHandler
 class PromptStepHandler(StepHandler):
     """Handler for prompt steps"""
 
-    def __init__(self, registry_provider, llm_service):
+    def __init__(self, registry_provider: AsyncGenerator[Registry, None], llm_service):
         self.registry_provider = registry_provider
         self.llm_service = llm_service
 
@@ -26,7 +27,12 @@ class PromptStepHandler(StepHandler):
         variables = session.workflow_data.get('variables', {})
         template_args = step.template_args or {}
 
-        prompt = self.registry_provider.get_prompt(step.template)
+        async for registry in self.registry_provider:
+            prompt = registry.get_prompt(step.template)
+
+            if not prompt:
+                raise ValueError(f"Prompt template '{step.template}' not found")
+
 
         # Get required variables not in template_args
         required_vars = [arg.name for arg in prompt.arguments

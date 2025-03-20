@@ -1,6 +1,7 @@
-from typing import Any, Dict
+from typing import Any, Dict, AsyncGenerator
 import uuid
 
+from src.core.registry import Registry
 from src.core.workflow.engine import StepHandler
 from src.core.config_types import MessageStep, Step
 from src.models.models import Session, Message
@@ -9,8 +10,8 @@ from src.models.models import Session, Message
 class MessageStepHandler(StepHandler):
     """Handler for message steps"""
 
-    def __init__(self, registry_provider):
-        self.get_registry = registry_provider
+    def __init__(self, registry_provider: AsyncGenerator[Registry, None]):
+        self.registry_provider = registry_provider
 
     async def can_handle(self, session: Session, step: Step) -> bool:
         """Check if the step can be handled"""
@@ -61,9 +62,10 @@ class MessageStepHandler(StepHandler):
             args = {**variables, **template_args}
 
             # Get and render template
-            registry = await self.get_registry()
-            prompt = registry.get_prompt(step.template)
+            async for registry in self.registry_provider:
+                prompt = registry.get_prompt(step.template)
 
+            # @TODO: fix me, prompt is a list here
             return await prompt.render(args)
 
         return ""

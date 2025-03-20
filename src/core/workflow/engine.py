@@ -78,14 +78,14 @@ class WorkflowEngine:
 
         for i, step in enumerate(enabled_steps):
             # Add state
-            state_name = f'step_{step.name}'
+            state_name = f'step_{i}'
             states.insert(len(states) - 1, state_name)
 
             # Add transition to this state
-            source = 'start' if i == 0 else f'step_{enabled_steps[i-1].name}'
+            source = 'start' if i == 0 else f'step_{i-1}'
 
             transition = {
-                'trigger': f'run_{step.name}',
+                'trigger': f'run_{state_name}',
                 'source': source,
                 'dest': state_name,
                 'before': self._execute_step,
@@ -191,7 +191,7 @@ class WorkflowEngine:
             )
 
         # Find the trigger for this step
-        trigger_name = f'run_{next_step.name}'
+        trigger_name = f'run_step_{session.workflow_data.get('current_step_index', 0)}'
 
         # Check if the trigger exists
         if hasattr(session, trigger_name):

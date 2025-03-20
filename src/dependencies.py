@@ -96,13 +96,13 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
     # Use a lock to prevent multiple initialization attempts
     async with _workflow_service_lock:
         if _workflow_service is None:
-            # Get the dependencies needed for WorkflowService
-            db_factory = async_session_factory
-            registry_provider = await get_registry().__anext__()  # Get the registry instance
-            llm_service = await get_mcp_client().__anext__()  # Get the MCP client instance
-            
+
             # Create the WorkflowService instance
-            _workflow_service = WorkflowService(db_factory, registry_provider, llm_service)
+            _workflow_service = WorkflowService(
+                async_session_factory,
+                get_registry(),
+                None # @TODO
+            )
     
     yield _workflow_service
 

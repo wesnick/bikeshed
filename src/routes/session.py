@@ -1,12 +1,13 @@
 from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.dependencies import get_db, get_jinja
+from src.core.workflow.service import WorkflowService
+from src.dependencies import get_db, get_jinja, get_workflow_service
 from src.repository import session_repository, message_repository
 from src.models import Session
-from src.service.workflow import WorkflowService
+
 
 router = APIRouter(prefix="/session", tags=["session"])
 
@@ -21,19 +22,16 @@ async def list_sessions(db: AsyncSession = Depends(get_db)):
 
 @router.get("/{session_id}")
 @jinja.hx('components/session.html.j2')
-async def get_session(session_id: UUID, db: AsyncSession = Depends(get_db)):
+async def get_session(session_id: UUID, workflow_service: WorkflowService = Depends(get_workflow_service)):
     """Get a specific session with its messages"""
-    session = await session_repository.get_with_messages(db, session_id)
+    session = await workflow_service.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    messages = await message_repository.get_by_session(db, session_id)
-    workflow_service = WorkflowService()
-    session = await workflow_service.initialize_session(session)
-    session_workflow_svg = await workflow_service.create_graph(session)
+    session_workflow_svg = await workflow_service.create_workflow_graph(session)
     return {
         "session": session,
-        "messages": messages,
+        "messages": session.messages,
         "session_workflow_svg": session_workflow_svg,
     }
 
@@ -79,7 +77,8 @@ async def session_template_form(template_name: str, request: Request):
 async def create_session_from_template_route(
         template_name: str,
         request: Request,
-        db: AsyncSession = Depends(get_db)
+        background_tasks: BackgroundTasks,
+        workflow_service: WorkflowService = Depends(get_workflow_service),
 ):
     """Create a new session from a template and redirect to it."""
     # Get form data
@@ -92,11 +91,8 @@ async def create_session_from_template_route(
     if not template:
         return {"error": f"Template {template_name} not found"}
 
-    workflow_service = WorkflowService()
-
     # Create the session
     session = await workflow_service.create_session_from_template(
-        db=db,
         template=template,
         description=description if description else None,
         goal=goal if goal else None
@@ -105,10 +101,9 @@ async def create_session_from_template_route(
     if not session:
         return {"error": "Failed to create session"}
 
-    # @TODO: this need to go to background
-    session = await workflow_service.initialize_session(session)
-    while await session.may_trigger(f'run_step{session.workflow_data.get("current_step_index", 0)}'):
-        await workflow_service.execute_next_step(session)
+    # @TODO: trigger htmx get rather than use redirection
+
+    background_tasks.add_task(workflow_service.execute_next_step, session.id)
 
     # Redirect to the session page
     from fastapi.responses import RedirectResponse
