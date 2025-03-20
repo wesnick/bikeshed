@@ -5,6 +5,7 @@ from src.core.config_types import PromptStep, Step
 from src.core.registry import Registry
 from src.models.models import Session, Message
 from src.core.workflow.engine import StepHandler
+from src.core.llm import LLMMessage, LLMMessageFactory
 
 
 class PromptStepHandler(StepHandler):
@@ -67,10 +68,18 @@ class PromptStepHandler(StepHandler):
         prompt_content = await self._get_prompt_content(session, step)
 
         # Create messages for tracking
-        messages = await self._create_prompt_messages(session, prompt_content)
+        db_messages = await self._create_prompt_messages(session, prompt_content)
+
+        # Get system prompt if available
+        system_prompt = None
+        if session.workflow_data and 'variables' in session.workflow_data:
+            system_prompt = session.workflow_data['variables'].get('system_prompt')
+
+        # Convert to LLM messages
+        llm_messages = LLMMessageFactory.from_session_messages(db_messages, system_prompt)
 
         # Call LLM service
-        response = await self.llm_service.generate_response(messages)
+        response = await self.llm_service.generate_response(llm_messages)
 
         # Create response message
         response_message = Message(
@@ -79,18 +88,18 @@ class PromptStepHandler(StepHandler):
             role="assistant",
             text=response,
             status='delivered',
-            parent_id=messages[-1].id if messages else None
+            parent_id=db_messages[-1].id if db_messages else None
         )
 
         # Add all messages to session data
         if not hasattr(session, '_temp_messages'):
             session._temp_messages = []
 
-        session._temp_messages.extend(messages + [response_message])
+        session._temp_messages.extend(db_messages + [response_message])
 
         # Return step result
         return {
-            'prompt_message_ids': [str(msg.id) for msg in messages],
+            'prompt_message_ids': [str(msg.id) for msg in db_messages],
             'response_message_id': str(response_message.id),
             'response': response
         }
