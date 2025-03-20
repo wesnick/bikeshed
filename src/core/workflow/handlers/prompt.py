@@ -27,12 +27,12 @@ class PromptStepHandler(StepHandler):
         variables = session.workflow_data.get('variables', {})
         template_args = step.template_args or {}
 
+        prompt = None
         async for registry in self.registry_provider:
             prompt = registry.get_prompt(step.template)
 
-            if not prompt:
-                raise ValueError(f"Prompt template '{step.template}' not found")
-
+        if not prompt:
+            raise ValueError(f"Prompt template '{step.template}' not found")
 
         # Get required variables not in template_args
         required_vars = [arg.name for arg in prompt.arguments
