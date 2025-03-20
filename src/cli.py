@@ -342,15 +342,14 @@ def add_root(directory_path: str):
                     await db.refresh(root) # Refresh to load
 
                     console.print(f"[bold green]Root added:[/bold green] {root.uri} (ID: {root.id})")
+                    # Scan directory *inside* the transaction
+                    scanner = FileScanner(async_session_factory)
+                    await scanner.scan_directory(root)
+
 
                 except Exception as e:
                     await db.rollback()
                     console.print(f"[bold red]Error:[/bold red] {str(e)}")
-
-        # Scan directory
-        with console.status(f"Scanning directory '{directory_path}'..."):
-            scanner = FileScanner(async_session_factory)
-            await scanner.scan_directory(root)
 
         console.print(f"[bold green]Successfully scanned directory '{directory_path}'[/bold green]")
 
