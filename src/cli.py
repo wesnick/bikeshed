@@ -343,16 +343,16 @@ def add_root(directory_path: str):
 
                     console.print(f"[bold green]Root added:[/bold green] {root.uri} (ID: {root.id})")
 
-                    # Scan directory
-                    scanner = FileScanner(async_session_factory)
-                    with console.status(f"Scanning directory '{directory_path}'..."):
-                        await scanner.scan_directory(root)
-
-                    console.print(f"[bold green]Successfully scanned directory '{directory_path}'[/bold green]")
-
                 except Exception as e:
                     await db.rollback()
                     console.print(f"[bold red]Error:[/bold red] {str(e)}")
+
+        # Scan directory
+        with console.status(f"Scanning directory '{directory_path}'..."):
+            scanner = FileScanner(async_session_factory)
+            await scanner.scan_directory(root)
+
+        console.print(f"[bold green]Successfully scanned directory '{directory_path}'[/bold green]")
 
     asyncio.run(_add_root(directory_path))
 

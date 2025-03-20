@@ -38,6 +38,10 @@ To get started with BikeShed, follow these steps:
    uv install
    ```
 
+```bash
+sudo apt-get install libmagic1 graphviz graphviz-dev
+```
+
    *(Ensure you have Python installed on your machine)*
 
 3. **Run the project**:

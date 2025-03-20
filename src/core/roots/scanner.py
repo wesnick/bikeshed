@@ -21,7 +21,6 @@ class FileScanner:
             # Use magic to determine MIME type
             mime_type = magic.from_file(str(file_path), mime=True)
 
-
             root_file = RootFile(
                 root_id=root.id,
                 name=file_path.name,
