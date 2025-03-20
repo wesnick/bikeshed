@@ -35,8 +35,8 @@ class WorkflowService:
 
         # Create step handlers
         self.handlers = {
-            'message': MessageStepHandler(registry_provider),
-            'prompt': PromptStepHandler(registry_provider, llm_service),
+            'message': MessageStepHandler(lambda: registry_provider),
+            'prompt': PromptStepHandler(lambda: registry_provider, llm_service),
             'user_input': UserInputStepHandler(),
             'invoke': InvokeStepHandler()
         }
