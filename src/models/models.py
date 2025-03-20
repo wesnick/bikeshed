@@ -126,3 +126,32 @@ class Session(Base):
             
         self.workflow_data['variables'][name] = value
 
+class Root(Base):
+    __tablename__ = 'roots'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    uri = Column(Text, nullable=False, unique=True)  # The root URI
+    created_at = Column(DateTime, default=datetime.now)
+    last_accessed_at = Column(DateTime, default=datetime.now)
+    extra = Column(JSONB, nullable=True)  # For additional metadata
+
+    # Relationships
+    files = relationship("RootFile", back_populates="root", lazy="selectin")
+
+class RootFile(Base):
+    __tablename__ = 'root_files'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    root_id = Column(UUID(as_uuid=True), ForeignKey('roots.id'), nullable=False)
+    name = Column(String(255), nullable=False)  # Filename
+    path = Column(Text, nullable=False)          # Path relative to the root
+    extension = Column(String(50), nullable=True) # File extension
+    mime_type = Column(String(100), nullable=True)
+    size = Column(Integer, nullable=True)        # File size in bytes
+    atime = Column(DateTime, nullable=True)      # Last access time
+    mtime = Column(DateTime, nullable=True)      # Last modification time
+    ctime = Column(DateTime, nullable=True)      # Creation time (platform dependent)
+    extra = Column(JSONB, nullable=True)         # For additional metadata
+
+    # Relationships
+    root = relationship("Root", back_populates="files")
