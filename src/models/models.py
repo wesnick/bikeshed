@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Callable, Awaitable, ClassVar
 
-from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, JSON, Table, Integer
+from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Boolean, JSON, Table, Integer, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import declarative_base, relationship, mapped_column
 from transitions.extensions import AsyncGraphMachine
@@ -155,3 +155,7 @@ class RootFile(Base):
 
     # Relationships
     root = relationship("Root", back_populates="files")
+
+    __table_args__ = (
+        UniqueConstraint('root_id', 'path', name='uq_root_files_root_id_path'),
+    )
