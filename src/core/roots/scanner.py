@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from src.models.models import Root, RootFile
 import aiofiles
 import aiofiles.os
+import magic
 
 
 class FileScanner:
@@ -16,7 +17,10 @@ class FileScanner:
         try:
             stat = await aiofiles.os.stat(file_path)
             relative_path = file_path.relative_to(root.uri)
-            mime_type = None  # Placeholder, can be improved with a library like aiofiles-magic
+
+            # Use magic to determine MIME type
+            mime_type = magic.from_file(str(file_path), mime=True)
+
 
             root_file = RootFile(
                 root_id=root.id,
