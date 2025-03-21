@@ -109,7 +109,6 @@ async def process_message(message: MessageCreate,
                           llm_service: LLMService = Depends(get_llm_service)):
     """Process the message and send response via SSE"""
     from src.main import broadcast_event
-    import asyncio
     from src.core.llm_response import LLMResponseHandler
     from src.core.llm import LLMMessageFactory
 
@@ -128,7 +127,7 @@ async def process_message(message: MessageCreate,
             prompt_content=message.text,
             response_text="",  # Empty response as we'll generate it later
             parent_id=message.parent_id,
-            model='@TODO',
+            model=message.model,
             metadata=message.extra
         )
         
@@ -141,7 +140,7 @@ async def process_message(message: MessageCreate,
         await broadcast_event("session_update", "update")
 
         # Convert to LLM messages for the LLM service
-        llm_messages = LLMMessageFactory.from_session_messages(session, [])
+        llm_messages = LLMMessageFactory.from_session_messages(session, prompt_messages)
         
         # Generate a response using the LLM service
         response_text = await llm_service.generate_response(llm_messages)
@@ -151,8 +150,8 @@ async def process_message(message: MessageCreate,
             session=session,
             prompt_content="",  # Empty prompt as we already created it
             response_text=response_text,
-            parent_id=prompt_messages[-1].id if prompt_messages else None,
-            model='@TODO',
+            parent_id=prompt_messages[-1].id if prompt_messages else None,  # Use the last prompt message as parent
+            model=message.model,
             metadata=message.extra
         )
         
