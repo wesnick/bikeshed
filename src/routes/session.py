@@ -111,6 +111,7 @@ async def process_message(message: MessageCreate,
     from src.main import broadcast_event
     from src.core.llm_response import LLMResponseHandler
     from src.core.llm import LLMMessageFactory
+    import uuid
 
     # Get the LLM service
     llm_service = get_llm_service()
@@ -135,6 +136,9 @@ async def process_message(message: MessageCreate,
         for msg in prompt_messages:
             db.add(msg)
         await db.commit()
+        
+        # Refresh the session to get the latest messages
+        await db.refresh(session)
 
         # Notify all clients to update the session component
         await broadcast_event("session_update", "update")
@@ -145,14 +149,16 @@ async def process_message(message: MessageCreate,
         # Generate a response using the LLM service
         response_text = await llm_service.generate_response(llm_messages)
         
-        # Create the response message using LLMResponseHandler
-        _, response_message = await LLMResponseHandler.process_llm_interaction(
-            session=session,
-            prompt_content="",  # Empty prompt as we already created it
-            response_text=response_text,
+        # Create the response message directly
+        response_message = Message(
+            id=uuid.uuid4(),
+            session_id=session.id,
+            role="assistant",
+            text=response_text,
+            status='delivered',
             parent_id=prompt_messages[-1].id if prompt_messages else None,  # Use the last prompt message as parent
             model=message.model,
-            metadata=message.extra
+            extra=message.extra
         )
         
         # Add the response message to the database
