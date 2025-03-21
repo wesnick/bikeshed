@@ -3,6 +3,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import HTMLResponse
+import asyncio
+from random import randint
 
 from src.core.registry import Registry
 from src.core.workflow.service import WorkflowService
@@ -11,6 +13,7 @@ from src.repository import session_repository, message_repository
 from src.models import Session, Message
 from src.types import SessionTemplateCreationRequest, MessageCreate
 from src.service.logging import logger
+from src.core.llm_response import LLMResponseHandler
 
 router = APIRouter(prefix="/session", tags=["session"])
 
@@ -95,21 +98,31 @@ async def session(
 
 async def process_message(message: MessageCreate):
     """Process the message and send response via SSE"""
+    from src.main import broadcast_event
+    import asyncio
+    from random import randint
+    from src.core.llm_response import LLMResponseHandler
 
-    # Add user message to the database
-    db_message = Message(
-        role=message.role,
-        model=message.model,
-        text=message.text,
-        mime_type=message.mime_type,
-        session_id=message.session_id,
-        parent_id=message.parent_id,
-        extra=message.extra
-    )
     async for db in get_db():
-        db.add(db_message)
-        await db.commit()
+        # Get the session
+        session = await session_repository.get_by_id(db, message.session_id)
+        if not session:
+            return
 
+        # Create the user message using LLMResponseHandler
+        prompt_messages, _ = await LLMResponseHandler.process_llm_interaction(
+            session=session,
+            prompt_content=message.text,
+            response_text="",  # Empty response as we'll generate it later
+            parent_id=message.parent_id,
+            model=message.model,
+            metadata=message.extra
+        )
+        
+        # Add the message to the database
+        for msg in prompt_messages:
+            db.add(msg)
+        await db.commit()
 
         # Notify all clients to update the session component
         await broadcast_event("session_update", "update")
@@ -117,17 +130,21 @@ async def process_message(message: MessageCreate):
         # Simulate processing time
         await asyncio.sleep(randint(1, 5))
 
-        # Add system response to the database
-        await db.refresh(db_message)
-        db_message = Message(
-            role="assistant",
+        # Generate a response
+        response_text = f"Processed message using {message.model} with {message.extra} strategy: {message.text}"
+        
+        # Create the response message using LLMResponseHandler
+        _, response_message = await LLMResponseHandler.process_llm_interaction(
+            session=session,
+            prompt_content="",  # Empty prompt as we already created it
+            response_text=response_text,
+            parent_id=prompt_messages[-1].id if prompt_messages else None,
             model=message.model,
-            text=f"Processed message using {message.model} with {message.extra} strategy: {message.text}",
-            mime_type=message.mime_type,
-            session_id=message.session_id,
-            parent_id=db_message.id,
+            metadata=message.extra
         )
-        db.add(db_message)
+        
+        # Add the response message to the database
+        db.add(response_message)
         await db.commit()
 
         # Notify all clients to update the session component again
