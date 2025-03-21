@@ -31,9 +31,10 @@ async def lifespan(app: FastAPI):
     async for registry in get_registry():
         app.state.registry = registry
         # Start watching the directory and store the task
-        app.state.watcher_task = asyncio.create_task(
-            registry.watch_directory('/home/wes/Downloads')
-        )
+        # @TODO
+        # app.state.watcher_task = asyncio.create_task(
+        #     registry.watch_directory('/home/wes/Downloads')
+        # )
 
     yield
 

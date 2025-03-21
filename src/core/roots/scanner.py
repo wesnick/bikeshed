@@ -44,11 +44,11 @@ class FileScanner:
             entries = await aiofiles.os.scandir(directory_path)
             for entry in entries:
                 entry_path = Path(entry.path)
-                if await entry.is_file():
+                if entry.is_file():
                     root_file = await self._scan_file(root, entry_path)
                     if root_file:
                         session.add(root_file)
-                elif await entry.is_dir():
+                elif entry.is_dir():
                     await self._scan_directory_recursive(root, entry_path, session)
         except Exception as e:
             print(f"Error scanning directory {directory_path}: {e}") # Use logger
