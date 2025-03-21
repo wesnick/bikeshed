@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, Annotated
+from typing import AsyncGenerator
 import asyncio
 
 from fastapi.templating import Jinja2Templates
@@ -7,7 +7,7 @@ from markdown2 import markdown
 from sqlalchemy.ext.asyncio import  AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
-from src.core.llm import DummyLLMService
+from src.core.llm.llm import DummyLLMService
 from src.service.cache import RedisService
 from src.service.mcp_client import MCPClient
 from src.config import get_config

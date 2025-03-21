@@ -1,12 +1,10 @@
-from typing import Dict, Any, List, Optional, AsyncGenerator
-import uuid
+from typing import Dict, Any
 
 from src.core.config_types import PromptStep, Step
 from src.core.registry import Registry
-from src.models.models import Session, Message
+from src.models.models import Session
 from src.core.workflow.engine import StepHandler
-from src.core.llm import LLMMessage, LLMMessageFactory, LLMService
-from src.core.llm_response import LLMResponseHandler
+from src.core.llm.llm import LLMService
 
 
 class PromptStepHandler(StepHandler):
@@ -63,8 +61,8 @@ class PromptStepHandler(StepHandler):
             raise TypeError(f"Expected PromptStep but got {type(step)}")
 
         # Create conversation manager with middleware chain
-        from src.core.conversation.manager import ConversationManager, MessageContext
-        from src.core.conversation.middleware import (
+        from src.core.llm.manager import ConversationManager, MessageContext
+        from src.core.llm.middleware import (
             MessagePersistenceMiddleware,
             LLMProcessingMiddleware,
             TemplateProcessingMiddleware

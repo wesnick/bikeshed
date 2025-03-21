@@ -1,18 +1,15 @@
-from typing import List, Optional
+from typing import Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.responses import HTMLResponse
 
-from src.core.llm import LLMMessageFactory, LLMMessage, get_llm_service, LLMService
 from src.core.registry import Registry
 from src.core.workflow.service import WorkflowService
 from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry
 from src.repository import session_repository, message_repository
-from src.models import Session, Message
+from src.models import Session
 from src.types import SessionTemplateCreationRequest, MessageCreate
 from src.service.logging import logger
-from src.core.llm_response import LLMResponseHandler
 
 router = APIRouter(prefix="/session", tags=["session"])
 
@@ -89,13 +86,18 @@ async def session_form_component(session_id: UUID,
 
 @router.post("/session-submit")
 @jinja.hx('components/session/session_form.html.j2')
-async def session_submit(
-    message: MessageCreate,
-    background_tasks: BackgroundTasks,
-):
-    # Get model and strategy from form data
-    # form_data = await request.json()
-    logger.info(f"Form data: {message.model_dump()}")
+async def session_submit(message: MessageCreate,
+                        background_tasks: BackgroundTasks,
+                        workflow_service: WorkflowService = Depends(get_workflow_service)):
+    """This route serves the session form component for htmx requests."""
+
+    session = await workflow_service.get_session(message.session_id)
+
+    if message.button_pressed == "send":
+        logger.warning("send pressed")
+    elif message.button_pressed == "continue":
+        logger.warning("continue pressed")
+
     # model = form_data.get("model", "default-model")
     # strategy = form_data.get("strategy", "default-strategy")
 
@@ -103,18 +105,18 @@ async def session_submit(
     background_tasks.add_task(process_message, message)
 
     # Return empty response as we'll update via SSE
-    return {"session": session, "current_step": current_step}
+    return {"session": session, "current_step": session.get_current_step()}
 
 async def process_message(message: MessageCreate):
     """Process the message and send response via SSE"""
     from src.main import broadcast_event
-    from src.core.conversation.manager import ConversationManager, MessageContext
-    from src.core.conversation.middleware import (
+    from src.core.llm.manager import ConversationManager, MessageContext
+    from src.core.llm.middleware import (
         MessagePersistenceMiddleware,
         LLMProcessingMiddleware,
         SessionUpdateMiddleware
     )
-    from src.core.llm import get_llm_service
+    from src.core.llm.llm import get_llm_service
 
     # Get the LLM service
     llm_service = get_llm_service()
@@ -136,9 +138,9 @@ async def process_message(message: MessageCreate):
         context = await manager.process(MessageContext(
             session=session,
             raw_input=message.text,
+            model=message.model,
             metadata={
                 "parent_id": message.parent_id,
-                "model": message.model,
                 "extra": message.extra
             }
         ))

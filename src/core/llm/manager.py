@@ -1,17 +1,23 @@
+from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional, Callable, Protocol
 from pydantic import BaseModel
 
-from src.models import Session, Message
-from src.core.llm import LLMMessage
+from src.models import Session
+from src.core.llm.llm import LLMMessage
 
-class MessageContext(BaseModel):
+@dataclass
+class MessageContext:
     """Standardized conversation context"""
     session: Session
+    model: str
     raw_input: Optional[Any] = None
     processed_input: Optional[List[Dict]] = None
     llm_messages: Optional[List[LLMMessage]] = None
     output: Optional[Any] = None
-    metadata: Dict[str, Any] = {}
+    metadata: Dict[str, Any] = field(default_factory=list)
+    retry: int = 0
+    """Number of retries so far."""
+
 
 class ConversationMiddleware(Protocol):
     """Protocol for conversation middleware components"""

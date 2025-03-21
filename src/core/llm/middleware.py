@@ -1,10 +1,10 @@
-from typing import Callable, List, Dict, Any, Optional
+from typing import Callable
 import uuid
 from datetime import datetime
 
-from src.core.conversation.manager import MessageContext, ConversationMiddleware
-from src.core.llm import LLMService, LLMMessageFactory, LLMMessage
-from src.models import Message, Session
+from src.core.llm.manager import MessageContext, ConversationMiddleware
+from src.core.llm.llm import LLMService, LLMMessageFactory
+from src.models import Message
 from src.service.logging import logger
 
 class MessagePersistenceMiddleware(ConversationMiddleware):

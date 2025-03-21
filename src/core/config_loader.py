@@ -18,15 +18,15 @@ from src.core.config_types import SessionTemplate
 from src.service.logging import logger
 
 
-def register_schema(description: str = ""):
+def register_schema(alias: str = ""):
     """
     Decorator to register a Pydantic model as a schema.
 
     Args:
-        description: Optional description for the schema
+        alias: Optional alias for the schema
 
     Example:
-        @register_schema("A user profile schema")
+        @register_schema("my_schema")
         class UserProfile(BaseModel):
             name: str
             email: str
@@ -34,8 +34,8 @@ def register_schema(description: str = ""):
     def decorator(cls):
         # Store the registration info on the class for later processing
         setattr(cls, "__register_schema__", True)
-        if description:
-            setattr(cls, "__schema_description__", description)
+        if alias:
+            setattr(cls, "__schema_alias__", alias)
         return cls
     return decorator
 
@@ -90,12 +90,12 @@ class SchemaLoader:
             is_pydantic_model = (issubclass(obj, BaseModel) and obj != BaseModel)
 
             if is_decorated or (scan_all and is_pydantic_model):
-                # Get custom description if provided via decorator
-                custom_description = ""
-                if is_decorated and hasattr(obj, "__schema_description__"):
-                    custom_description = getattr(obj, "__schema_description__", "")
+                # Get custom alias if provided via decorator
+                custom_alias = ""
+                if is_decorated and hasattr(obj, "__schema_alias__"):
+                    custom_alias = getattr(obj, "__schema_alias__", "")
 
-                schema = self._create_schema_from_model(obj, custom_description)
+                schema = self._create_schema_from_model(obj, custom_alias)
                 if schema:
                     self.registry.add_schema(schema)
                     schemas.append(schema)
@@ -121,13 +121,13 @@ class SchemaLoader:
 
         return all_schemas
 
-    def _create_schema_from_model(self, model_class: Type[BaseModel], custom_description: str = "") -> Optional[Schema]:
+    def _create_schema_from_model(self, model_class: Type[BaseModel], custom_alias: str = "") -> Optional[Schema]:
         """
         Create a Schema object from a Pydantic model class.
 
         Args:
             model_class: The Pydantic model class to convert
-            custom_description: Optional custom description to override the class docstring
+            custom_alias: Optional custom description to override the class docstring
 
         Returns:
             A Schema object or None if conversion fails
@@ -136,18 +136,16 @@ class SchemaLoader:
             # Get the model's JSON schema
             json_schema = model_class.model_json_schema()
 
-            # Use custom description if provided, otherwise use docstring
-            description = custom_description
-            if not description:
-                description = inspect.getdoc(model_class) or ""
-
-                # remove pydantic class description, if exists
-                if 'A base class for creating Pydantic models.' in description:
-                    description = ""
+            # Use docstring
+            description = inspect.getdoc(model_class) or ""
+                
+            # remove pydantic class description, if exists
+            if 'A base class for creating Pydantic models.' in description:
+                description = ""
 
             # Create and return the Schema
             return Schema(
-                name=model_class.__name__,
+                name=custom_alias or model_class.__name__,
                 json_schema=json_schema,
                 description=description,
                 source_class=f"{model_class.__module__}.{model_class.__name__}"
