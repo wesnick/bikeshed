@@ -105,13 +105,16 @@ async def session_submit(
     # Return empty response as we'll update via SSE
     return {"session": session, "current_step": current_step}
 
-async def process_message(message: MessageCreate,
-                          llm_service: LLMService = Depends(get_llm_service)):
+async def process_message(message: MessageCreate):
     """Process the message and send response via SSE"""
     from src.main import broadcast_event
-    from src.core.llm_response import LLMResponseHandler
-    from src.core.llm import LLMMessageFactory
-    import uuid
+    from src.core.conversation.manager import ConversationManager, MessageContext
+    from src.core.conversation.middleware import (
+        MessagePersistenceMiddleware,
+        LLMProcessingMiddleware,
+        SessionUpdateMiddleware
+    )
+    from src.core.llm import get_llm_service
 
     # Get the LLM service
     llm_service = get_llm_service()
@@ -122,18 +125,29 @@ async def process_message(message: MessageCreate,
         if not session:
             return
 
-        # Create the user message using LLMResponseHandler
-        prompt_messages, _ = await LLMResponseHandler.process_llm_interaction(
-            session=session,
-            prompt_content=message.text,
-            response_text="",  # Empty response as we'll generate it later
-            parent_id=message.parent_id,
-            model=message.model,
-            metadata=message.extra
-        )
+        # Create conversation manager with middleware chain
+        manager = ConversationManager([
+            MessagePersistenceMiddleware(),
+            LLMProcessingMiddleware(llm_service),
+            SessionUpdateMiddleware()
+        ])
         
-        # Add the message to the database
-        for msg in prompt_messages:
+        # Process through middleware chain
+        context = await manager.process(MessageContext(
+            session=session,
+            raw_input=message.text,
+            metadata={
+                "parent_id": message.parent_id,
+                "model": message.model,
+                "extra": message.extra
+            }
+        ))
+        
+        # Extract created messages
+        messages = context.metadata.get("messages", [])
+        
+        # Add messages to the database
+        for msg in messages:
             db.add(msg)
         await db.commit()
         
@@ -141,31 +155,6 @@ async def process_message(message: MessageCreate,
         await db.refresh(session)
 
         # Notify all clients to update the session component
-        await broadcast_event("session_update", "update")
-
-        # Convert to LLM messages for the LLM service
-        llm_messages = LLMMessageFactory.from_session_messages(session, prompt_messages)
-        
-        # Generate a response using the LLM service
-        response_text = await llm_service.generate_response(llm_messages)
-        
-        # Create the response message directly
-        response_message = Message(
-            id=uuid.uuid4(),
-            session_id=session.id,
-            role="assistant",
-            text=response_text,
-            status='delivered',
-            parent_id=prompt_messages[-1].id if prompt_messages else None,  # Use the last prompt message as parent
-            model=message.model,
-            extra=message.extra
-        )
-        
-        # Add the response message to the database
-        db.add(response_message)
-        await db.commit()
-
-        # Notify all clients to update the session component again
         await broadcast_event("session_update", "update")
 
 

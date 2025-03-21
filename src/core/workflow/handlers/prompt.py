@@ -62,42 +62,40 @@ class PromptStepHandler(StepHandler):
         if not isinstance(step, PromptStep):
             raise TypeError(f"Expected PromptStep but got {type(step)}")
 
-        # Set status to running
-        session.status = 'running'
-
+        # Create conversation manager with middleware chain
+        from src.core.conversation.manager import ConversationManager, MessageContext
+        from src.core.conversation.middleware import (
+            MessagePersistenceMiddleware,
+            LLMProcessingMiddleware,
+            TemplateProcessingMiddleware
+        )
+        
+        manager = ConversationManager([
+            TemplateProcessingMiddleware(self.registry),
+            MessagePersistenceMiddleware(),
+            LLMProcessingMiddleware(self.llm_service)
+        ])
+        
         # Get prompt content
         prompt_content = await self._get_prompt_content(session, step)
-
-        # Convert to LLM messages
-        llm_messages = LLMMessageFactory.from_session_messages(session, [])
         
-        # Add the prompt content
-        if isinstance(prompt_content, list):
-            # Handle multi-part prompts by converting to LLMMessages
-            for part in prompt_content:
-                llm_messages.append(LLMMessage(
-                    role=part.role,
-                    content=part.content.text
-                ))
-        else:
-            # Add simple string prompt
-            llm_messages.append(LLMMessage.user(prompt_content))
-
-        # Call LLM service
-        response = await self.llm_service.generate_response(llm_messages)
-
-        # Use the new handler to process the interaction
-        prompt_messages, response_message = await LLMResponseHandler.process_llm_interaction(
+        # Process through middleware chain
+        context = await manager.process(MessageContext(
             session=session,
-            prompt_content=prompt_content,
-            response_text=response
-        )
-
+            raw_input=prompt_content,
+            metadata={"step": step.model_dump() if hasattr(step, "model_dump") else vars(step)}
+        ))
+        
+        # Extract created messages
+        messages = context.metadata.get("messages", [])
+        prompt_messages = [msg for msg in messages if msg.role == "user"]
+        response_message = next((msg for msg in messages if msg.role == "assistant"), None)
+        
         # Return step result
         return {
             'prompt_message_ids': [str(msg.id) for msg in prompt_messages],
-            'response_message_id': str(response_message.id),
-            'response': response
+            'response_message_id': str(response_message.id) if response_message else None,
+            'response': context.output
         }
 
     async def _get_prompt_content(self, session: Session, step: PromptStep) -> str | list:

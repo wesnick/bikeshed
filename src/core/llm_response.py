@@ -4,12 +4,16 @@ from datetime import datetime
 
 from src.models.models import Session, Message
 from src.core.llm import LLMMessage
+from src.core.conversation.manager import MessageContext
 
 
 class LLMResponseHandler:
     """
     Handles the conversion of LLM responses to database models and manages
     message persistence within sessions.
+    
+    Note: Most functionality has been moved to the ConversationMiddleware classes,
+    but this class is maintained for backward compatibility.
     """
     
     @staticmethod
@@ -132,3 +136,22 @@ class LLMResponseHandler:
         session._temp_messages.extend(prompt_messages + [response_message])
         
         return prompt_messages, response_message
+    
+    @staticmethod
+    def create_from_context(context: MessageContext) -> List[Message]:
+        """
+        Convert context to messages using standardized mapping
+        
+        Args:
+            context: The message context containing processed data
+            
+        Returns:
+            List of Message objects created from the context
+        """
+        messages = []
+        
+        # Extract messages from context metadata
+        if context.metadata.get("messages"):
+            messages.extend(context.metadata["messages"])
+        
+        return messages
