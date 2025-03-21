@@ -26,7 +26,7 @@
     <div class="navbar-end">
         <div class="navbar-item"
              hx-get="/components/navbar-notifications"
-             hx-trigger="load, sse:update_notifications">
+             hx-trigger="load, sse:notification_update">
             {% include 'components/skeleton.html.j2' %}
         </div>
         <div class="navbar-item">
@@ -44,7 +44,7 @@
     <aside id="sidebar" class="menu column is-2 is-narrow-mobile section p-4 is-flex is-flex-direction-column">
       <div id="sidebar-navigation" class="is-flex-grow-1 overflow-y-auto"
            hx-get="/components/left-sidebar"
-           hx-trigger="load, sse:sidebar_update from:body">
+           hx-trigger="load, sse:route_change from:body">
         {% include 'components/skeleton.html.j2' %}
       </div>
 

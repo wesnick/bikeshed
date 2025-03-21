@@ -1,7 +1,7 @@
 // Import HTMX and extensions
 import htmx from 'htmx.org';
-import 'htmx-ext-sse';
 import 'htmx-ext-form-json';
+import 'htmx-ext-sse';
 import hljs from 'highlight.js';
 // import Bulma from "@vizuaalog/bulmajs";
 import Dropdown from "@vizuaalog/bulmajs/src/plugins/dropdown";
@@ -21,16 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('HTMX loaded successfully');
 
     // Log SSE connection events
-    document.body.addEventListener('sse:connected', function(event) {
-      console.log('SSE Connected:', event.detail);
+    document.body.addEventListener('htmx:sseOpen', function(event) {
+      console.log('SSE Connected');
     });
 
-    // Log specific update events
-    ['session_update', 'form_update', 'sidebar_update', 'drawer_update'].forEach(eventName => {
-      document.body.addEventListener(`sse:${eventName}`, function(event) {
-        console.log(`SSE ${eventName}:`, event.detail);
-      });
-    });
   } else {
     console.error('HTMX not loaded properly');
   }

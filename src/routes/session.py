@@ -3,8 +3,6 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import HTMLResponse
-import asyncio
-from random import randint
 
 from src.core.llm import LLMMessageFactory, LLMMessage, get_llm_service, LLMService
 from src.core.registry import Registry
@@ -37,6 +35,7 @@ async def get_session(session_id: UUID,
         raise HTTPException(status_code=404, detail="Session not found")
 
 
+    logger.warning(f"Session: {session} Message count: {len(session.messages)}")
     session_workflow_svg = await workflow_service.create_workflow_graph(session)
     return {
         "session": session,
@@ -88,8 +87,9 @@ async def session_form_component(session_id: UUID,
     return {"session": session, "current_step": current_step}
 
 
-@router.post("/session-submit", response_class=HTMLResponse)
-async def session(
+@router.post("/session-submit")
+@jinja.hx('components/session/session_form.html.j2')
+async def session_submit(
     message: MessageCreate,
     background_tasks: BackgroundTasks,
 ):
@@ -103,7 +103,7 @@ async def session(
     background_tasks.add_task(process_message, message)
 
     # Return empty response as we'll update via SSE
-    return ""
+    return {"session": session, "current_step": current_step}
 
 async def process_message(message: MessageCreate,
                           llm_service: LLMService = Depends(get_llm_service)):

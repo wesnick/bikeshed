@@ -410,8 +410,7 @@ async def sse(request: Request):
                         break
                     yield event
             except asyncio.TimeoutError:
-                # Send a keepalive ping every 30 seconds
-                yield {"event": "ping", "data": ""}
+                pass
             except asyncio.CancelledError:
                 logger.warning(f"SSE connection for client {client_id} was cancelled")
                 raise  # Re-raise to ensure proper cleanup

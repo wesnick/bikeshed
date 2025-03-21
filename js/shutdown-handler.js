@@ -31,11 +31,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+
 /**
  * Handles server shutdown events from SSE
  */
 document.addEventListener('DOMContentLoaded', function() {
-
 
     document.body.addEventListener('htmx:sseClose', function (e) {
         const reason = e.detail.type
@@ -48,36 +48,36 @@ document.addEventListener('DOMContentLoaded', function() {
             // ...
             case "message":
              // connection was closed due to reception of message sse-close
-             console.log('Server shutdown detected: 1');
+             console.log('Server shutdown detected:');
 
 
             // Use Bulma's native notification
             Bulma('#notification-area').notification({
                 color: 'warning',
-                body: "The server is restarting. The page may not reconnect automatically. <button class=\"reload-page\">Reload</button>",
+                body: "The server is restarting. The page has to reload cuz SSE does not reconnect. <button class=\"reload-page\">Reload</button>",
 
             }).show();
 
-            // // Add event listener to the reload button
-            // notificationContent.querySelector('.reload-page').addEventListener('click', function() {
-            //     window.location.reload();
-            // });
-
-            // Set a timer to attempt auto-reload after 2 seconds
             setTimeout(() => {
                 window.location.reload();
             }, 2000);
         }
     })
 
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        // Ensure we scroll the message container to the bottom after swap
+        if (event.detail.elt.id === 'messages-container') {
+         const messagesContainer = document.getElementById('dashboard-top');
+            if (messagesContainer) {
+                messagesContainer.scrollTo({
+                    top: messagesContainer.scrollHeight - 200,
+                    behavior: 'smooth'
+                });
+            }
+        }
+    });
     // Listen for the custom SSE event
     document.body.addEventListener('htmx:sseMessage', function(event) {
-        // Check if this is a server_shutdown event
-        if (event.detail.event === 'server_shutdown') {
-            console.log('Server shutdown detected: 2');
 
-        }
-
-        console.log(event)
     });
 });

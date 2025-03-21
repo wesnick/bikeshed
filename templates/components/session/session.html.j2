@@ -16,19 +16,8 @@
   {% endif %}
 
   <div class="box p-0 mb-3 flex-grow-1">
-    <div id="messages-container" class="messages">
-      {% for message in messages %}
-        <div class="message-container m-5">
-          <div class="message-bubble p-3 {% if message.role == 'user' %}is-primary{% else %}is-light{% endif %} box">
-            <div class="message-header">
-              <strong>{{ message.role|title }}</strong>
-            </div>
-            <div class="message-content mt-2">
-              {{ message.text | markdown2html | safe }}
-            </div>
-          </div>
-        </div>
-      {% endfor %}
+    <div id="messages-container" class="messages" hx-get="/session/{{ session.id }}/messages" hx-trigger="sse:session_update">
+      {% include 'components/session/message_list.html.j2' %}
     </div>
   </div>
 </div>
