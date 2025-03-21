@@ -6,6 +6,7 @@ from src.core.registry import Registry
 from src.models.models import Session, Message
 from src.core.workflow.engine import StepHandler
 from src.core.llm import LLMMessage, LLMMessageFactory, LLMService
+from src.core.llm_response import LLMResponseHandler
 
 
 class PromptStepHandler(StepHandler):
@@ -67,34 +68,34 @@ class PromptStepHandler(StepHandler):
         # Get prompt content
         prompt_content = await self._get_prompt_content(session, step)
 
-        # Create messages for tracking
-        db_messages = await self._create_prompt_messages(session, prompt_content)
-
         # Convert to LLM messages
-        llm_messages = LLMMessageFactory.from_session_messages(session, db_messages)
+        llm_messages = LLMMessageFactory.from_session_messages(session, [])
+        
+        # Add the prompt content
+        if isinstance(prompt_content, list):
+            # Handle multi-part prompts by converting to LLMMessages
+            for part in prompt_content:
+                llm_messages.append(LLMMessage(
+                    role=part.role,
+                    content=part.content.text
+                ))
+        else:
+            # Add simple string prompt
+            llm_messages.append(LLMMessage.user(prompt_content))
 
         # Call LLM service
         response = await self.llm_service.generate_response(llm_messages)
 
-        # Create response message
-        response_message = Message(
-            id=uuid.uuid4(),
-            session_id=session.id,
-            role="assistant",
-            text=response,
-            status='delivered',
-            parent_id=db_messages[-1].id if db_messages else None
+        # Use the new handler to process the interaction
+        prompt_messages, response_message = await LLMResponseHandler.process_llm_interaction(
+            session=session,
+            prompt_content=prompt_content,
+            response_text=response
         )
-
-        # Add all messages to session data
-        if not hasattr(session, '_temp_messages'):
-            session._temp_messages = []
-
-        session._temp_messages.extend(db_messages + [response_message])
 
         # Return step result
         return {
-            'prompt_message_ids': [str(msg.id) for msg in db_messages],
+            'prompt_message_ids': [str(msg.id) for msg in prompt_messages],
             'response_message_id': str(response_message.id),
             'response': response
         }
@@ -119,35 +120,3 @@ class PromptStepHandler(StepHandler):
 
         return ""
 
-    async def _create_prompt_messages(
-            self, session: Session, prompt_content: str | list
-    ) -> List[Message]:
-        """Create messages for a prompt"""
-        if isinstance(prompt_content, list):
-            # Handle multi-part prompts
-            messages = []
-            parent_id = None
-
-            for part in prompt_content:
-                msg = Message(
-                    id=uuid.uuid4(),
-                    session_id=session.id,
-                    role=part.role,
-                    text=part.content.text,
-                    mime_type=part.content.type,
-                    status='delivered',
-                    parent_id=parent_id
-                )
-                messages.append(msg)
-                parent_id = msg.id
-
-            return messages
-        else:
-            # Handle simple string prompt
-            return [Message(
-                id=uuid.uuid4(),
-                session_id=session.id,
-                role="user",
-                text=prompt_content,
-                status='delivered'
-            )]
