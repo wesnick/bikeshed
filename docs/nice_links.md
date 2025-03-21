@@ -18,3 +18,10 @@ ProseMirror Noob Guides
 https://github.com/PierBover/prosemirror-cookbook
 https://emergence-engineering.com/blog/prosemirror-plugin-system
 
+
+### Prompts
+
+https://github.com/daveshap/Claude_Sentience
+
+
+https://github.com/MarkusPfundstein/mcp-obsidian
