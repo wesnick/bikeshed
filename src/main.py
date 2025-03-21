@@ -166,10 +166,14 @@ async def left_sidebar_component(db: AsyncSession = Depends(get_db), registry: R
 async def right_drawer_component() -> None:
     """This route serves the right drawer component for htmx requests."""
 
-@app.get("/components/navbar")
-@jinja.hx('components/navbar.html.j2', no_data=True)
-async def navbar_component() -> None:
+@app.get("/components/navbar-notifications")
+@jinja.hx('components/navbar-notifications.html.j2')
+async def navbar_component():
     """This route serves the navbar component for htmx requests."""
+    return {
+        'total_running': 1,
+        'total_waiting': 0
+    }
 
 @app.get("/components/session-form/{session_id}")
 @jinja.hx('components/session_form.html.j2')

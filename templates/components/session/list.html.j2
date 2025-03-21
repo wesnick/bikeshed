@@ -24,7 +24,8 @@
               <td>
                 <a class="button is-small is-info"
                    hx-get="/session/{{ session.id }}"
-                   hx-target="#dashboard">View</a>
+                   hx-target="#dashboard"
+                   hx-push-url="true">View</a>
               </td>
             </tr>
           {% endfor %}

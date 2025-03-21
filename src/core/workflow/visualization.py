@@ -1,14 +1,14 @@
 import re
 from typing import Optional, Dict, Any
 
-from transitions.core import State, Transition
+from transitions.extensions.asyncio import AsyncState
 
 from src.core.config_types import Step
 from src.models.models import Session
 from src.service.logging import logger
 
 
-class BikeShedState(State):
+class BikeShedState(AsyncState):
     """Enhanced state class with improved labeling for visualization"""
 
     def __init__(self, name, label=None, on_enter=None, on_exit=None, ignore_invalid_triggers=None, final=None, step_data=None):
@@ -17,17 +17,6 @@ class BikeShedState(State):
             label = WorkflowVisualizer.create_state_label(step_data)
         self.label = label
         super().__init__(name, on_enter, on_exit, ignore_invalid_triggers, final)
-
-
-class BikeShedTransition(Transition):
-    """Enhanced transition class with improved labeling for visualization"""
-
-    def __init__(self, source, dest, label=None, conditions=None, unless=None, before=None, after=None, prepare=None, step_data=None):
-        self.step_data = step_data
-        if label is None and step_data:
-            label = WorkflowVisualizer.create_transition_label(step_data)
-        self.label = label
-        super().__init__(source, dest, conditions, unless, before, after, prepare)
 
 
 class WorkflowVisualizer:

@@ -4,7 +4,7 @@ from transitions.extensions import AsyncGraphMachine
 from dataclasses import dataclass
 
 from src.core.config_types import Step, SessionTemplate
-from src.core.workflow.visualization import BikeShedState, BikeShedTransition
+from src.core.workflow.visualization import BikeShedState
 from src.models.models import Session
 
 class StepHandler(Protocol):
@@ -101,7 +101,6 @@ class WorkflowEngine:
                 'dest': state_name,
                 'before': self._execute_step,
                 'conditions': self._can_execute_step,
-                # 'label': step
             }
             transitions.append(transition)
 

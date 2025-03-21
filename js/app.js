@@ -3,6 +3,8 @@ import htmx from 'htmx.org';
 import 'htmx-ext-sse';
 import 'htmx-ext-form-json';
 import hljs from 'highlight.js';
+// import Bulma from "@vizuaalog/bulmajs";
+import Dropdown from "@vizuaalog/bulmajs/src/plugins/dropdown";
 
 import {initializeEditor} from './prosemirror';
 
@@ -35,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize theme from localStorage
   initializeTheme();
-
+  setupThemeToggle();
 });
 
 // Function to initialize theme
@@ -48,23 +50,22 @@ function initializeTheme() {
 
 // Setup theme toggle when navbar is loaded and highlight code blocks
 document.body.addEventListener('htmx:afterSettle', function(event) {
-  // Only proceed if the loaded content contains the theme toggle
-  if (event.detail.elt.querySelector && event.detail.elt.querySelector('.theme-toggle')) {
-    setupThemeToggle();
-  }
 
   if (event.detail.elt.querySelector && event.detail.elt.querySelector('#editor')) {
     initializeEditor();
   }
 
+  // Apply syntax highlighting to any new code blocks
   if (event.detail.elt.querySelector && event.detail.elt.querySelector('pre code')) {
     for (const elem of event.detail.elt.querySelectorAll('pre code')) {
       hljs.highlightElement(elem);
     }
   }
 
-  // Apply syntax highlighting to any new code blocks
-
+  // Activate bulma JS behaviors on newly added elements
+  if (event.detail.elt.querySelector && event.detail.elt.querySelector('.dropdown')) {
+    Dropdown.parseDocument();
+  }
 });
 
 // Function to set up theme toggle

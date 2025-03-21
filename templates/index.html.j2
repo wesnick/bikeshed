@@ -15,14 +15,27 @@
 <body hx-ext="sse" sse-connect="/sse" sse-close="server_shutdown">
 <div class="dashboard-container">
   <!-- Navbar/Header -->
-  <nav
-    class="navbar has-shadow"
-    role="navigation"
-    aria-label="main navigation"
-    hx-get="/components/navbar"
-    hx-trigger="load"
-  >
-    {% include 'components/skeleton.html.j2' %}
+  <nav class="navbar has-shadow" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+        <a class="navbar-item text-weight-bold is-size-4" href="/">
+            {% block branding %}BikeShed{% endblock %}
+        </a>
+    </div>
+    {# Notification Area #}
+    <div id="notification-area" class="navbar-notification"></div>
+    <div class="navbar-end">
+        <div class="navbar-item"
+             hx-get="/components/navbar-notifications"
+             hx-trigger="load, sse:update_notifications">
+            {% include 'components/skeleton.html.j2' %}
+        </div>
+        <div class="navbar-item">
+            <a class="theme-toggle" href="#">
+              <span class="icon"><i class="fas fa-moon"></i></span>
+              <span class="theme-text">Light Mode</span>
+            </a>
+        </div>
+    </div>
   </nav>
 
   <!-- Main Content Area -->
