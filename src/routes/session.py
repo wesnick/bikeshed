@@ -6,6 +6,7 @@ from starlette.responses import HTMLResponse
 import asyncio
 from random import randint
 
+from src.core.llm import LLMMessageFactory, LLMMessage, get_llm_service, LLMService
 from src.core.registry import Registry
 from src.core.workflow.service import WorkflowService
 from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry
@@ -96,7 +97,8 @@ async def session(
     # Return empty response as we'll update via SSE
     return ""
 
-async def process_message(message: MessageCreate):
+async def process_message(message: MessageCreate,
+                          llm_service: LLMService = Depends(get_llm_service)):
     """Process the message and send response via SSE"""
     from src.main import broadcast_event
     import asyncio
@@ -108,6 +110,19 @@ async def process_message(message: MessageCreate):
         session = await session_repository.get_by_id(db, message.session_id)
         if not session:
             return
+
+        # Convert to LLM messages
+        llm_messages = LLMMessageFactory.from_session_messages(session, [])
+
+        llm_messages.append(LLMMessage.user(message.text, model=message.model, metadata=message.extra))
+
+        response = await llm_service.generate_response(llm_messages)
+
+        prompt_messages, response_message = await LLMResponseHandler.process_llm_interaction(
+            session=session,
+            prompt_content=prompt_content,
+            response_text=response
+        )
 
         # Create the user message using LLMResponseHandler
         prompt_messages, _ = await LLMResponseHandler.process_llm_interaction(
