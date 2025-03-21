@@ -97,32 +97,21 @@ async def session(
     # Return empty response as we'll update via SSE
     return ""
 
-async def process_message(message: MessageCreate,
-                          llm_service: LLMService = Depends(get_llm_service)):
+async def process_message(message: MessageCreate):
     """Process the message and send response via SSE"""
     from src.main import broadcast_event
     import asyncio
-    from random import randint
     from src.core.llm_response import LLMResponseHandler
+    from src.core.llm import LLMMessageFactory, LLMMessage, get_llm_service
+
+    # Get the LLM service
+    llm_service = get_llm_service()
 
     async for db in get_db():
         # Get the session
         session = await session_repository.get_by_id(db, message.session_id)
         if not session:
             return
-
-        # Convert to LLM messages
-        llm_messages = LLMMessageFactory.from_session_messages(session, [])
-
-        llm_messages.append(LLMMessage.user(message.text, model=message.model, metadata=message.extra))
-
-        response = await llm_service.generate_response(llm_messages)
-
-        prompt_messages, response_message = await LLMResponseHandler.process_llm_interaction(
-            session=session,
-            prompt_content=prompt_content,
-            response_text=response
-        )
 
         # Create the user message using LLMResponseHandler
         prompt_messages, _ = await LLMResponseHandler.process_llm_interaction(
@@ -142,11 +131,11 @@ async def process_message(message: MessageCreate,
         # Notify all clients to update the session component
         await broadcast_event("session_update", "update")
 
-        # Simulate processing time
-        await asyncio.sleep(randint(1, 5))
-
-        # Generate a response
-        response_text = f"Processed message using {message.model} with {message.extra} strategy: {message.text}"
+        # Convert to LLM messages for the LLM service
+        llm_messages = LLMMessageFactory.from_session_messages(session, [])
+        
+        # Generate a response using the LLM service
+        response_text = await llm_service.generate_response(llm_messages)
         
         # Create the response message using LLMResponseHandler
         _, response_message = await LLMResponseHandler.process_llm_interaction(
