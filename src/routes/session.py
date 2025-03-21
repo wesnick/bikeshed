@@ -28,18 +28,14 @@ async def list_sessions(db: AsyncSession = Depends(get_db)):
     return {"sessions": sessions}
 
 @router.get("/{session_id}")
-@jinja.hx('components/session.html.j2')
+@jinja.hx('components/session/session.html.j2')
 async def get_session(session_id: UUID,
-                      workflow_service: WorkflowService = Depends(get_workflow_service),
-                      db: AsyncSession = Depends(get_db)):
+                      workflow_service: WorkflowService = Depends(get_workflow_service)):
     """Get a specific session with its messages"""
     session = await workflow_service.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-
-    from src.service.logging import logger
-    logger.info(f"MESSAGES: {session.messages}")
 
     session_workflow_svg = await workflow_service.create_workflow_graph(session)
     return {
@@ -49,8 +45,20 @@ async def get_session(session_id: UUID,
         "session_workflow_svg": session_workflow_svg,
     }
 
+@router.get("/{session_id}/messages")
+@jinja.hx('components/session/message_list.html.j2')
+async def get_session_messages(session_id: UUID,
+                              db: AsyncSession = Depends(get_db)):
+    """Get a specific session with its messages"""
+    messages = await message_repository.get_by_session(db, session_id)
+
+    return {
+        "messages": messages,
+    }
+
+
 @router.post("/")
-@jinja.hx('components/session.html.j2')
+@jinja.hx('components/session/session.html.j2')
 async def create_session(summary: Optional[str] = None, goal: Optional[str] = None,
                         system_prompt: Optional[str] = None, flow_id: Optional[UUID] = None,
                         db: AsyncSession = Depends(get_db)):
@@ -66,7 +74,7 @@ async def create_session(summary: Optional[str] = None, goal: Optional[str] = No
 
 
 @router.get("/{session_id}/session-form")
-@jinja.hx('components/session_form.html.j2')
+@jinja.hx('components/session/session_form.html.j2')
 async def session_form_component(session_id: UUID,
                                  workflow_service: WorkflowService = Depends(get_workflow_service)):
     """This route serves the session form component for htmx requests."""
@@ -97,12 +105,13 @@ async def session(
     # Return empty response as we'll update via SSE
     return ""
 
-async def process_message(message: MessageCreate):
+async def process_message(message: MessageCreate,
+                          llm_service: LLMService = Depends(get_llm_service)):
     """Process the message and send response via SSE"""
     from src.main import broadcast_event
     import asyncio
     from src.core.llm_response import LLMResponseHandler
-    from src.core.llm import LLMMessageFactory, LLMMessage, get_llm_service
+    from src.core.llm import LLMMessageFactory
 
     # Get the LLM service
     llm_service = get_llm_service()
@@ -119,7 +128,7 @@ async def process_message(message: MessageCreate):
             prompt_content=message.text,
             response_text="",  # Empty response as we'll generate it later
             parent_id=message.parent_id,
-            model=message.model,
+            model='@TODO',
             metadata=message.extra
         )
         
@@ -143,7 +152,7 @@ async def process_message(message: MessageCreate):
             prompt_content="",  # Empty prompt as we already created it
             response_text=response_text,
             parent_id=prompt_messages[-1].id if prompt_messages else None,
-            model=message.model,
+            model='@TODO',
             metadata=message.extra
         )
         
@@ -156,7 +165,7 @@ async def process_message(message: MessageCreate):
 
 
 @router.get("/template-creator/{template_name}")
-@jinja.hx('components/session_template_form.html.j2')
+@jinja.hx('components/session/session_template_form.html.j2')
 async def session_template_form(template_name: str,
                                 request: Request,
                                 workflow_service: WorkflowService = Depends(get_workflow_service)):
