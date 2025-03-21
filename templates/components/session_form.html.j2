@@ -1,89 +1,38 @@
 <form id="session-form"
       hx-ext="form-json"
-      hx-post="/session-submit"
+      hx-post="/session/session-submit"
       hx-swap="none"
       hx-on::after-request="this.reset();"
 >
 
-  <div class="session-input-container">
-    <div class="columns m-0">
-      <div class="column is-3">
-        <div class="field">
-          <label for="model-selector" class="label">Model</label>
-          <div class="control">
-            <div class="select is-fullwidth">
-              <select id="model-selector" name="model">
-                <option value="gpt-4">GPT-4</option>
-                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                <option value="claude-3">Claude 3</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="column is-3">
-        <div class="field">
-          <label for="strategy-selector" class="label">Strategy</label>
-          <div class="control">
-            <div class="select is-fullwidth">
-              <select id="strategy-selector" name="strategy">
-                <option value="default">Default</option>
-                <option value="creative">Creative</option>
-                <option value="precise">Precise</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="column is-6">
-        <div class="field utility-buttons">
-          <label class="label">Utilities</label>
-          <div class="buttons">
-            <button class="button is-small" title="Clear session">
-            <span class="icon">
-              <i class="fas fa-trash-alt"></i>
-            </span>
-            </button>
-            <button class="button is-small" title="Save conversation">
-            <span class="icon">
-              <i class="fas fa-save"></i>
-            </span>
-            </button>
-            <button class="button is-small" title="Export as PDF">
-            <span class="icon">
-              <i class="fas fa-file-pdf"></i>
-            </span>
-            </button>
-            <button class="button is-small" title="Settings">
-            <span class="icon">
-              <i class="fas fa-cog"></i>
-            </span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
   <div class="field">
     <div class="control">
       <label for="editor">Magic</label>
       <div class="control">
-        <textarea id="editor" class="textarea" placeholder="Normal textarea"></textarea>
+        <textarea id="editor" name="text" class="textarea" placeholder="Normal textarea"></textarea>
       </div>
     </div>
   </div>
   <div class="field is-grouped is-grouped-right">
     <div class="control">
-      <button type="submit" class="button is-primary">
+      <button type="submit" name="send" class="button is-primary">
         <span class="icon">
           <i class="fas fa-paper-plane"></i>
         </span>
         <span>Send</span>
       </button>
     </div>
-    <div class="control timer-container">
-      <span id="response-timer" class="is-hidden">0.0s</span>
+      {% if session.status == 'waiting_for_input' %}
+          <div class="control">
+      <button type="submit" name="continue" class="button is-primary">
+        <span class="icon">
+          <i class="fas fa-paper-plane"></i>
+        </span>
+        <span>Send and Continue</span>
+      </button>
     </div>
+      {% endif %}
+
   </div>
-  <input type="hidden" name="session_id" value="{{ session_id }}">
+  <input type="hidden" name="session_id" value="{{ session.id }}">
 </form>

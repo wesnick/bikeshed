@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // ...
             case "message":
              // connection was closed due to reception of message sse-close
-             console.log('Server shutdown detected');
+             console.log('Server shutdown detected: 1');
 
 
             // Use Bulma's native notification
@@ -74,8 +74,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.addEventListener('htmx:sseMessage', function(event) {
         // Check if this is a server_shutdown event
         if (event.detail.event === 'server_shutdown') {
-            console.log('Server shutdown detected');
+            console.log('Server shutdown detected: 2');
 
         }
+
+        console.log(event)
     });
 });

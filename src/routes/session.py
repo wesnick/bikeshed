@@ -2,13 +2,15 @@ from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import HTMLResponse
 
 from src.core.registry import Registry
 from src.core.workflow.service import WorkflowService
 from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry
 from src.repository import session_repository, message_repository
 from src.models import Session
-from src.types import SessionTemplateCreationRequest
+from src.types import SessionTemplateCreationRequest, MessageCreate
+from src.service.logging import logger
 
 router = APIRouter(prefix="/session", tags=["session"])
 
@@ -57,6 +59,79 @@ async def create_session(summary: Optional[str] = None, goal: Optional[str] = No
     }
     session = await session_repository.create(db, session_data)
     return {"session": session, "messages": [], "message": "Session created successfully"}
+
+
+@router.get("/{session_id}/session-form")
+@jinja.hx('components/session_form.html.j2')
+async def session_form_component(session_id: UUID,
+                                 workflow_service: WorkflowService = Depends(get_workflow_service)):
+    """This route serves the session form component for htmx requests."""
+    session = await workflow_service.get_session(session_id)
+
+    if not session:
+        return {"error": "Session not found"}
+
+    current_step = session.get_current_step()
+
+    return {"session": session, "current_step": current_step}
+
+
+@router.post("/session-submit", response_class=HTMLResponse)
+async def session(
+    message: MessageCreate,
+    background_tasks: BackgroundTasks,
+):
+    # Get model and strategy from form data
+    # form_data = await request.json()
+    logger.info(f"Form data: {message.model_dump()}")
+    # model = form_data.get("model", "default-model")
+    # strategy = form_data.get("strategy", "default-strategy")
+
+    # Process in background (non-blocking)
+    background_tasks.add_task(process_message, message)
+
+    # Return empty response as we'll update via SSE
+    return ""
+
+async def process_message(message: MessageCreate):
+    """Process the message and send response via SSE"""
+
+    # Add user message to the database
+    db_message = Message(
+        role=message.role,
+        model=message.model,
+        text=message.text,
+        mime_type=message.mime_type,
+        session_id=message.session_id,
+        parent_id=message.parent_id,
+        extra=message.extra
+    )
+    async for db in get_db():
+        db.add(db_message)
+        await db.commit()
+
+
+        # Notify all clients to update the session component
+        await broadcast_event("session_update", "update")
+
+        # Simulate processing time
+        await asyncio.sleep(randint(1, 5))
+
+        # Add system response to the database
+        await db.refresh(db_message)
+        db_message = Message(
+            role="assistant",
+            model=message.model,
+            text=f"Processed message using {message.model} with {message.extra} strategy: {message.text}",
+            mime_type=message.mime_type,
+            session_id=message.session_id,
+            parent_id=db_message.id,
+        )
+        db.add(db_message)
+        await db.commit()
+
+        # Notify all clients to update the session component again
+        await broadcast_event("session_update", "update")
 
 
 @router.get("/template-creator/{template_name}")

@@ -7,7 +7,7 @@ import uuid
 import signal
 import threading
 
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -171,16 +171,9 @@ async def right_drawer_component() -> None:
 async def navbar_component():
     """This route serves the navbar component for htmx requests."""
     return {
-        'total_running': 1,
+        'total_running': 0,
         'total_waiting': 0
     }
-
-@app.get("/components/session-form/{session_id}")
-@jinja.hx('components/session_form.html.j2')
-async def session_form_component(session_id: str):
-    """This route serves the session form component for htmx requests."""
-    return {"session_id": session_id}
-
 
 @app.get("/prompt/{prompt_id}")
 @jinja.hx('components/prompt_form.html.j2')
@@ -434,62 +427,6 @@ async def sse(request: Request):
             SSE_CLIENTS.remove(client_id)
         logger.info(f"Cleaned up client {client_id}")
 
-
-@app.post("/session-submit", response_class=HTMLResponse)
-async def session(
-    message: MessageCreate,
-):
-    # Get model and strategy from form data
-    # form_data = await request.json()
-    logger.info(f"Form data: {message.model_dump()}")
-    # model = form_data.get("model", "default-model")
-    # strategy = form_data.get("strategy", "default-strategy")
-
-    # Process in background (non-blocking)
-    asyncio.create_task(process_message(message))
-
-    # Return empty response as we'll update via SSE
-    return ""
-
-async def process_message(message: MessageCreate):
-    """Process the message and send response via SSE"""
-
-    # Add user message to the database
-    db_message = Message(
-        role=message.role,
-        model=message.model,
-        text=message.text,
-        mime_type=message.mime_type,
-        session_id=message.session_id,
-        parent_id=message.parent_id,
-        extra=message.extra
-    )
-    async for db in get_db():
-        db.add(db_message)
-        await db.commit()
-
-
-        # Notify all clients to update the session component
-        await broadcast_event("session_update", "update")
-
-        # Simulate processing time
-        await asyncio.sleep(randint(1, 5))
-
-        # Add system response to the database
-        await db.refresh(db_message)
-        db_message = Message(
-            role="assistant",
-            model=message.model,
-            text=f"Processed message using {message.model} with {message.extra} strategy: {message.text}",
-            mime_type=message.mime_type,
-            session_id=message.session_id,
-            parent_id=db_message.id,
-        )
-        db.add(db_message)
-        await db.commit()
-
-        # Notify all clients to update the session component again
-        await broadcast_event("session_update", "update")
 
 async def broadcast_event(event_name, data):
     """Send an event to all connected SSE clients"""

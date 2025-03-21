@@ -86,7 +86,8 @@ class WorkflowVisualizer:
             SVG representation of the workflow graph
         """
         try:
-            svg = session.get_graph().draw(None, prog='dot', format='svg')
+            graph = session.get_graph()
+            svg = graph.draw(None, prog='dot', format='svg')
             return WorkflowVisualizer._clean_svg_for_web(svg.decode('utf-8'))
 
         except Exception as e:

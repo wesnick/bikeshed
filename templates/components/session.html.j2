@@ -33,6 +33,6 @@
   </div>
 </div>
 <div id="dashboard-dock"
-     hx-get="/components/session-form/{{ session.id }}"
+     hx-get="/session/{{ session.id }}/session-form"
      hx-trigger="load, sse:form_update from:body">
 </div>
