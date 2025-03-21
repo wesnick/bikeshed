@@ -8,7 +8,7 @@ from src.core.registry import Registry
 from src.core.workflow.service import WorkflowService
 from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry
 from src.repository import session_repository, message_repository
-from src.models import Session
+from src.models import Session, Message
 from src.types import SessionTemplateCreationRequest, MessageCreate
 from src.service.logging import logger
 
