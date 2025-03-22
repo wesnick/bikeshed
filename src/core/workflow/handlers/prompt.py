@@ -9,15 +9,13 @@ from src.models import Message
 from src.models.models import Session, SessionStatus, MessageStatus
 from src.core.workflow.engine import StepHandler
 from src.service.llm import CompletionService
-from src.service.sse import SSEManager
 
 
 class PromptStepHandler(StepHandler):
     """Handler for prompt steps"""
 
     def __init__(self, registry: Registry,
-                 llm_service: CompletionService,
-                 sse_manager: SSEManager):
+                 llm_service: CompletionService):
         """
         Initialize the PromptStepHandler
         
@@ -27,7 +25,6 @@ class PromptStepHandler(StepHandler):
         """
         self.registry = registry
         self.llm_service = llm_service
-        self.sse_manager = sse_manager
 
 
     async def can_handle(self, session: Session, step: Step) -> bool:
@@ -118,7 +115,7 @@ class PromptStepHandler(StepHandler):
         # Process with LLM service
         result_message = await self.llm_service.complete(
             session,
-            broadcast=self.sse_manager.broadcast
+            broadcast=None
         )
 
         # Return step result

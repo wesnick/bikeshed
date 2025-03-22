@@ -438,19 +438,6 @@ async def sse(request: Request, broadcast_service: BroadcastService = Depends(ge
     return EventSourceResponse(event_generator())
 
 
-# This function is replaced by BroadcastService.broadcast
-
-@app.get("/test-broadcast")
-async def test_broadcast(broadcast_service: BroadcastService = Depends(get_broadcast_service)):
-    """Test endpoint to verify SSE broadcasting is working"""
-    import datetime
-    await broadcast_service.broadcast("test_event", {
-        "message": "This is a test broadcast",
-        "timestamp": str(datetime.datetime.now())
-    })
-    return {"status": "broadcast sent"}
-
-
 if __name__ == "__main__":
     # Configure uvicorn to use our logging
     uvicorn.run(app, host="0.0.0.0", port=8000)
