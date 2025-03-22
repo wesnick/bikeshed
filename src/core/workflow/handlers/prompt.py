@@ -6,22 +6,19 @@ from src.core.registry import Registry
 from src.models import Message
 from src.models.models import Session, SessionStatus, MessageStatus
 from src.core.workflow.engine import StepHandler
-from src.core.llm.llm import LLMService
 
 
 class PromptStepHandler(StepHandler):
     """Handler for prompt steps"""
 
-    def __init__(self, registry: Registry, llm_service: LLMService):
+    def __init__(self, registry: Registry):
         """
         Initialize the PromptStepHandler
         
         Args:
             registry: Registry instance
-            llm_service: Service for LLM interactions
         """
         self.registry = registry
-        self.llm_service = llm_service
 
     async def can_handle(self, session: Session, step: Step) -> bool:
         """Check if the step can be handled"""

@@ -11,7 +11,6 @@ from psycopg import AsyncConnection
 from psycopg.types.json import set_json_dumps
 from pydantic import BaseModel
 
-from src.core.llm.llm import DummyLLMService
 from src.service.cache import RedisService
 from src.service.mcp_client import MCPClient
 from src.config import get_config
@@ -116,8 +115,7 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
             # Create the WorkflowService instance with the actual registry
             _workflow_service = WorkflowService(
                 get_db,
-                registry_instance,
-                DummyLLMService()
+                registry_instance
             )
     
     yield _workflow_service

@@ -1,7 +1,7 @@
 from typing import Dict, Any, List, Optional, Union, Callable, AsyncGenerator
 import uuid
 
-from psycopg_pool import AsyncConnectionPool
+from psycopg import AsyncConnection
 
 from src.core.config_types import SessionTemplate, Step
 from src.core.registry import Registry
@@ -19,16 +19,14 @@ class WorkflowService:
     """Service for managing workflow state machines"""
 
     def __init__(self,
-                 get_db: AsyncGenerator[AsyncConnectionPool, None],
-                 registry: Registry,
-                 llm_service):
+                 get_db: Callable[[], AsyncGenerator[AsyncConnection, None]],
+                 registry: Registry):
         """
         Initialize the WorkflowService with required dependencies.
         
         Args:
             get_db: async generator for getting database connection
             registry: Registry instance
-            llm_service: Service for interacting with language models
         """
         # Create persistence provider
         self.persistence = DatabasePersistenceProvider(get_db)
@@ -36,7 +34,7 @@ class WorkflowService:
         # Create step handlers
         self.handlers = {
             'message': MessageStepHandler(registry),
-            'prompt': PromptStepHandler(registry, llm_service),
+            'prompt': PromptStepHandler(registry),
             'user_input': UserInputStepHandler(),
             'invoke': InvokeStepHandler()
         }
