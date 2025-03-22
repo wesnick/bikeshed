@@ -1,12 +1,12 @@
 from datetime import datetime
 from pathlib import Path
-from psycopg import AsyncConnection
+from psycopg import AsyncConnection, sql
 from src.models.models import Root, RootFile
 import aiofiles
 import aiofiles.os
 import magic
 import uuid
-from typing import Optional, Callable, AsyncGenerator, Dict, List, Set, Tuple
+from typing import Optional, Callable, AsyncGenerator, Dict, List, Set, Tuple, Union, LiteralString
 
 
 class FileScanner:
@@ -69,7 +69,7 @@ class FileScanner:
             if root_files:
                 async with conn.cursor() as cursor:
                     async with cursor.copy(
-                        "COPY root_files (id, root_id, name, path, extension, mime_type, size, atime, mtime, ctime) FROM STDIN"
+                        sql.SQL("COPY root_files (id, root_id, name, path, extension, mime_type, size, atime, mtime, ctime) FROM STDIN")
                     ) as copy:
                         for record in root_files:
                             await copy.write_row(record)
@@ -101,12 +101,12 @@ class FileScanner:
         existing_files = {}
         async with conn.cursor() as cursor:
             await cursor.execute(
-                """
+                sql.SQL("""
                 SELECT id, root_id, name, path, extension, mime_type, size, 
                        atime, mtime, ctime
                 FROM root_files
                 WHERE root_id = %s
-                """,
+                """),
                 (str(root_id),)
             )
             async for row in cursor:
@@ -158,12 +158,12 @@ class FileScanner:
                 mime_type = magic.from_file(str(file_path), mime=True)
                 
                 await conn.execute(
-                    """
+                    sql.SQL("""
                     UPDATE root_files
                     SET name = %s, extension = %s, mime_type = %s, size = %s,
                         atime = %s, mtime = %s, ctime = %s
                     WHERE id = %s
-                    """,
+                    """),
                     (
                         file_path.name,
                         file_path.suffix,
@@ -202,7 +202,7 @@ class FileScanner:
         if root_files:
             async with conn.cursor() as cursor:
                 async with cursor.copy(
-                    "COPY root_files (id, root_id, name, path, extension, mime_type, size, atime, mtime, ctime) FROM STDIN"
+                    sql.SQL("COPY root_files (id, root_id, name, path, extension, mime_type, size, atime, mtime, ctime) FROM STDIN")
                 ) as copy:
                     for record in root_files:
                         await copy.write_row(record)
@@ -211,11 +211,9 @@ class FileScanner:
         """Delete files that no longer exist in the filesystem."""
         if paths_to_delete:
             # Convert list to tuple for SQL IN clause
-            placeholders = ','.join(['%s'] * len(paths_to_delete))
-            await conn.execute(
-                f"DELETE FROM root_files WHERE root_id = %s AND path IN ({placeholders})",
-                (str(root_id), *paths_to_delete)
-            )
+            placeholders = sql.SQL(', ').join([sql.Placeholder()] * len(paths_to_delete))
+            query = sql.SQL("DELETE FROM root_files WHERE root_id = %s AND path IN ({})").format(placeholders)
+            await conn.execute(query, (str(root_id), *paths_to_delete))
     
     async def sync_directory(self, root: Root) -> None:
         """
@@ -277,7 +275,7 @@ class FileScanner:
             async with conn.transaction():
                 # Check if Root exists
                 result = await conn.execute(
-                    "SELECT id, uri FROM roots WHERE uri = %s",
+                    sql.SQL("SELECT id, uri FROM roots WHERE uri = %s"),
                     (str(path),)
                 )
                 root_data = await result.fetchone()
@@ -286,7 +284,7 @@ class FileScanner:
                     # Create Root object
                     root_id = uuid.uuid4()
                     await conn.execute(
-                        "INSERT INTO roots (id, uri) VALUES (%s, %s)",
+                        sql.SQL("INSERT INTO roots (id, uri) VALUES (%s, %s)"),
                         (root_id, str(path))
                     )
                     root = Root(id=root_id, uri=str(path))
