@@ -14,12 +14,13 @@ from fastapi.responses import HTMLResponse
 from sse_starlette.sse import EventSourceResponse
 
 from src.core.registry import Registry
+from src.service.broadcast import BroadcastService
 from src.types import MessageCreate
 from src.models import Message
 from src.service.logging import logger, setup_logging
 from src.service.mcp_client import MCPClient
 from src.http.middleware import HTMXRedirectMiddleware
-from src.dependencies import get_db, get_jinja, get_registry
+from src.dependencies import get_db, get_jinja, get_registry, get_broadcast_service
 from src.routes import api_router
 from src.repository import session_repository
 
