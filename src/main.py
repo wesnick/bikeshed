@@ -43,19 +43,8 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Use broadcast service for shutdown
-    logger.info("Application shutting down via lifespan exit")
-    try:
-        await app.state.broadcast_service.shutdown("Server is shutting down for maintenance")
-    except Exception as e:
-        logger.error(f"Error during broadcast shutdown in lifespan: {e}")
-    
-    # Stop the watcher task if it exists
-    if hasattr(app.state, 'registry'):
-        try:
-            await app.state.registry.stop_watching()
-        except Exception as e:
-            logger.error(f"Error stopping registry watcher: {e}")
+    await app.state.broadcast_service.shutdown("Server is shutting down for maintenance")
+    await app.state.registry.stop_watching()
 
 app = FastAPI(title="BikeShed", lifespan=lifespan)
 app.add_middleware(HTMXRedirectMiddleware)
