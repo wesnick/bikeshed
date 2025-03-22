@@ -43,7 +43,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
                     session_data = {
                         "status": session.status.value if isinstance(session.status, SessionStatus) else session.status,
                         "current_state": session.current_state,
-                        "workflow_data": session.workflow_data.model_dump() if session.workflow_data else None,
+                        "workflow_data": session.workflow_data,
                         "error": session.error
                     }
 
@@ -54,8 +54,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
                         if message.status == MessageStatus.CREATED:
                             # New message, insert it
                             message.status = MessageStatus.PENDING
-                            message_data = message.model_dump()
-                            await self.message_repo.create(conn, message_data)
+                            await self.message_repo.create(conn, message)
                             message.status = MessageStatus.DELIVERED
                         elif message.status == MessageStatus.PENDING:
                             # Update existing message
@@ -102,7 +101,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
                 if session.workflow_data and isinstance(session.workflow_data, dict):
                     session.workflow_data = WorkflowData(**session.workflow_data)
                 
-                logger.info(f"Successfully loaded session {session_id} with state {session.current_state}")
+                logger.info(f"Successfully loaded session {session_id} with state {session.current_state} and message count {len(session.messages)}")
                 return session
                 
         except Exception as e:
@@ -129,11 +128,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
         try:
             async for conn in self.get_db():
 
-                # Create the session in the database
-                session_data = session.model_dump()
-                del session_data['messages']
-
-                created_session = await self.session_repo.create(conn, session_data)
+                created_session = await self.session_repo.create(conn, session)
 
                 # Commit the transaction
                 await conn.commit()

@@ -56,7 +56,7 @@ class MessageStepHandler(StepHandler):
 
         if step.template is not None:
             # Get variables and template args
-            variables = session.workflow_data.get('variables', {})
+            variables = session.workflow_data.variables
             template_args = step.template_args or {}
 
             # Combine variables and template args

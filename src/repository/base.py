@@ -10,8 +10,8 @@ from pydantic import BaseModel
 T = TypeVar('T', bound=BaseModel)
 
 
-async def filter_data(data: Dict[str, Any]) -> Dict[str, Any]:
-    filtered_data = {k: v for k, v in data.items() if v is not None}
+async def filter_data(data: Dict[str, Any], exclude_fields: list = None) -> Dict[str, Any]:
+    filtered_data = {k: v for k, v in data.items() if v is not None and (exclude_fields is None or k not in exclude_fields)}
 
     # Process the values - wrap Pydantic models with Jsonb
     processed_values = {}
@@ -47,10 +47,11 @@ class BaseRepository(Generic[T]):
             await cur.execute(query, (limit, offset))
             return await cur.fetchall()
 
-    async def create(self, conn: AsyncConnection, data: Dict[str, Any]) -> T:
+    async def create(self, conn: AsyncConnection, model: BaseModel) -> T:
         """Create a new entity"""
         # Filter out None values to allow default values to be used
-        filtered_data = await filter_data(data)
+        data = model.model_dump()
+        filtered_data = await filter_data(data, model.__non_persisted_fields__)
 
         if not filtered_data:
             raise ValueError("No data provided for creation")
@@ -74,7 +75,7 @@ class BaseRepository(Generic[T]):
     async def update(self, conn: AsyncConnection, id: UUID, data: Dict[str, Any]) -> Optional[T]:
         """Update an existing entity"""
         # Filter out None values
-        filtered_data = {k: v for k, v in data.items() if v is not None}
+        filtered_data = await filter_data(data)
 
         if not filtered_data:
             return await self.get_by_id(conn, id)

@@ -2,7 +2,7 @@ from typing import Dict, Any
 
 from src.core.config_types import PromptStep, Step
 from src.core.registry import Registry
-from src.models.models import Session
+from src.models.models import Session, SessionStatus
 from src.core.workflow.engine import StepHandler
 from src.core.llm.llm import LLMService
 
@@ -31,7 +31,7 @@ class PromptStepHandler(StepHandler):
             return True
 
         # Check all required variables
-        variables = session.workflow_data.get('variables', {})
+        variables = session.workflow_data.variables
         template_args = step.template_args or {}
 
         # Get prompt from registry
@@ -49,8 +49,8 @@ class PromptStepHandler(StepHandler):
 
         if missing_vars:
             # Mark session as waiting for input
-            session.status = 'waiting_for_input'
-            session.workflow_data['missing_variables'] = missing_vars
+            session.status = SessionStatus.WAITING_FOR_INPUT
+            session.workflow_data.missing_variables.extend(missing_vars)
             return False
 
         return True
@@ -80,6 +80,7 @@ class PromptStepHandler(StepHandler):
         # Process through middleware chain
         context = await manager.process(MessageContext(
             session=session,
+            model='n/a', # @TODO
             raw_input=prompt_content,
             metadata={"step": step.model_dump() if hasattr(step, "model_dump") else vars(step)}
         ))
@@ -103,7 +104,7 @@ class PromptStepHandler(StepHandler):
 
         if step.template is not None:
             # Get variables and template args
-            variables = session.workflow_data.get('variables', {})
+            variables = session.workflow_data.variables
             template_args = step.template_args or {}
 
             # Combine variables and template args

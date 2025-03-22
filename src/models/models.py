@@ -30,9 +30,14 @@ class WorkflowData(BaseModel):
     step_results: Dict[str, Any] = Field(default_factory=dict)
     variables: Dict[str, Any] = Field(default_factory=dict)
     errors: List[str] = Field(default_factory=list)
+    missing_variables: List[str] = Field(default_factory=list)
+    user_input: Optional[str] = None
 
 
 class Message(BaseModel):
+
+    __non_persisted_fields__ = ['children', 'parent']
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     parent_id: Optional[uuid.UUID] = None
     session_id: uuid.UUID
@@ -51,6 +56,8 @@ class Message(BaseModel):
 
 
 class Session(BaseModel):
+    __non_persisted_fields__ = ['machine', 'messages']
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     description: Optional[str] = None
     goal: Optional[str] = None
@@ -110,20 +117,6 @@ class Session(BaseModel):
             return None
             
         return self.workflow_data.step_results.get(step_name)
-    
-    def get_variable(self, name: str, default: Any = None) -> Any:
-        """Get a workflow variable"""
-        if not self.workflow_data:
-            return default
-            
-        return self.workflow_data.variables.get(name, default)
-    
-    def set_variable(self, name: str, value: Any) -> None:
-        """Set a workflow variable"""
-        if not self.workflow_data:
-            self.workflow_data = WorkflowData()
-            
-        self.workflow_data.variables[name] = value
 
 class Root(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)

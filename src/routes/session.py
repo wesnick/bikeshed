@@ -64,7 +64,8 @@ async def create_session(summary: Optional[str] = None, goal: Optional[str] = No
         "system_prompt": system_prompt,
         "flow_id": flow_id
     }
-    session = await session_repository.create(db, session_data)
+    session = Session(**session_data)
+    session = await session_repository.create(db, session)
     return {"session": session, "messages": [], "message": "Session created successfully"}
 
 
@@ -149,9 +150,7 @@ async def process_message(message: MessageCreate):
         
         # Add messages to the database
         for message in messages:
-            message_data = message.model_dump()
-            del message_data["children"]
-            await message_repository.create(db, message_data)
+            await message_repository.create(db, message)
 
         # Notify all clients to update the session component
         await broadcast_event("session_update", "update")

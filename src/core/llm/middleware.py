@@ -135,7 +135,7 @@ class TemplateProcessingMiddleware(ConversationMiddleware):
         step = context.metadata.get("step")
         if step and step.get("template"):
             # Get variables and template args
-            variables = context.session.workflow_data.get('variables', {})
+            variables = context.session.workflow_data.variables
             template_args = step.get("template_args") or {}
 
             # Combine variables and template args

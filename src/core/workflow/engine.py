@@ -5,7 +5,8 @@ from dataclasses import dataclass
 
 from src.core.config_types import Step, SessionTemplate
 from src.core.workflow.visualization import BikeShedState
-from src.models.models import Session
+from src.models.models import Session, SessionStatus
+
 
 class StepHandler(Protocol):
     """Protocol defining the interface for step handlers"""
@@ -37,12 +38,11 @@ class WorkflowEngine:
     ):
         self.persistence = persistence_provider
         self.handlers = handlers
-        self.sessions: Dict[uuid.UUID, Session] = {}
 
     async def initialize_session(self, session: Session) -> Session:
         """Initialize a state machine for a session"""
-        if session.id in self.sessions:
-            return self.sessions[session.id]
+        if isinstance(session.machine, AsyncGraphMachine):
+            return session
 
         if not session.template:
             raise ValueError("Session must have a template")
@@ -66,9 +66,6 @@ class WorkflowEngine:
 
 
         session.machine = machine
-
-        if session.id is not None:
-            self.sessions[session.id] = session
 
         return session
 
@@ -142,21 +139,21 @@ class WorkflowEngine:
 
         handler = self.handlers.get(next_step.type)
         if not handler:
-            session.workflow_data['errors'].append(f"No handler for step type: {next_step.type}")
+            session.workflow_data.errors.append(f"No handler for step type: {next_step.type}")
             return
 
         try:
             result = await handler.handle(session, next_step)
 
             # Update workflow data
-            session.workflow_data['current_step_index'] += 1
-            session.workflow_data['step_results'][next_step.name] = {
+            session.workflow_data.current_step_index += 1
+            session.workflow_data.step_results[next_step.name] = {
                 'completed': True,
                 **result
             }
 
         except Exception as e:
-            session.workflow_data['errors'].append(str(e))
+            session.workflow_data.errors.append(str(e))
             session.status = 'error'
             raise e
 
@@ -171,7 +168,7 @@ class WorkflowEngine:
             return None
 
         enabled_steps = [step for step in session.template.steps if step.enabled]
-        current_index = session.workflow_data.get('current_step_index', 0)
+        current_index = session.workflow_data.current_step_index
 
         if current_index < len(enabled_steps):
             return enabled_steps[current_index]
@@ -192,7 +189,7 @@ class WorkflowEngine:
             return result
 
         # Find the trigger for this step
-        trigger_name = f'run_step_{session.workflow_data.get("current_step_index", 0)}'
+        trigger_name = f'run_step_{session.workflow_data.current_step_index}'
 
         # Check if the trigger exists
         if hasattr(session, trigger_name):
@@ -203,7 +200,7 @@ class WorkflowEngine:
 
                 # Check if we're waiting for input
                 if session.status == 'waiting_for_input':
-                    missing_vars = session.workflow_data.get('missing_variables', [])
+                    missing_vars = session.workflow_data.missing_variables
                     await self.persistence.save_session(session)
                     return WorkflowTransitionResult(
                         success=False,
@@ -222,8 +219,8 @@ class WorkflowEngine:
 
             except Exception as e:
                 # Save error state to workflow data
-                session.workflow_data['errors'].append(str(e))
-                session.status = 'error'
+                session.workflow_data.errors.append(str(e))
+                session.status = SessionStatus.FAILED
                 # Ensure session is saved when an exception occurs
                 await self.persistence.save_session(session)
                 return WorkflowTransitionResult(

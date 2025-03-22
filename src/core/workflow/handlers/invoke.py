@@ -50,11 +50,7 @@ class InvokeStepHandler(StepHandler):
         except Exception as e:
             # Handle error
             error_message = f"Error invoking {step.callable}: {str(e)}"
-            
-            # Add error to workflow data
-            if 'errors' not in session.workflow_data:
-                session.workflow_data['errors'] = []
-            session.workflow_data['errors'].append(error_message)
+            session.workflow_data.errors.append(error_message)
             
             return {
                 'error': error_message,

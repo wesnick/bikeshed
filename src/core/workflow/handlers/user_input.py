@@ -15,12 +15,12 @@ class UserInputStepHandler(StepHandler):
             return False
             
         # Check if user_input exists in workflow_data
-        has_user_input = 'user_input' in session.workflow_data and session.workflow_data['user_input'] is not None
+        has_user_input = session.workflow_data.user_input is not None
 
         if not has_user_input:
             # Mark session as waiting for input
             session.status = SessionStatus.WAITING_FOR_INPUT
-            session.workflow_data['missing_variables'] = ['user_input']
+            session.workflow_data.missing_variables.append('user_input')
             return False
 
         return True
