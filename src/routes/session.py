@@ -3,6 +3,7 @@ import uuid
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from psycopg import AsyncConnection
+from starlette.responses import Response
 
 from src.core.registry import Registry
 from src.core.workflow.service import WorkflowService
@@ -193,21 +194,22 @@ async def session_template_form(template_name: str,
 
 
 @router.post("/template-creator/{template_name}/create")
+@jinja.hx('components/session/session.html.j2')
 async def create_session_from_template_route(
+        response: Response,
         template_name: str,
         session_create: SessionTemplateCreationRequest,
         background_tasks: BackgroundTasks,
         workflow_service: WorkflowService = Depends(get_workflow_service),
-        registry: Registry = Depends(get_registry)
-
+        registry: Registry = Depends(get_registry),
 ):
     """Create a new session from a template and redirect to it."""
     description = session_create.description
     goal = session_create.goal
-    
+
     # Extract workflow input variables from form data
     initial_data = {"variables": {}}
-    
+
     # Process all form fields that start with "input_" as workflow variables
     for key, value in session_create.input.items():
         initial_data["variables"][key] = value
@@ -228,9 +230,14 @@ async def create_session_from_template_route(
     if not session:
         return {"error": "Failed to create session"}
 
-    # @TODO: trigger htmx get rather than use redirection
-
     background_tasks.add_task(workflow_service.run_workflow, session)
 
-    # Redirect to the session page
-    return {"url": f"/session/{session.id}"}
+    session_workflow_svg = await workflow_service.create_workflow_graph(session)
+
+    response.headers['HX-Push-Url'] = f"/session/{session.id}"
+
+    return {
+        "session": session,
+        "messages": session.messages,
+        "session_workflow_svg": session_workflow_svg,
+    }
