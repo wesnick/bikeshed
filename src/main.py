@@ -32,6 +32,12 @@ async def lifespan(app: FastAPI):
     from src.dependencies import broadcast_service
     app.state.broadcast_service = broadcast_service
 
+    # Create a shutdown event
+    app.state.shutdown_event = asyncio.Event()
+    
+    # Set up signal handlers
+    setup_signal_handlers()
+
     # Boot the registry
     async for registry in get_registry():
         app.state.registry = registry
@@ -41,10 +47,38 @@ async def lifespan(app: FastAPI):
         #     registry.watch_directory('/home/wes/Downloads')
         # )
 
-    yield
+    # Create a task to monitor the shutdown event
+    shutdown_monitor_task = asyncio.create_task(monitor_shutdown_event(app))
+    
+    try:
+        yield
+    finally:
+        logger.info("Application shutting down via lifespan exit")
+        
+        # Cancel the shutdown monitor task if it's still running
+        if not shutdown_monitor_task.done():
+            shutdown_monitor_task.cancel()
+            try:
+                await shutdown_monitor_task
+            except asyncio.CancelledError:
+                pass
+        
+        # Perform cleanup
+        await app.state.broadcast_service.shutdown("Server is shutting down for maintenance")
+        await app.state.registry.stop_watching()
 
-    await app.state.broadcast_service.shutdown("Server is shutting down for maintenance")
-    await app.state.registry.stop_watching()
+async def monitor_shutdown_event(app):
+    """Monitor the shutdown event and initiate graceful shutdown when triggered"""
+    try:
+        await app.state.shutdown_event.wait()
+        logger.info("Shutdown event detected, initiating graceful shutdown")
+        # Notify clients about the shutdown
+        await app.state.broadcast_service.shutdown("Server is shutting down due to signal")
+    except asyncio.CancelledError:
+        # Task was cancelled during normal shutdown
+        pass
+    except Exception as e:
+        logger.error(f"Error in shutdown monitor: {e}")
 
 app = FastAPI(title="BikeShed", lifespan=lifespan)
 app.add_middleware(HTMXRedirectMiddleware)
@@ -71,6 +105,10 @@ def setup_signal_handlers():
     
     # Flag to prevent multiple shutdown attempts
     shutdown_initiated = False
+    
+    # Create a shutdown event to signal the lifespan context manager
+    shutdown_event = asyncio.Event()
+    app.state.shutdown_event = shutdown_event
 
     def signal_handler(sig, frame):
         nonlocal shutdown_initiated
@@ -83,39 +121,24 @@ def setup_signal_handlers():
         shutdown_initiated = True
         logger.warning(f"Received signal {sig}, initiating graceful shutdown...")
 
-        # Schedule the shutdown task without blocking
-        from src.dependencies import broadcast_service
-        
-        async def shutdown_task():
-            try:
-                await broadcast_service.shutdown(f"Server is shutting down due to signal {sig}")
-            except Exception as e:
-                logger.error(f"Error during broadcast shutdown: {e}")
+        # Set the shutdown event - this will be checked in the lifespan context
+        # and will trigger a clean shutdown
+        try:
+            loop = asyncio.get_running_loop()
+            loop.call_soon_threadsafe(lambda: asyncio.create_task(app.state.shutdown_event.set()))
+            logger.info(f"Shutdown event set for signal {sig}")
+        except RuntimeError:
+            # No event loop running in this thread
+            logger.warning(f"No event loop running, can't set shutdown event for signal {sig}")
 
-        # Create the shutdown task
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop.create_task(shutdown_task())
-        else:
-            # If we're not in an event loop, run the task in a new one
-            asyncio.run(shutdown_task())
-
-        # Chain to the original handler after a short delay
-        # This allows our shutdown process to start running
-        def chain_to_original():
-            logger.info(f"Chaining to original signal handler for {sig}")
-            # Call the original handler
-            if sig == signal.SIGTERM and original_term_handler and callable(original_term_handler):
-                if original_term_handler != signal.SIG_DFL and original_term_handler != signal.SIG_IGN:
-                    original_term_handler(sig, frame)
-            elif sig == signal.SIGINT and original_int_handler and callable(original_int_handler):
-                if original_int_handler != signal.SIG_DFL and original_int_handler != signal.SIG_IGN:
-                    original_int_handler(sig, frame)
-
-        # Schedule the original handler to run after a short delay
-        timer = threading.Timer(0.5, chain_to_original)
-        timer.daemon = True  # Make sure this doesn't block process exit
-        timer.start()
+        # Chain to the original handler directly
+        # The clean shutdown will happen via the lifespan context
+        if sig == signal.SIGTERM and original_term_handler and callable(original_term_handler):
+            if original_term_handler != signal.SIG_DFL and original_term_handler != signal.SIG_IGN:
+                original_term_handler(sig, frame)
+        elif sig == signal.SIGINT and original_int_handler and callable(original_int_handler):
+            if original_int_handler != signal.SIG_DFL and original_int_handler != signal.SIG_IGN:
+                original_int_handler(sig, frame)
 
     # Register our handlers
     signal.signal(signal.SIGTERM, signal_handler)  # Signal 15, sent by uvicorn --reload
@@ -125,8 +148,7 @@ def setup_signal_handlers():
 
 # This function is replaced by BroadcastService.shutdown
 
-# Initialize signal handlers
-setup_signal_handlers()
+# Signal handlers are now set up in the lifespan context manager
 
 
 @app.get("/")
