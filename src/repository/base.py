@@ -1,89 +1,93 @@
 from typing import Generic, TypeVar, Type, List, Optional, Any, Dict, Union
 from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
-from sqlalchemy.orm import selectinload
+from psycopg import AsyncConnection
+from psycopg.rows import class_row
 
-from src.models.models import Base
+from pydantic import BaseModel
 
-T = TypeVar('T', bound=Base)
+T = TypeVar('T', bound=BaseModel)
 
 class BaseRepository(Generic[T]):
-    """Base repository for database operations"""
+    """Base repository for database operations using psycopg"""
     
     def __init__(self, model: Type[T]):
         self.model = model
+        self.table_name = model.__name__.lower()
     
-    async def get_by_id(self, db: AsyncSession, id: UUID, load_relations: List[str] = None) -> Optional[T]:
-        """Get an entity by ID with optional relation loading"""
-        query = select(self.model).where(self.model.id == id)
-        
-        if load_relations:
-            for relation in load_relations:
-                query = query.options(selectinload(getattr(self.model, relation)))
-                
-        result = await db.execute(query)
-        return result.scalars().first()
+    async def get_by_id(self, conn: AsyncConnection, id: UUID) -> Optional[T]:
+        """Get an entity by ID"""
+        query = f"SELECT * FROM {self.table_name} WHERE id = %s"
+        async with conn.cursor(row_factory=class_row(self.model)) as cur:
+            await cur.execute(query, (id,))
+            return await cur.fetchone()
     
-    async def get_all(self, db: AsyncSession, limit: int = 100, offset: int = 0, 
-                     load_relations: List[str] = None) -> List[T]:
-        """Get all entities with pagination and optional relation loading"""
-        query = select(self.model).limit(limit).offset(offset)
-        
-        if load_relations:
-            for relation in load_relations:
-                query = query.options(selectinload(getattr(self.model, relation)))
-                
-        result = await db.execute(query)
-        return result.scalars().all()
+    async def get_all(self, conn: AsyncConnection, limit: int = 100, offset: int = 0) -> List[T]:
+        """Get all entities with pagination"""
+        query = f"SELECT * FROM {self.table_name} LIMIT %s OFFSET %s"
+        async with conn.cursor(row_factory=class_row(self.model)) as cur:
+            await cur.execute(query, (limit, offset))
+            return await cur.fetchall()
     
-    async def create(self, db: AsyncSession, data: Dict[str, Any]) -> T:
+    async def create(self, conn: AsyncConnection, data: Dict[str, Any]) -> T:
         """Create a new entity"""
-        entity = self.model(**data)
-        db.add(entity)
-        await db.commit()
-        await db.refresh(entity)
-        return entity
+        # Filter out None values to allow default values to be used
+        filtered_data = {k: v for k, v in data.items() if v is not None}
+        
+        columns = ", ".join(filtered_data.keys())
+        placeholders = ", ".join([f"%s" for _ in filtered_data])
+        values = tuple(filtered_data.values())
+        
+        query = f"INSERT INTO {self.table_name} ({columns}) VALUES ({placeholders}) RETURNING *"
+        
+        async with conn.cursor(row_factory=class_row(self.model)) as cur:
+            await cur.execute(query, values)
+            entity = await cur.fetchone()
+            await conn.commit()
+            return entity
     
-    async def update(self, db: AsyncSession, id: UUID, data: Dict[str, Any]) -> Optional[T]:
+    async def update(self, conn: AsyncConnection, id: UUID, data: Dict[str, Any]) -> Optional[T]:
         """Update an existing entity"""
-        entity = await self.get_by_id(db, id)
-        if not entity:
-            return None
-            
-        for key, value in data.items():
-            if hasattr(entity, key):
-                setattr(entity, key, value)
-                
-        await db.commit()
-        await db.refresh(entity)
-        return entity
+        # Filter out None values
+        filtered_data = {k: v for k, v in data.items() if v is not None}
+        
+        if not filtered_data:
+            return await self.get_by_id(conn, id)
+        
+        set_clause = ", ".join([f"{k} = %s" for k in filtered_data.keys()])
+        values = tuple(filtered_data.values()) + (id,)
+        
+        query = f"UPDATE {self.table_name} SET {set_clause} WHERE id = %s RETURNING *"
+        
+        async with conn.cursor(row_factory=class_row(self.model)) as cur:
+            await cur.execute(query, values)
+            entity = await cur.fetchone()
+            if entity:
+                await conn.commit()
+            return entity
     
-    async def delete(self, db: AsyncSession, id: UUID) -> bool:
+    async def delete(self, conn: AsyncConnection, id: UUID) -> bool:
         """Delete an entity by ID"""
-        entity = await self.get_by_id(db, id)
-        if not entity:
-            return False
-            
-        await db.delete(entity)
-        await db.commit()
-        return True
+        query = f"DELETE FROM {self.table_name} WHERE id = %s RETURNING id"
+        
+        async with conn.cursor() as cur:
+            await cur.execute(query, (id,))
+            result = await cur.fetchone()
+            success = result is not None
+            if success:
+                await conn.commit()
+            return success
     
-    async def filter(self, db: AsyncSession, filters: Dict[str, Any], 
-                    limit: int = 100, offset: int = 0,
-                    load_relations: List[str] = None) -> List[T]:
+    async def filter(self, conn: AsyncConnection, filters: Dict[str, Any], 
+                    limit: int = 100, offset: int = 0) -> List[T]:
         """Filter entities by attributes"""
-        query = select(self.model)
+        if not filters:
+            return await self.get_all(conn, limit, offset)
         
-        for key, value in filters.items():
-            if hasattr(self.model, key):
-                query = query.where(getattr(self.model, key) == value)
+        where_clauses = " AND ".join([f"{k} = %s" for k in filters.keys()])
+        values = tuple(filters.values()) + (limit, offset)
         
-        query = query.limit(limit).offset(offset)
+        query = f"SELECT * FROM {self.table_name} WHERE {where_clauses} LIMIT %s OFFSET %s"
         
-        if load_relations:
-            for relation in load_relations:
-                query = query.options(selectinload(getattr(self.model, relation)))
-                
-        result = await db.execute(query)
-        return result.scalars().all()
+        async with conn.cursor(row_factory=class_row(self.model)) as cur:
+            await cur.execute(query, values)
+            return await cur.fetchall()

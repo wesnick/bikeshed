@@ -1,7 +1,7 @@
 from uuid import UUID
 from typing import List, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from psycopg import AsyncConnection
+from psycopg.rows import class_row
 
 from src.models.models import Message
 from src.repository.base import BaseRepository
@@ -9,26 +9,40 @@ from src.repository.base import BaseRepository
 class MessageRepository(BaseRepository[Message]):
     def __init__(self):
         super().__init__(Message)
+        self.table_name = "message"  # Ensure correct table name
     
-    async def get_by_session(self, db: AsyncSession, session_id: UUID) -> List[Message]:
+    async def get_by_session(self, conn: AsyncConnection, session_id: UUID) -> List[Message]:
         """Get all messages for a session"""
-        query = select(Message).where(Message.session_id == session_id).order_by(Message.timestamp)
-        result = await db.execute(query)
-        return result.scalars().all()
+        query = """
+            SELECT * FROM message 
+            WHERE session_id = %s 
+            ORDER BY timestamp
+        """
+        
+        async with conn.cursor(row_factory=class_row(Message)) as cur:
+            await cur.execute(query, (session_id,))
+            return await cur.fetchall()
     
-    async def get_thread(self, db: AsyncSession, message_id: UUID) -> List[Message]:
+    async def get_thread(self, conn: AsyncConnection, message_id: UUID) -> List[Message]:
         """Get a message and all its children (thread)"""
-        # First get the message
-        query = select(Message).where(Message.id == message_id)
-        result = await db.execute(query)
-        root_message = result.scalars().first()
+        # First get the root message
+        root_query = "SELECT * FROM message WHERE id = %s"
         
-        if not root_message:
-            return []
+        async with conn.cursor(row_factory=class_row(Message)) as cur:
+            await cur.execute(root_query, (message_id,))
+            root_message = await cur.fetchone()
             
-        # Then get all children
-        query = select(Message).where(Message.parent_id == message_id).order_by(Message.timestamp)
-        result = await db.execute(query)
-        children = result.scalars().all()
-        
-        return [root_message] + children
+            if not root_message:
+                return []
+            
+            # Then get all children
+            children_query = """
+                SELECT * FROM message 
+                WHERE parent_id = %s 
+                ORDER BY timestamp
+            """
+            
+            await cur.execute(children_query, (message_id,))
+            children = await cur.fetchall()
+            
+            return [root_message] + children
