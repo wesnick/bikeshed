@@ -12,6 +12,7 @@ from psycopg.types.json import set_json_dumps
 from pydantic import BaseModel
 
 from src.service.cache import RedisService
+from src.service.llm import FakerCompletionService
 from src.service.mcp_client import MCPClient
 from src.config import get_config
 from src.core.registry import Registry
@@ -115,7 +116,8 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
             # Create the WorkflowService instance with the actual registry
             _workflow_service = WorkflowService(
                 get_db,
-                registry_instance
+                registry_instance,
+                llm_service=FakerCompletionService()
             )
     
     yield _workflow_service

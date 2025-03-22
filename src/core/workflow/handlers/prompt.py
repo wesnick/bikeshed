@@ -6,13 +6,13 @@ from src.core.registry import Registry
 from src.models import Message
 from src.models.models import Session, SessionStatus, MessageStatus
 from src.core.workflow.engine import StepHandler
-from src.service.llm import CompletionService, FakerCompletionService, FakerLLMConfig
+from src.service.llm import CompletionService
 
 
 class PromptStepHandler(StepHandler):
     """Handler for prompt steps"""
 
-    def __init__(self, registry: Registry, llm_service: Optional[CompletionService] = None):
+    def __init__(self, registry: Registry, llm_service: CompletionService):
         """
         Initialize the PromptStepHandler
         
@@ -21,7 +21,7 @@ class PromptStepHandler(StepHandler):
             llm_service: Optional CompletionService instance
         """
         self.registry = registry
-        self.llm_service = llm_service or FakerCompletionService(FakerLLMConfig())
+        self.llm_service = llm_service
 
     async def can_handle(self, session: Session, step: Step) -> bool:
         """Check if the step can be handled"""

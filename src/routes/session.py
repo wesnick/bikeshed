@@ -95,29 +95,15 @@ async def session_submit(message: MessageCreate,
 
     session = await workflow_service.get_session(message.session_id)
 
-    if message.button_pressed == "send":
-        logger.warning("send pressed")
-    elif message.button_pressed == "continue":
-        logger.warning("continue pressed")
+    next_action = "continue" if message.button_pressed == "continue" else "send"
+    logger.warning(f"{next_action} pressed")
+    
+    if next_action == "continue":
+        background_tasks.add_task(workflow_service.run_workflow, session)
+        return {"session": session, "current_step": session.get_current_step()}
 
-    # model = form_data.get("model", "default-model")
-    # strategy = form_data.get("strategy", "default-strategy")
-
-    # Process in background (non-blocking)
-    background_tasks.add_task(process_message, message)
-
-    # Return empty response as we'll update via SSE
-    return {"session": session, "current_step": session.get_current_step()}
-
-async def process_message(message: MessageCreate):
-    """Process the message and send response via SSE"""
-    from src.main import broadcast_event
-    from src.service.llm import FakerCompletionService, FakerLLMConfig
 
     async for db in get_db():
-        # Get the session
-        session = await session_repository.get_by_id(db, message.session_id)
-
         user_message = Message(
             id=uuid.uuid4(),
             session_id=session.id,
@@ -129,10 +115,10 @@ async def process_message(message: MessageCreate):
 
         # Add user message to the database
         await message_repository.create(db, user_message)
-        
+
         # Add to session for LLM processing
         session.messages.append(user_message)
-        
+
         # Create assistant message placeholder
         assistant_message = Message(
             id=uuid.uuid4(),
@@ -142,29 +128,40 @@ async def process_message(message: MessageCreate):
             text="",
             status=MessageStatus.PENDING
         )
-        
         # Add to database and session
         await message_repository.create(db, assistant_message)
         session.messages.append(assistant_message)
-        
-        # Create LLM service
-        llm_service = FakerCompletionService(FakerLLMConfig(response_delay=0.1))
-        
-        # Create broadcast function
-        async def broadcast_message(updated_msg: Message):
-            # Update message in database
-            await message_repository.update(db, updated_msg)
-            # Broadcast update to clients
-            await broadcast_event("message_update", str(updated_msg.id))
-        
-        # Process with LLM
-        result_message = await llm_service.complete(session, broadcast=broadcast_message)
-        
-        # Update final message in database
-        await message_repository.update(db, result_message)
 
-        # Notify all clients to update the session component
-        await broadcast_event("session_update", "update")
+
+    background_tasks.add_task(process_message, session)
+
+    # Return empty response as we'll update via SSE
+    return {"session": session, "current_step": session.get_current_step()}
+
+async def process_message(session: Session,
+                          db: AsyncConnection = Depends(get_db)):
+    """Process the message and send response via SSE"""
+    from src.main import broadcast_event
+    from src.service.llm import FakerCompletionService, FakerLLMConfig
+
+    # Create LLM service
+    llm_service = FakerCompletionService(FakerLLMConfig(response_delay=0.1))
+
+    # Create broadcast function
+    async def broadcast_message(updated_msg: Message):
+        # Update message in database
+        await message_repository.update(db, updated_msg)
+        # Broadcast update to clients
+        await broadcast_event("message_update", str(updated_msg.id))
+
+    # Process with LLM
+    result_message = await llm_service.complete(session, broadcast=broadcast_message)
+
+    # Update final message in database
+    await message_repository.update(db, result_message)
+
+    # Notify all clients to update the session component
+    await broadcast_event("session_update", "update")
 
 
 @router.get("/template-creator/{template_name}")
