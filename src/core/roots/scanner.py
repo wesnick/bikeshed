@@ -1,7 +1,6 @@
 from datetime import datetime
 from pathlib import Path
 from psycopg import AsyncConnection
-from psycopg.cursor import AsyncCursor
 from src.models.models import Root, RootFile
 import aiofiles
 import aiofiles.os
