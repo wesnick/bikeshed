@@ -65,6 +65,12 @@ def get_jinja() -> Jinja:
 mcp_client = MCPClient()
 _mcp_client_initialized = False
 
+# Import the shutdown manager
+from src.service.shutdown_helper import shutdown_manager
+
+# Register MCP client cleanup with shutdown manager
+shutdown_manager.register_cleanup_hook(mcp_client.cleanup)
+
 async def get_mcp_client() -> AsyncGenerator[MCPClient, None]:
     """Dependency for getting the singleton MCPClient instance"""
     global _mcp_client_initialized
