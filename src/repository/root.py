@@ -10,7 +10,7 @@ from src.repository.base import BaseRepository
 class RootRepository(BaseRepository[Root]):
     def __init__(self):
         super().__init__(Root)
-        self.table_name = "root"  # Ensure correct table name
+        self.table_name = "roots"  # Ensure correct table name
     
     async def get_with_files(self, conn: AsyncConnection, root_id: UUID) -> Optional[Root]:
         """Get a root with all its files"""

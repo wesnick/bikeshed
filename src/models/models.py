@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Callable, Awaitable, ClassVar, Union
 from enum import Enum
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 from transitions.extensions import AsyncGraphMachine
 
 from src.core.config_types import SessionTemplate, Step
@@ -29,6 +29,8 @@ class WorkflowData(BaseModel):
     current_step_index: int = 0
     step_results: Dict[str, Any] = Field(default_factory=dict)
     variables: Dict[str, Any] = Field(default_factory=dict)
+    errors: List[str] = Field(default_factory=list)
+
 
 class Message(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
@@ -65,8 +67,13 @@ class Session(BaseModel):
     messages: List[Message] = Field(default_factory=list)
     
     # Instance variables - not persisted
-    machine: Optional[AsyncGraphMachine] = None
-    _temp_messages: List[Message] = Field(default_factory=list)
+    machine: Optional[AsyncGraphMachine] = Field(exclude=True, default=None)
+
+    model_config = ConfigDict(
+        extra='allow',
+        arbitrary_types_allowed=True
+    )
+
 
     @property
     def first_message(self) -> Optional[Message]:

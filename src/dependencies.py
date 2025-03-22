@@ -1,11 +1,15 @@
 from typing import AsyncGenerator
 import asyncio
+import json
+
 
 from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
 from markdown2 import markdown
 import psycopg_pool
 from psycopg import AsyncConnection
+from psycopg.types.json import set_json_dumps
+from pydantic import BaseModel
 
 from src.core.llm.llm import DummyLLMService
 from src.service.cache import RedisService
@@ -24,6 +28,13 @@ db_pool = psycopg_pool.AsyncConnectionPool(
     max_size=20
 )
 
+def pydantic_json_dumps(obj):
+    if isinstance(obj, BaseModel):
+        return obj.model_dump_json()
+    else:
+        return json.dumps(obj)
+
+set_json_dumps(pydantic_json_dumps)
 
 async def get_db() -> AsyncGenerator[AsyncConnection, None]:
     """Dependency for getting async database connection"""
@@ -104,7 +115,7 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
 
             # Create the WorkflowService instance with the actual registry
             _workflow_service = WorkflowService(
-                db_pool,
+                get_db,
                 registry_instance,
                 DummyLLMService()
             )

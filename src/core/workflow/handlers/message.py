@@ -4,7 +4,7 @@ import uuid
 from src.core.registry import Registry
 from src.core.workflow.engine import StepHandler
 from src.core.config_types import MessageStep, Step
-from src.models.models import Session, Message
+from src.models.models import Session, Message, MessageStatus, SessionStatus
 
 
 class MessageStepHandler(StepHandler):
@@ -29,7 +29,7 @@ class MessageStepHandler(StepHandler):
             raise TypeError(f"Expected MessageStep but got {type(step)}")
 
         # Set status to running
-        session.status = 'running'
+        session.status = SessionStatus.RUNNING
 
         # Determine the message content based on the step configuration
         message_content = await self._get_message_content(session, step)
@@ -40,13 +40,8 @@ class MessageStepHandler(StepHandler):
             session_id=session.id,
             role=step.role,
             text=message_content,
-            status='delivered'
+            status=MessageStatus.CREATED
         )
-
-        # Add to session's messages
-        if not hasattr(session, '_temp_messages'):
-            session._temp_messages = []
-        session._temp_messages.append(message)
 
         # Return step result
         return {

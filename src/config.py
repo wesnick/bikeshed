@@ -27,7 +27,7 @@ class Config(BaseSettings):
     @computed_field
     def database_url(self) -> PostgresDsn:
         return PostgresDsn.build(
-                scheme="postgresql+asyncpg",
+                scheme="postgresql",
                 username=self.postgres_user,
                 password=self.postgres_password,
                 host=self.postgres_host,

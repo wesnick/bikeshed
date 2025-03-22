@@ -32,12 +32,11 @@ async def get_session(session_id: UUID,
         raise HTTPException(status_code=404, detail="Session not found")
 
 
-    logger.warning(f"Session: {session} Message count: {len(session.messages)}")
+    logger.warning(f"Session: {session.id} Message count: {len(session.messages)}")
     session_workflow_svg = await workflow_service.create_workflow_graph(session)
     return {
         "session": session,
         "messages": session.messages,
-        "workflow_svg": session_workflow_svg,
         "session_workflow_svg": session_workflow_svg,
     }
 
@@ -149,12 +148,10 @@ async def process_message(message: MessageCreate):
         messages = context.metadata.get("messages", [])
         
         # Add messages to the database
-        for msg in messages:
-            db.add(msg)
-        await db.commit()
-        
-        # Refresh the session to get the latest messages
-        await db.refresh(session)
+        for message in messages:
+            message_data = message.model_dump()
+            del message_data["children"]
+            await message_repository.create(db, message_data)
 
         # Notify all clients to update the session component
         await broadcast_event("session_update", "update")

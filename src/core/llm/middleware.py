@@ -5,6 +5,7 @@ from datetime import datetime
 from src.core.llm.manager import MessageContext, ConversationMiddleware
 from src.core.llm.llm import LLMService, LLMMessageFactory
 from src.models import Message
+from src.models.models import MessageStatus
 from src.service.logging import logger
 
 class MessagePersistenceMiddleware(ConversationMiddleware):
@@ -29,17 +30,13 @@ class MessagePersistenceMiddleware(ConversationMiddleware):
                 session_id=context.session.id,
                 role="user",
                 text=context.raw_input if isinstance(context.raw_input, str) else str(context.raw_input),
-                status='delivered',
+                status=MessageStatus.CREATED,
                 parent_id=context.metadata.get("parent_id"),
                 model=context.metadata.get("model"),
                 extra=context.metadata.get("extra")
             )
-            
-            # Add to session's temporary storage
-            if not hasattr(context.session, '_temp_messages'):
-                context.session._temp_messages = []
-            
-            context.session._temp_messages.append(user_message)
+
+            context.session.messages.append(user_message)
             
             # Update context with the created message
             if not context.metadata.get("messages"):
@@ -61,17 +58,13 @@ class MessagePersistenceMiddleware(ConversationMiddleware):
                 session_id=context.session.id,
                 role="assistant",
                 text=updated_context.output if isinstance(updated_context.output, str) else str(updated_context.output),
-                status='delivered',
+                status=MessageStatus.DELIVERED,
                 parent_id=parent_id,
                 model=context.metadata.get("model"),
                 extra=context.metadata.get("extra")
             )
-            
-            # Add to session's temporary storage
-            if not hasattr(context.session, '_temp_messages'):
-                context.session._temp_messages = []
-            
-            context.session._temp_messages.append(response_message)
+
+            context.session.messages.append(response_message)
             
             # Update context with the created message
             if not updated_context.metadata.get("messages"):
@@ -105,16 +98,7 @@ class LLMProcessingMiddleware(ConversationMiddleware):
         """
         # Convert to LLM format if not already done
         if not context.llm_messages:
-            # Get existing messages from the session
-            existing_messages = []
-            if hasattr(context.session, '_temp_messages'):
-                existing_messages = context.session._temp_messages
-            
-            # Convert to LLM messages
-            context.llm_messages = LLMMessageFactory.from_session_messages(
-                context.session, 
-                existing_messages
-            )
+            context.llm_messages = LLMMessageFactory.from_session_messages(context.session)
             
         # Generate response from LLM
         logger.info(f"Generating LLM response with {len(context.llm_messages)} messages")

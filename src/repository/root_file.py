@@ -10,7 +10,7 @@ from src.repository.base import BaseRepository
 class RootFileRepository(BaseRepository[RootFile]):
     def __init__(self):
         super().__init__(RootFile)
-        self.table_name = "root_file"  # Ensure correct table name
+        self.table_name = "root_files"  # Ensure correct table name
     
     async def get_by_path(self, conn: AsyncConnection, root_id: UUID, path: str) -> Optional[RootFile]:
         """Get a file by its path within a root"""

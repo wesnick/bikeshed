@@ -87,7 +87,7 @@ class LLMMessageFactory:
     """Factory for creating LLM message sequences"""
     
     @staticmethod
-    def from_session_messages(session: Session, messages: List[Message]) -> List[LLMMessage]:
+    def from_session_messages(session: Session) -> List[LLMMessage]:
         """
         Create a list of LLMMessages from session messages
         
@@ -100,10 +100,8 @@ class LLMMessageFactory:
         """
         result = []
 
-        # combine 2 lists
-        all_messages = session.messages + messages
 
-        for msg in all_messages:
+        for msg in session.messages:
             msg: Message
             # Determine the role
             try:

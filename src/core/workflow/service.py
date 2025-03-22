@@ -1,7 +1,7 @@
 from typing import Dict, Any, List, Optional, Union, Callable, AsyncGenerator
 import uuid
 
-from psycopg import AsyncConnection
+from psycopg_pool import AsyncConnectionPool
 
 from src.core.config_types import SessionTemplate, Step
 from src.core.registry import Registry
@@ -19,7 +19,7 @@ class WorkflowService:
     """Service for managing workflow state machines"""
 
     def __init__(self,
-                 get_db: Callable[[], AsyncGenerator[AsyncConnection, None]],
+                 get_db: AsyncGenerator[AsyncConnectionPool, None],
                  registry: Registry,
                  llm_service):
         """

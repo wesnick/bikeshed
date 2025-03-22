@@ -3,7 +3,8 @@ import uuid
 
 from src.core.workflow.engine import StepHandler
 from src.core.config_types import UserInputStep, Step
-from src.models.models import Session, Message
+from src.models.models import Session, Message, SessionStatus, MessageStatus
+
 
 class UserInputStepHandler(StepHandler):
     """Handler for user_input steps"""
@@ -18,7 +19,7 @@ class UserInputStepHandler(StepHandler):
 
         if not has_user_input:
             # Mark session as waiting for input
-            session.status = 'waiting_for_input'
+            session.status = SessionStatus.WAITING_FOR_INPUT
             session.workflow_data['missing_variables'] = ['user_input']
             return False
 
@@ -35,7 +36,7 @@ class UserInputStepHandler(StepHandler):
         
         if not user_input:
             # If no user input is available, set status to waiting and exit
-            session.status = 'waiting_for_input'
+            session.status = SessionStatus.WAITING_FOR_INPUT
             return {'completed': False, 'waiting_for_input': True}
         
         # Create a message for the user input
@@ -44,19 +45,16 @@ class UserInputStepHandler(StepHandler):
             session_id=session.id,
             role="user",
             text=user_input,
-            status='delivered'
+            status=MessageStatus.CREATED
         )
 
-        # Add to session's messages
-        if not hasattr(session, '_temp_messages'):
-            session._temp_messages = []
-        session._temp_messages.append(message)
+        session.messages.append(message)
 
         # Clear the user_input after processing
         session.workflow_data.pop('user_input', None)
         
         # Update status to running
-        session.status = 'running'
+        session.status = SessionStatus.RUNNING
 
         # Return step result
         return {

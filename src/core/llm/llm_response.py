@@ -126,12 +126,8 @@ class LLMResponseHandler:
         response_message = await LLMResponseHandler.create_response_message(
             session, response_text, last_message_id, model, metadata
         )
-        
-        # Add messages to session's temporary storage
-        if not hasattr(session, '_temp_messages'):
-            session._temp_messages = []
-        
-        session._temp_messages.extend(prompt_messages + [response_message])
+
+        session.messages.extend(prompt_messages + [response_message])
         
         return prompt_messages, response_message
     

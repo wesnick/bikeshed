@@ -10,7 +10,7 @@ from src.repository.base import BaseRepository
 class SessionRepository(BaseRepository[Session]):
     def __init__(self):
         super().__init__(Session)
-        self.table_name = "session"  # Ensure correct table name
+        self.table_name = "sessions"  # Ensure correct table name
 
     async def get_recent_sessions(self, conn: AsyncConnection, limit: int = 40) -> List[Session]:
         """Get the most recent sessions"""
@@ -38,7 +38,7 @@ class SessionRepository(BaseRepository[Session]):
             
             # Then get all messages for this session
             messages_query = SQL("""
-                SELECT * FROM message 
+                SELECT * FROM messages 
                 WHERE session_id = %s 
                 ORDER BY timestamp
             """)

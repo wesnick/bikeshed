@@ -50,9 +50,6 @@ class WorkflowEngine:
         # Extract states and transitions
         states, transitions = self._build_state_machine_config(session.template)
 
-        # Initialize workflow data
-        self._initialize_workflow_data(session)
-
         # Create state machine
         machine = AsyncGraphMachine(
             model=session,
@@ -115,19 +112,6 @@ class WorkflowEngine:
                 })
 
         return states, transitions
-
-    def _initialize_workflow_data(self, session: Session) -> None:
-        """Initialize workflow data structure"""
-        if not session.workflow_data:
-            session.workflow_data = {}
-
-        session.workflow_data.update({
-            'current_step_index': session.workflow_data.get('current_step_index', 0),
-            'step_results': session.workflow_data.get('step_results', {}),
-            'variables': session.workflow_data.get('variables', {}),
-            'errors': session.workflow_data.get('errors', []),
-            'messages': session.workflow_data.get('messages', [])
-        })
 
     async def _after_state_change(self, event):
         """Handle state change events"""

@@ -3,7 +3,6 @@ import uuid
 import asyncio
 
 from psycopg import AsyncConnection
-from psycopg.sql import SQL, Identifier, Composed
 
 from src.core.workflow.engine import PersistenceProvider
 from src.models.models import Session, Message, MessageStatus, SessionStatus, WorkflowData
@@ -38,6 +37,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
             logger.info(f"Saving session {session.id} with state {session.current_state}")
 
             try:
+                # Acquire a connection
                 async for conn in self.get_db():
                     # Save the session first
                     session_data = {
@@ -46,9 +46,9 @@ class DatabasePersistenceProvider(PersistenceProvider):
                         "workflow_data": session.workflow_data.model_dump() if session.workflow_data else None,
                         "error": session.error
                     }
-                    
+
                     await self.session_repo.update(conn, session.id, session_data)
-                    
+
                     # Save any messages that need to be persisted
                     for message in session.messages:
                         if message.status == MessageStatus.CREATED:
@@ -66,25 +66,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
                             }
                             await self.message_repo.update(conn, message.id, message_data)
                             message.status = MessageStatus.DELIVERED
-                    
-                    # Handle any temporary messages that haven't been saved yet
-                    if hasattr(session, '_temp_messages') and session._temp_messages:
-                        for msg in session._temp_messages:
-                            # Ensure message has session_id
-                            if not msg.session_id:
-                                msg.session_id = session.id
-                                
-                            msg.status = MessageStatus.PENDING
-                            message_data = msg.model_dump()
-                            await self.message_repo.create(conn, message_data)
-                            msg.status = MessageStatus.DELIVERED
-                            
-                            # Add to the main messages list
-                            session.messages.append(msg)
-                        
-                        # Clear temporary messages
-                        session._temp_messages = []
-                    
+
                     # Commit the transaction
                     await conn.commit()
                     logger.info(f"Successfully saved session {session.id}")
@@ -115,10 +97,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
                 if not session:
                     logger.warning(f"Session {session_id} not found")
                     return None
-                
-                # Initialize temporary messages list
-                session._temp_messages = []
-                
+
                 # Convert workflow_data from dict to WorkflowData if needed
                 if session.workflow_data and isinstance(session.workflow_data, dict):
                     session.workflow_data = WorkflowData(**session.workflow_data)
@@ -146,34 +125,22 @@ class DatabasePersistenceProvider(PersistenceProvider):
         
         # Create the session object
         session = Session(**session_data)
-        
-        # Initialize temporary messages list
-        session._temp_messages = []
-        
+
         try:
             async for conn in self.get_db():
-                # Convert enum values to strings
-                if isinstance(session.status, SessionStatus):
-                    session_data['status'] = session.status.value
-                
-                # Convert workflow_data to dict if it's a Pydantic model
-                if session.workflow_data and hasattr(session.workflow_data, 'model_dump'):
-                    session_data['workflow_data'] = session.workflow_data.model_dump()
-                
-                # Remove relationships and internal fields
-                session_data.pop('messages', None)
-                session_data.pop('machine', None)
-                session_data.pop('_temp_messages', None)
-                
+
                 # Create the session in the database
+                session_data = session.model_dump()
+                del session_data['messages']
+
                 created_session = await self.session_repo.create(conn, session_data)
-                
+
                 # Commit the transaction
                 await conn.commit()
                 logger.info(f"Successfully created session {created_session.id}")
-                
+
                 return created_session
-                
+
         except Exception as e:
             logger.error(f"Error creating session: {e}")
             if 'conn' in locals():
@@ -203,18 +170,7 @@ class InMemoryPersistenceProvider(PersistenceProvider):
             'workflow_data': session.workflow_data.model_dump() if session.workflow_data else {},
             'messages': []
         }
-        
-        # Add any temporary messages
-        if hasattr(session, '_temp_messages') and session._temp_messages:
-            for msg in session._temp_messages:
-                session_data['messages'].append({
-                    'id': msg.id,
-                    'role': msg.role,
-                    'text': msg.text,
-                    'status': msg.status
-                })
-            session._temp_messages = []
-            
+
         self.sessions[session.id] = session_data
         
     async def load_session(self, session_id: uuid.UUID) -> Optional[Session]:
@@ -239,10 +195,7 @@ class InMemoryPersistenceProvider(PersistenceProvider):
             current_state=session_data['current_state'],
             workflow_data=WorkflowData(**session_data['workflow_data']) if session_data['workflow_data'] else None
         )
-        
-        # Initialize temporary messages list
-        session._temp_messages = []
-        
+
         return session
         
     async def create_session(self, session_data: Dict[str, Any]) -> Session:
@@ -257,10 +210,7 @@ class InMemoryPersistenceProvider(PersistenceProvider):
         """
         # Create a new session object
         session = Session(**session_data)
-        
-        # Initialize temporary messages list
-        session._temp_messages = []
-        
+
         # Save to memory
         await self.save_session(session)
         
