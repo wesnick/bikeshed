@@ -8,7 +8,7 @@ import signal
 import threading
 
 from fastapi import FastAPI, Request, Depends, BackgroundTasks
-from sqlalchemy.ext.asyncio import AsyncSession
+from psycopg import AsyncConnection
 from starlette.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from sse_starlette.sse import EventSourceResponse
@@ -147,7 +147,7 @@ async def session_component() -> dict:
 
 @app.get("/components/left-sidebar")
 @jinja.hx('components/left_sidebar.html.j2')
-async def left_sidebar_component(db: AsyncSession = Depends(get_db), registry: Registry = Depends(get_registry)) -> dict:
+async def left_sidebar_component(db: AsyncConnection = Depends(get_db), registry: Registry = Depends(get_registry)) -> dict:
     """This route serves the left sidebar component for htmx requests."""
     sessions = await session_repository.get_recent_sessions(db)
 
