@@ -1,6 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 from psycopg import AsyncConnection
+from psycopg.cursor import AsyncCursor
 from src.models.models import Root, RootFile
 import aiofiles
 import aiofiles.os
@@ -44,33 +45,40 @@ class FileScanner:
         """Recursively scan a directory and create RootFile entities."""
         try:
             entries = await aiofiles.os.scandir(directory_path)
+            root_files = []
+            
+            # First, collect all files in this directory
             for entry in entries:
                 entry_path = Path(entry.path)
                 if entry.is_file():
                     root_file = await self._scan_file(root, entry_path)
                     if root_file:
-                        # Insert the root_file using psycopg
-                        await conn.execute(
-                            """
-                            INSERT INTO root_files (
-                                id, root_id, name, path, extension, mime_type, 
-                                size, atime, mtime, ctime
-                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                            """,
-                            (
-                                root_file.id, 
-                                root_file.root_id, 
-                                root_file.name, 
-                                root_file.path, 
-                                root_file.extension, 
-                                root_file.mime_type, 
-                                root_file.size, 
-                                root_file.atime, 
-                                root_file.mtime, 
-                                root_file.ctime
-                            )
-                        )
-                elif entry.is_dir():
+                        root_files.append((
+                            str(root_file.id),
+                            str(root_file.root_id),
+                            root_file.name,
+                            root_file.path,
+                            root_file.extension,
+                            root_file.mime_type,
+                            root_file.size,
+                            root_file.atime,
+                            root_file.mtime,
+                            root_file.ctime
+                        ))
+            
+            # Use COPY to insert all files in a batch if there are any
+            if root_files:
+                async with conn.cursor() as cursor:
+                    async with cursor.copy(
+                        "COPY root_files (id, root_id, name, path, extension, mime_type, size, atime, mtime, ctime) FROM STDIN"
+                    ) as copy:
+                        for record in root_files:
+                            await copy.write_row(record)
+            
+            # Then recursively process subdirectories
+            for entry in entries:
+                entry_path = Path(entry.path)
+                if entry.is_dir():
                     await self._scan_directory_recursive(root, entry_path, conn)
         except Exception as e:
             print(f"Error scanning directory {directory_path}: {e}") # Use logger
