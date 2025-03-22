@@ -26,7 +26,8 @@ settings = get_config()
 db_pool = AsyncConnectionPool(
     str(settings.database_url),
     min_size=5,
-    max_size=20
+    max_size=20,
+    open=False
 )
 
 def pydantic_json_dumps(obj):

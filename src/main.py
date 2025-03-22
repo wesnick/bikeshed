@@ -24,7 +24,8 @@ async def lifespan(app: FastAPI):
     setup_logging()
     
     # Store the broadcast service in app state
-    from src.dependencies import broadcast_service
+    from src.dependencies import broadcast_service, db_pool
+    await db_pool.open()
     app.state.broadcast_service = broadcast_service
 
     # Use the shutdown manager's event
@@ -32,6 +33,8 @@ async def lifespan(app: FastAPI):
     
     # Register broadcast service shutdown with the shutdown manager
     shutdown_manager.register_cleanup_hook(broadcast_service.shutdown)
+
+    shutdown_manager.register_cleanup_hook(db_pool.close)
     
     # Set up signal handlers using the shutdown manager
     shutdown_manager.install_signal_handlers()
@@ -51,6 +54,7 @@ async def lifespan(app: FastAPI):
 
     logger.info("Application shutting down via lifespan exit")
     await shutdown_manager.trigger_shutdown()
+
 
 
 app = FastAPI(title="BikeShed", lifespan=lifespan)
