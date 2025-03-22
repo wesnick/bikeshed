@@ -9,7 +9,7 @@ setup-env:
 
 # Install or update dependencies
 install-deps:
-    uv pip install transitions[asyncio] faker pydantic pydantic-settings
+    uv pip install transitions[asyncio] faker pydantic pydantic-settings litellm
 
 # Start the FastAPI development server with auto-reload
 fastapi-dev:

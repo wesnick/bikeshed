@@ -112,6 +112,7 @@ async def session_submit(message: MessageCreate,
 async def process_message(message: MessageCreate):
     """Process the message and send response via SSE"""
     from src.main import broadcast_event
+    from src.service.llm import FakerCompletionService, FakerLLMConfig
 
     async for db in get_db():
         # Get the session
@@ -128,11 +129,39 @@ async def process_message(message: MessageCreate):
 
         # Add user message to the database
         await message_repository.create(db, user_message)
-
-        # TODO: send to llm get result
-        result_message = None
         
-        await message_repository.create(db, result_message)
+        # Add to session for LLM processing
+        session.messages.append(user_message)
+        
+        # Create assistant message placeholder
+        assistant_message = Message(
+            id=uuid.uuid4(),
+            session_id=session.id,
+            role='assistant',
+            model=message.model,
+            text="",
+            status=MessageStatus.PENDING
+        )
+        
+        # Add to database and session
+        await message_repository.create(db, assistant_message)
+        session.messages.append(assistant_message)
+        
+        # Create LLM service
+        llm_service = FakerCompletionService(FakerLLMConfig(response_delay=0.1))
+        
+        # Create broadcast function
+        async def broadcast_message(updated_msg: Message):
+            # Update message in database
+            await message_repository.update(db, updated_msg)
+            # Broadcast update to clients
+            await broadcast_event("message_update", str(updated_msg.id))
+        
+        # Process with LLM
+        result_message = await llm_service.complete(session, broadcast=broadcast_message)
+        
+        # Update final message in database
+        await message_repository.update(db, result_message)
 
         # Notify all clients to update the session component
         await broadcast_event("session_update", "update")

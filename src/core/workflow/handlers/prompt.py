@@ -1,24 +1,27 @@
 import uuid
-from typing import Dict, Any
+from typing import Dict, Any, Optional, Callable, Awaitable
 
 from src.core.config_types import PromptStep, Step
 from src.core.registry import Registry
 from src.models import Message
 from src.models.models import Session, SessionStatus, MessageStatus
 from src.core.workflow.engine import StepHandler
+from src.service.llm import CompletionService, FakerCompletionService, FakerLLMConfig
 
 
 class PromptStepHandler(StepHandler):
     """Handler for prompt steps"""
 
-    def __init__(self, registry: Registry):
+    def __init__(self, registry: Registry, llm_service: Optional[CompletionService] = None):
         """
         Initialize the PromptStepHandler
         
         Args:
             registry: Registry instance
+            llm_service: Optional CompletionService instance
         """
         self.registry = registry
+        self.llm_service = llm_service or FakerCompletionService(FakerLLMConfig())
 
     async def can_handle(self, session: Session, step: Step) -> bool:
         """Check if the step can be handled"""
@@ -71,14 +74,38 @@ class PromptStepHandler(StepHandler):
             status=MessageStatus.PENDING
         )
         
-        # TODO: send to llm get result
-        result_message = None
+        # Add the user message to the session
+        session.messages.append(user_message)
+        
+        # Create a placeholder for the assistant response
+        assistant_message = Message(
+            id=uuid.uuid4(),
+            session_id=session.id,
+            role="assistant",
+            text="",
+            status=MessageStatus.PENDING
+        )
+        
+        # Add the assistant message to the session
+        session.messages.append(assistant_message)
+        
+        # Process with LLM service
+        result_message = await self.llm_service.complete(
+            session,
+            broadcast=self._create_broadcast_callback(session.id)
+        )
 
         # Return step result
         return {
             'prompt': user_message,
             'response': result_message
         }
+        
+    def _create_broadcast_callback(self, session_id: uuid.UUID) -> Optional[Callable[[Message], Awaitable[None]]]:
+        """Create a broadcast callback for streaming updates"""
+        # This would be implemented to broadcast updates via SSE
+        # For now, return None as we'll implement this later
+        return None
 
     async def _get_prompt_content(self, session: Session, step: PromptStep) -> str | list:
         """Get the content for a prompt step"""
