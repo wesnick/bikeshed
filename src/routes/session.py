@@ -1,4 +1,5 @@
 from typing import Optional
+import uuid
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from psycopg import AsyncConnection
@@ -6,8 +7,9 @@ from psycopg import AsyncConnection
 from src.core.registry import Registry
 from src.core.workflow.service import WorkflowService
 from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry
+from src.models.models import MessageStatus
 from src.repository import session_repository, message_repository
-from src.models import Session
+from src.models import Session, Message
 from src.types import SessionTemplateCreationRequest, MessageCreate
 from src.service.logging import logger
 
@@ -110,47 +112,27 @@ async def session_submit(message: MessageCreate,
 async def process_message(message: MessageCreate):
     """Process the message and send response via SSE"""
     from src.main import broadcast_event
-    from src.core.llm.manager import ConversationManager, MessageContext
-    from src.core.llm.middleware import (
-        MessagePersistenceMiddleware,
-        LLMProcessingMiddleware,
-        SessionUpdateMiddleware
-    )
-    from src.core.llm.llm import get_llm_service
-
-    # Get the LLM service
-    llm_service = get_llm_service()
 
     async for db in get_db():
         # Get the session
         session = await session_repository.get_by_id(db, message.session_id)
-        if not session:
-            return
 
-        # Create conversation manager with middleware chain
-        manager = ConversationManager([
-            MessagePersistenceMiddleware(),
-            LLMProcessingMiddleware(llm_service),
-            SessionUpdateMiddleware()
-        ])
-        
-        # Process through middleware chain
-        context = await manager.process(MessageContext(
-            session=session,
-            raw_input=message.text,
+        user_message = Message(
+            id=uuid.uuid4(),
+            session_id=session.id,
+            role='user',
             model=message.model,
-            metadata={
-                "parent_id": message.parent_id,
-                "extra": message.extra
-            }
-        ))
+            text=message.text,
+            status=MessageStatus.PENDING
+        )
+
+        # Add user message to the database
+        await message_repository.create(db, user_message)
+
+        # TODO: send to llm get result
+        result_message = None
         
-        # Extract created messages
-        messages = context.metadata.get("messages", [])
-        
-        # Add messages to the database
-        for message in messages:
-            await message_repository.create(db, message)
+        await message_repository.create(db, result_message)
 
         # Notify all clients to update the session component
         await broadcast_event("session_update", "update")

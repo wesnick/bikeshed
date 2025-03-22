@@ -43,6 +43,8 @@ class MessageStepHandler(StepHandler):
             status=MessageStatus.CREATED
         )
 
+        session.messages.append(message)
+
         # Return step result
         return {
             'message_id': str(message.id),

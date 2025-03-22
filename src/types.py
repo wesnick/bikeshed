@@ -15,7 +15,7 @@ class SessionTemplateCreationRequest(BaseModel):
 
 class MessageBase(BaseModel):
     role: str = 'user'
-    model: Optional[str] = '@TODO'
+    model: Optional[str] = 'faker' # @TODO
     text: str
     mime_type: str = "text/plain"
     extra: Optional[Dict[str, Any]] = None
