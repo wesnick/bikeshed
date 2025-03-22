@@ -4,8 +4,8 @@ import asyncio
 from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
 from markdown2 import markdown
-from sqlalchemy.ext.asyncio import  AsyncSession
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+import psycopg_pool
+from psycopg import AsyncConnection
 
 from src.core.llm.llm import DummyLLMService
 from src.service.cache import RedisService
@@ -17,22 +17,18 @@ from src.core.workflow.service import WorkflowService
 
 settings = get_config()
 
-# Create engine with the Base metadata from models
-engine = create_async_engine(
+# Create a connection pool for database access
+db_pool = psycopg_pool.AsyncConnectionPool(
     str(settings.database_url),
-    echo=settings.log_level == "DEBUG",
-)
-
-async_session_factory = async_sessionmaker(
-    engine,
-    expire_on_commit=False
+    min_size=5,
+    max_size=20
 )
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency for getting async database session"""
-    async with async_session_factory() as session:
-        yield session
+async def get_db() -> AsyncGenerator[AsyncConnection, None]:
+    """Dependency for getting async database connection"""
+    async with db_pool.connection() as conn:
+        yield conn
 
 async def get_cache() -> AsyncGenerator[RedisService, None]:
     yield RedisService(redis_url=str(settings.redis_url))
@@ -108,7 +104,7 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
 
             # Create the WorkflowService instance with the actual registry
             _workflow_service = WorkflowService(
-                async_session_factory,
+                db_pool,
                 registry_instance,
                 DummyLLMService()
             )
