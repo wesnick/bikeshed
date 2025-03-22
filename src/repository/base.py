@@ -1,7 +1,8 @@
-from typing import Generic, TypeVar, Type, List, Optional, Any, Dict, Union
+from typing import Generic, TypeVar, Type, List, Optional, Any, Dict, Union, cast
 from uuid import UUID
 from psycopg import AsyncConnection
 from psycopg.rows import class_row
+from psycopg.sql import SQL, Identifier, Composed, Literal
 
 from pydantic import BaseModel
 
@@ -16,14 +17,14 @@ class BaseRepository(Generic[T]):
     
     async def get_by_id(self, conn: AsyncConnection, id: UUID) -> Optional[T]:
         """Get an entity by ID"""
-        query = f"SELECT * FROM {self.table_name} WHERE id = %s"
+        query = SQL("SELECT * FROM {} WHERE id = %s").format(Identifier(self.table_name))
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, (id,))
             return await cur.fetchone()
     
     async def get_all(self, conn: AsyncConnection, limit: int = 100, offset: int = 0) -> List[T]:
         """Get all entities with pagination"""
-        query = f"SELECT * FROM {self.table_name} LIMIT %s OFFSET %s"
+        query = SQL("SELECT * FROM {} LIMIT %s OFFSET %s").format(Identifier(self.table_name))
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, (limit, offset))
             return await cur.fetchall()
@@ -33,11 +34,18 @@ class BaseRepository(Generic[T]):
         # Filter out None values to allow default values to be used
         filtered_data = {k: v for k, v in data.items() if v is not None}
         
-        columns = ", ".join(filtered_data.keys())
-        placeholders = ", ".join([f"%s" for _ in filtered_data])
+        if not filtered_data:
+            raise ValueError("No data provided for creation")
+        
+        columns = SQL(", ").join([Identifier(k) for k in filtered_data.keys()])
+        placeholders = SQL(", ").join([SQL("%s") for _ in filtered_data])
         values = tuple(filtered_data.values())
         
-        query = f"INSERT INTO {self.table_name} ({columns}) VALUES ({placeholders}) RETURNING *"
+        query = SQL("INSERT INTO {} ({}) VALUES ({}) RETURNING *").format(
+            Identifier(self.table_name),
+            columns,
+            placeholders
+        )
         
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, values)
@@ -53,10 +61,13 @@ class BaseRepository(Generic[T]):
         if not filtered_data:
             return await self.get_by_id(conn, id)
         
-        set_clause = ", ".join([f"{k} = %s" for k in filtered_data.keys()])
+        set_clause = SQL(", ").join([SQL("{} = %s").format(Identifier(k)) for k in filtered_data.keys()])
         values = tuple(filtered_data.values()) + (id,)
         
-        query = f"UPDATE {self.table_name} SET {set_clause} WHERE id = %s RETURNING *"
+        query = SQL("UPDATE {} SET {} WHERE id = %s RETURNING *").format(
+            Identifier(self.table_name),
+            set_clause
+        )
         
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, values)
@@ -67,7 +78,7 @@ class BaseRepository(Generic[T]):
     
     async def delete(self, conn: AsyncConnection, id: UUID) -> bool:
         """Delete an entity by ID"""
-        query = f"DELETE FROM {self.table_name} WHERE id = %s RETURNING id"
+        query = SQL("DELETE FROM {} WHERE id = %s RETURNING id").format(Identifier(self.table_name))
         
         async with conn.cursor() as cur:
             await cur.execute(query, (id,))
@@ -83,10 +94,13 @@ class BaseRepository(Generic[T]):
         if not filters:
             return await self.get_all(conn, limit, offset)
         
-        where_clauses = " AND ".join([f"{k} = %s" for k in filters.keys()])
+        where_clauses = SQL(" AND ").join([SQL("{} = %s").format(Identifier(k)) for k in filters.keys()])
         values = tuple(filters.values()) + (limit, offset)
         
-        query = f"SELECT * FROM {self.table_name} WHERE {where_clauses} LIMIT %s OFFSET %s"
+        query = SQL("SELECT * FROM {} WHERE {} LIMIT %s OFFSET %s").format(
+            Identifier(self.table_name),
+            where_clauses
+        )
         
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, values)

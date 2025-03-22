@@ -2,6 +2,7 @@ from uuid import UUID
 from typing import List, Optional, Dict, Any
 from psycopg import AsyncConnection
 from psycopg.rows import class_row
+from psycopg.sql import SQL, Identifier
 
 from src.models.models import Session, Message
 from src.repository.base import BaseRepository
@@ -13,11 +14,11 @@ class SessionRepository(BaseRepository[Session]):
 
     async def get_recent_sessions(self, conn: AsyncConnection, limit: int = 40) -> List[Session]:
         """Get the most recent sessions"""
-        query = """
-            SELECT * FROM session 
+        query = SQL("""
+            SELECT * FROM {} 
             ORDER BY created_at DESC 
             LIMIT %s
-        """
+        """).format(Identifier(self.table_name))
         
         async with conn.cursor(row_factory=class_row(Session)) as cur:
             await cur.execute(query, (limit,))
@@ -26,7 +27,7 @@ class SessionRepository(BaseRepository[Session]):
     async def get_with_messages(self, conn: AsyncConnection, session_id: UUID) -> Optional[Session]:
         """Get a session with all its messages"""
         # First get the session
-        session_query = "SELECT * FROM session WHERE id = %s"
+        session_query = SQL("SELECT * FROM {} WHERE id = %s").format(Identifier(self.table_name))
         
         async with conn.cursor(row_factory=class_row(Session)) as cur:
             await cur.execute(session_query, (session_id,))
@@ -36,11 +37,11 @@ class SessionRepository(BaseRepository[Session]):
                 return None
             
             # Then get all messages for this session
-            messages_query = """
+            messages_query = SQL("""
                 SELECT * FROM message 
                 WHERE session_id = %s 
                 ORDER BY timestamp
-            """
+            """)
             
             await cur.execute(messages_query, (session_id,))
             messages = await cur.fetchall()
