@@ -43,8 +43,10 @@ class SessionRepository(BaseRepository[Session]):
                 ORDER BY timestamp
             """)
             
-            await cur.execute(messages_query, (session_id,))
-            messages = await cur.fetchall()
+            # Create a new cursor with the Message row factory
+            async with conn.cursor(row_factory=class_row(Message)) as msg_cur:
+                await msg_cur.execute(messages_query, (session_id,))
+                messages = await msg_cur.fetchall()
             
             # Manually set the messages relationship
             session.messages = messages
