@@ -19,6 +19,7 @@ from src.types import MessageCreate
 from src.models import Message
 from src.service.logging import logger, setup_logging
 from src.service.mcp_client import MCPClient
+from src.service.shutdown_helper import shutdown_manager
 from src.http.middleware import HTMXRedirectMiddleware
 from src.dependencies import get_db, get_jinja, get_registry, get_broadcast_service
 from src.routes import api_router
@@ -32,15 +33,22 @@ async def lifespan(app: FastAPI):
     from src.dependencies import broadcast_service
     app.state.broadcast_service = broadcast_service
 
-    # Create a shutdown event
-    app.state.shutdown_event = asyncio.Event()
+    # Use the shutdown manager's event
+    app.state.shutdown_event = shutdown_manager.shutdown_event
     
-    # Set up signal handlers
-    setup_signal_handlers()
+    # Register broadcast service shutdown with the shutdown manager
+    shutdown_manager.register_cleanup_hook(
+        lambda: broadcast_service.shutdown("Server is shutting down for maintenance")
+    )
+    
+    # Set up signal handlers using the shutdown manager
+    shutdown_manager.install_signal_handlers()
 
     # Boot the registry
     async for registry in get_registry():
         app.state.registry = registry
+        # Register registry cleanup with shutdown manager
+        shutdown_manager.register_cleanup_hook(registry.stop_watching)
         # Start watching the directory and store the task
         # @TODO
         # app.state.watcher_task = asyncio.create_task(
@@ -63,17 +71,45 @@ async def lifespan(app: FastAPI):
             except asyncio.CancelledError:
                 pass
         
-        # Perform cleanup
-        await app.state.broadcast_service.shutdown("Server is shutting down for maintenance")
-        await app.state.registry.stop_watching()
+        # Perform cleanup - these are now registered with shutdown_manager
+        # but we'll call them directly here too for the lifespan exit case
+        try:
+            await app.state.broadcast_service.shutdown("Server is shutting down for maintenance")
+        except Exception as e:
+            logger.error(f"Error during broadcast shutdown: {e}")
+            
+        try:
+            await app.state.registry.stop_watching()
+        except Exception as e:
+            logger.error(f"Error stopping registry watchers: {e}")
+            
+        # Clean up MCP client connections
+        try:
+            from src.dependencies import mcp_client
+            await mcp_client.cleanup()
+            logger.info("MCP client connections closed")
+        except Exception as e:
+            logger.error(f"Error cleaning up MCP client: {e}")
 
 async def monitor_shutdown_event(app):
     """Monitor the shutdown event and initiate graceful shutdown when triggered"""
     try:
         await app.state.shutdown_event.wait()
         logger.info("Shutdown event detected, initiating graceful shutdown")
+        
         # Notify clients about the shutdown
-        await app.state.broadcast_service.shutdown("Server is shutting down due to signal")
+        try:
+            await app.state.broadcast_service.shutdown("Server is shutting down due to signal")
+        except Exception as e:
+            logger.error(f"Error during broadcast shutdown: {e}")
+            
+        # Clean up MCP client connections early
+        try:
+            from src.dependencies import mcp_client
+            await mcp_client.cleanup()
+            logger.info("MCP client connections closed")
+        except Exception as e:
+            logger.error(f"Error cleaning up MCP client: {e}")
     except asyncio.CancelledError:
         # Task was cancelled during normal shutdown
         pass
@@ -96,55 +132,7 @@ ACTIVE_SESSIONS = {}
 # Store clients connected to SSE
 SSE_CLIENTS = set()
 
-# Set up signal handlers for graceful shutdown
-def setup_signal_handlers():
-    """Set up signal handlers for graceful shutdown"""
-    # Store original signal handlers to chain to them
-    original_term_handler = signal.getsignal(signal.SIGTERM)
-    original_int_handler = signal.getsignal(signal.SIGINT)
-    
-    # Flag to prevent multiple shutdown attempts
-    shutdown_initiated = False
-    
-    # Create a shutdown event to signal the lifespan context manager
-    shutdown_event = asyncio.Event()
-    app.state.shutdown_event = shutdown_event
-
-    def signal_handler(sig, frame):
-        nonlocal shutdown_initiated
-        
-        # Prevent multiple shutdown attempts
-        if shutdown_initiated:
-            logger.warning(f"Shutdown already in progress, ignoring signal {sig}")
-            return
-            
-        shutdown_initiated = True
-        logger.warning(f"Received signal {sig}, initiating graceful shutdown...")
-
-        # Set the shutdown event - this will be checked in the lifespan context
-        # and will trigger a clean shutdown
-        try:
-            loop = asyncio.get_running_loop()
-            loop.call_soon_threadsafe(lambda: asyncio.create_task(app.state.shutdown_event.set()))
-            logger.info(f"Shutdown event set for signal {sig}")
-        except RuntimeError:
-            # No event loop running in this thread
-            logger.warning(f"No event loop running, can't set shutdown event for signal {sig}")
-
-        # Chain to the original handler directly
-        # The clean shutdown will happen via the lifespan context
-        if sig == signal.SIGTERM and original_term_handler and callable(original_term_handler):
-            if original_term_handler != signal.SIG_DFL and original_term_handler != signal.SIG_IGN:
-                original_term_handler(sig, frame)
-        elif sig == signal.SIGINT and original_int_handler and callable(original_int_handler):
-            if original_int_handler != signal.SIG_DFL and original_int_handler != signal.SIG_IGN:
-                original_int_handler(sig, frame)
-
-    # Register our handlers
-    signal.signal(signal.SIGTERM, signal_handler)  # Signal 15, sent by uvicorn --reload
-    signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
-
-    logger.info("Signal handlers registered for graceful shutdown")
+# Signal handlers are now managed by the ShutdownManager class
 
 # This function is replaced by BroadcastService.shutdown
 
