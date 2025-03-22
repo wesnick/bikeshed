@@ -44,10 +44,18 @@ async def lifespan(app: FastAPI):
     yield
 
     # Use broadcast service for shutdown
-    await app.state.broadcast_service.shutdown("Server is shutting down for maintenance")
+    logger.info("Application shutting down via lifespan exit")
+    try:
+        await app.state.broadcast_service.shutdown("Server is shutting down for maintenance")
+    except Exception as e:
+        logger.error(f"Error during broadcast shutdown in lifespan: {e}")
     
-    # Stop the watcher task
-    await app.state.registry.stop_watching()
+    # Stop the watcher task if it exists
+    if hasattr(app.state, 'registry'):
+        try:
+            await app.state.registry.stop_watching()
+        except Exception as e:
+            logger.error(f"Error stopping registry watcher: {e}")
 
 app = FastAPI(title="BikeShed", lifespan=lifespan)
 app.add_middleware(HTMXRedirectMiddleware)
@@ -71,13 +79,37 @@ def setup_signal_handlers():
     # Store original signal handlers to chain to them
     original_term_handler = signal.getsignal(signal.SIGTERM)
     original_int_handler = signal.getsignal(signal.SIGINT)
+    
+    # Flag to prevent multiple shutdown attempts
+    shutdown_initiated = False
 
     def signal_handler(sig, frame):
+        nonlocal shutdown_initiated
+        
+        # Prevent multiple shutdown attempts
+        if shutdown_initiated:
+            logger.warning(f"Shutdown already in progress, ignoring signal {sig}")
+            return
+            
+        shutdown_initiated = True
         logger.warning(f"Received signal {sig}, initiating graceful shutdown...")
 
         # Schedule the shutdown task without blocking
         from src.dependencies import broadcast_service
-        asyncio.create_task(broadcast_service.shutdown(f"Server is shutting down due to signal {sig}"))
+        
+        async def shutdown_task():
+            try:
+                await broadcast_service.shutdown(f"Server is shutting down due to signal {sig}")
+            except Exception as e:
+                logger.error(f"Error during broadcast shutdown: {e}")
+
+        # Create the shutdown task
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(shutdown_task())
+        else:
+            # If we're not in an event loop, run the task in a new one
+            asyncio.run(shutdown_task())
 
         # Chain to the original handler after a short delay
         # This allows our shutdown process to start running
@@ -85,9 +117,11 @@ def setup_signal_handlers():
             logger.info(f"Chaining to original signal handler for {sig}")
             # Call the original handler
             if sig == signal.SIGTERM and original_term_handler and callable(original_term_handler):
-                original_term_handler(sig, frame)
+                if original_term_handler != signal.SIG_DFL and original_term_handler != signal.SIG_IGN:
+                    original_term_handler(sig, frame)
             elif sig == signal.SIGINT and original_int_handler and callable(original_int_handler):
-                original_int_handler(sig, frame)
+                if original_int_handler != signal.SIG_DFL and original_int_handler != signal.SIG_IGN:
+                    original_int_handler(sig, frame)
 
         # Schedule the original handler to run after a short delay
         timer = threading.Timer(0.5, chain_to_original)
@@ -373,32 +407,48 @@ async def sse(request: Request, broadcast_service: BroadcastService = Depends(ge
     client_id = str(uuid.uuid4())
     queue = broadcast_service.register_client(client_id)
     
-    try:
-        async def event_generator():
-            # Send initial connection message
-            yield {"event": "connected", "data": "Connected to SSE stream"}
-            
-            try:
-                while True:
-                    # Wait for the next event
-                    event = await queue.get()
-                    if event is None:  # None is our signal to stop
-                        logger.info(f"Closing SSE connection for client {client_id}")
-                        break
-                    yield event
-            except asyncio.CancelledError:
-                logger.warning(f"SSE connection for client {client_id} was cancelled")
-                raise  # Re-raise to ensure proper cleanup
-            except Exception as e:
-                logger.error(f"Error in SSE connection for client {client_id}: {e}")
+    async def event_generator():
+        # Send initial connection message
+        yield {
+            "event": "connected",
+            "data": "Connected to SSE stream"
+        }
+        
+        try:
+            while True:
+                # Wait for the next event
+                event = await queue.get()
+                if event is None:  # None is our signal to stop
+                    logger.info(f"Closing SSE connection for client {client_id}")
+                    break
+                    
+                # Yield the event for SSE
+                yield event
+                
+        except asyncio.CancelledError:
+            logger.warning(f"SSE connection for client {client_id} was cancelled")
+            raise  # Re-raise to ensure proper cleanup
+        except Exception as e:
+            logger.error(f"Error in SSE connection for client {client_id}: {e}")
+            raise
+        finally:
+            # Make sure we unregister on any exception
+            broadcast_service.unregister_client(client_id)
 
-        return EventSourceResponse(event_generator())
-    finally:
-        # Clean up when the generator exits
-        broadcast_service.unregister_client(client_id)
+    return EventSourceResponse(event_generator())
 
 
 # This function is replaced by BroadcastService.broadcast
+
+@app.get("/test-broadcast")
+async def test_broadcast(broadcast_service: BroadcastService = Depends(get_broadcast_service)):
+    """Test endpoint to verify SSE broadcasting is working"""
+    import datetime
+    await broadcast_service.broadcast("test_event", {
+        "message": "This is a test broadcast",
+        "timestamp": str(datetime.datetime.now())
+    })
+    return {"status": "broadcast sent"}
 
 
 if __name__ == "__main__":
