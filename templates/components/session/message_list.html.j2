@@ -4,7 +4,7 @@
     <div class="message-header">
       <strong>{{ message.role|title }}</strong>
     </div>
-    <div class="message-content mt-2">
+    <div class="message-content mt-2"{% if loop.last %} sse-swap="message-stream-{{ message.id }}"{% endif %}>
       {{ message.text | markdown2html | safe }}
     </div>
   </div>

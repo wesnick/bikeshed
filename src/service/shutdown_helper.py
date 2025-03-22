@@ -29,7 +29,6 @@ class ShutdownManager:
     async def trigger_shutdown(self, reason: str = "Shutdown requested"):
         """Trigger the shutdown process"""
         if self._is_shutting_down:
-            logger.warning("Shutdown already in progress")
             return
             
         self._is_shutting_down = True
@@ -67,9 +66,8 @@ class ShutdownManager:
                     original_int_handler(sig, frame)
                 return
                 
-            self._is_shutting_down = True
             logger.warning(f"Received signal {sig}, initiating graceful shutdown")
-            
+
             # Schedule the async shutdown in the event loop
             try:
                 loop = asyncio.get_running_loop()
@@ -78,10 +76,10 @@ class ShutdownManager:
                         self.trigger_shutdown(f"Signal {sig} received")
                     )
                 )
-                
+
                 # Give the shutdown a chance to run
                 time.sleep(0.5)
-                
+
                 # Then chain to original handler
                 if sig == signal.SIGTERM and callable(original_term_handler):
                     original_term_handler(sig, frame)

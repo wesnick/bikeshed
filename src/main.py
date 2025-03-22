@@ -18,6 +18,7 @@ from src.dependencies import get_db, get_jinja, get_registry, get_broadcast_serv
 from src.routes import api_router
 from src.repository import session_repository
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
@@ -30,9 +31,7 @@ async def lifespan(app: FastAPI):
     app.state.shutdown_event = shutdown_manager.shutdown_event
     
     # Register broadcast service shutdown with the shutdown manager
-    shutdown_manager.register_cleanup_hook(
-        lambda: broadcast_service.shutdown("Server is shutting down for maintenance")
-    )
+    shutdown_manager.register_cleanup_hook(broadcast_service.shutdown)
     
     # Set up signal handlers using the shutdown manager
     shutdown_manager.install_signal_handlers()
@@ -48,66 +47,11 @@ async def lifespan(app: FastAPI):
         #     registry.watch_directory('/home/wes/Downloads')
         # )
 
-    # Create a task to monitor the shutdown event
-    shutdown_monitor_task = asyncio.create_task(monitor_shutdown_event(app))
-    
-    try:
-        yield
-    finally:
-        logger.info("Application shutting down via lifespan exit")
-        
-        # Cancel the shutdown monitor task if it's still running
-        if not shutdown_monitor_task.done():
-            shutdown_monitor_task.cancel()
-            try:
-                await shutdown_monitor_task
-            except asyncio.CancelledError:
-                pass
-        
-        # Perform cleanup - these are now registered with shutdown_manager
-        # but we'll call them directly here too for the lifespan exit case
-        try:
-            await app.state.broadcast_service.shutdown("Server is shutting down")
-        except Exception as e:
-            logger.error(f"Error during broadcast shutdown: {e}")
-            
-        try:
-            await app.state.registry.stop_watching()
-        except Exception as e:
-            logger.error(f"Error stopping registry watchers: {e}")
-            
-        # Clean up MCP client connections
-        try:
-            from src.dependencies import mcp_client
-            await mcp_client.cleanup()
-            logger.info("MCP client connections closed")
-        except Exception as e:
-            logger.error(f"Error cleaning up MCP client: {e}")
+    yield
 
-async def monitor_shutdown_event(app):
-    """Monitor the shutdown event and initiate graceful shutdown when triggered"""
-    try:
-        await app.state.shutdown_event.wait()
-        logger.info("Shutdown event detected, initiating graceful shutdown")
-        
-        # Notify clients about the shutdown
-        try:
-            await app.state.broadcast_service.shutdown("Server is shutting down due to signal")
-        except Exception as e:
-            logger.error(f"Error during broadcast shutdown: {e}")
-            
-        # Clean up MCP client connections early
-        try:
-            from src.dependencies import mcp_client
-            await mcp_client.cleanup()
-            logger.info("MCP client connections closed")
-        except Exception as e:
-            logger.error(f"Error cleaning up MCP client: {e}")
-    except asyncio.CancelledError:
-        # Task was cancelled during normal shutdown
-        pass
-    except Exception as e:
-        logger.error(f"Error in shutdown monitor: {e}")
+    logger.info("Application shutting down via lifespan exit")
+    await shutdown_manager.trigger_shutdown()
+
 
 app = FastAPI(title="BikeShed", lifespan=lifespan)
 app.add_middleware(HTMXRedirectMiddleware)

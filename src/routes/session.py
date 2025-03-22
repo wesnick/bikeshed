@@ -7,10 +7,11 @@ from starlette.responses import Response
 
 from src.core.registry import Registry
 from src.core.workflow.service import WorkflowService
-from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry
+from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry, get_broadcast_service
 from src.models.models import MessageStatus
 from src.repository import session_repository, message_repository
 from src.models import Session, Message
+from src.service.broadcast import BroadcastService
 from src.types import SessionTemplateCreationRequest, MessageCreate
 from src.service.logging import logger
 
@@ -133,17 +134,17 @@ async def session_submit(message: MessageCreate,
         await message_repository.create(db, assistant_message)
         session.messages.append(assistant_message)
 
-
     background_tasks.add_task(process_message, session)
 
     # Return empty response as we'll update via SSE
     return {"session": session, "current_step": session.get_current_step()}
 
 async def process_message(session: Session,
-                          db: AsyncConnection = Depends(get_db)):
+                          db: AsyncConnection = Depends(get_db),
+                          broadcast_service: BroadcastService = Depends(get_broadcast_service)):
     """Process the message and send response via SSE"""
-    from src.main import broadcast_event
     from src.service.llm import FakerCompletionService, FakerLLMConfig
+    from src.dependencies import markdown2html
 
     # Create LLM service
     llm_service = FakerCompletionService(FakerLLMConfig(response_delay=0.1))
@@ -153,7 +154,7 @@ async def process_message(session: Session,
         # Update message in database
         await message_repository.update(db, updated_msg)
         # Broadcast update to clients
-        await broadcast_event("message_update", str(updated_msg.id))
+        await broadcast_service.broadcast("message-stream-" + str(updated_msg.id), markdown2html(updated_msg.text))
 
     # Process with LLM
     result_message = await llm_service.complete(session, broadcast=broadcast_message)
@@ -162,7 +163,7 @@ async def process_message(session: Session,
     await message_repository.update(db, result_message)
 
     # Notify all clients to update the session component
-    await broadcast_event("session_update", "update")
+    await broadcast_service.broadcast("session_update", "")
 
 
 @router.get("/template-creator/{template_name}")

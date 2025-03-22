@@ -6,7 +6,7 @@ import json
 from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
 from markdown2 import markdown
-import psycopg_pool
+from psycopg_pool import AsyncConnectionPool
 from psycopg import AsyncConnection
 from psycopg.types.json import set_json_dumps
 from pydantic import BaseModel
@@ -23,7 +23,7 @@ from src.core.workflow.service import WorkflowService
 settings = get_config()
 
 # Create a connection pool for database access
-db_pool = psycopg_pool.AsyncConnectionPool(
+db_pool = AsyncConnectionPool(
     str(settings.database_url),
     min_size=5,
     max_size=20
@@ -65,11 +65,6 @@ def get_jinja() -> Jinja:
 mcp_client = MCPClient()
 _mcp_client_initialized = False
 
-# Import the shutdown manager
-from src.service.shutdown_helper import shutdown_manager
-
-# Register MCP client cleanup with shutdown manager
-shutdown_manager.register_cleanup_hook(mcp_client.cleanup)
 
 async def get_mcp_client() -> AsyncGenerator[MCPClient, None]:
     """Dependency for getting the singleton MCPClient instance"""
