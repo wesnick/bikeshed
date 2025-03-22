@@ -1,18 +1,23 @@
 import uuid
 from typing import Dict, Any, Optional, Callable, Awaitable
 
+from mcp.server.fastmcp.prompts.base import Message as MCPMessage
+
 from src.core.config_types import PromptStep, Step
 from src.core.registry import Registry
 from src.models import Message
 from src.models.models import Session, SessionStatus, MessageStatus
 from src.core.workflow.engine import StepHandler
 from src.service.llm import CompletionService
+from src.service.sse import SSEManager
 
 
 class PromptStepHandler(StepHandler):
     """Handler for prompt steps"""
 
-    def __init__(self, registry: Registry, llm_service: CompletionService):
+    def __init__(self, registry: Registry,
+                 llm_service: CompletionService,
+                 sse_manager: SSEManager):
         """
         Initialize the PromptStepHandler
         
@@ -22,6 +27,8 @@ class PromptStepHandler(StepHandler):
         """
         self.registry = registry
         self.llm_service = llm_service
+        self.sse_manager = sse_manager
+
 
     async def can_handle(self, session: Session, step: Step) -> bool:
         """Check if the step can be handled"""
@@ -65,17 +72,36 @@ class PromptStepHandler(StepHandler):
         # Get prompt content
         prompt_content = await self._get_prompt_content(session, step)
 
-        # Create a message in the database
-        user_message = Message(
-            id=uuid.uuid4(),
-            session_id=session.id,
-            role=step.role,
-            text=prompt_content,
-            status=MessageStatus.PENDING
-        )
+        step_messages = []
+
+        if isinstance(prompt_content, str):
+            # Create a message in the database
+            user_message = Message(
+                id=uuid.uuid4(),
+                session_id=session.id,
+                role='user',
+                text=prompt_content,
+                status=MessageStatus.PENDING
+            )
         
-        # Add the user message to the session
-        session.messages.append(user_message)
+            # Add the user message to the session
+            session.messages.append(user_message)
+            step_messages.append(user_message)
+
+        elif isinstance(prompt_content, list):
+            for prompt in prompt_content:
+                message = Message(
+                    id=uuid.uuid4(),
+                    session_id=session.id,
+                    role=prompt.role,
+                    text=prompt.content.text,
+                    status=MessageStatus.PENDING
+                )
+
+                # Add the user message to the session
+                session.messages.append(message)
+                step_messages.append(message)
+
         
         # Create a placeholder for the assistant response
         assistant_message = Message(
@@ -85,29 +111,24 @@ class PromptStepHandler(StepHandler):
             text="",
             status=MessageStatus.PENDING
         )
-        
+
         # Add the assistant message to the session
         session.messages.append(assistant_message)
         
         # Process with LLM service
         result_message = await self.llm_service.complete(
             session,
-            broadcast=self._create_broadcast_callback(session.id)
+            broadcast=self.sse_manager.broadcast
         )
 
         # Return step result
         return {
-            'prompt': user_message,
+            'prompt': step_messages,
             'response': result_message
         }
-        
-    def _create_broadcast_callback(self, session_id: uuid.UUID) -> Optional[Callable[[Message], Awaitable[None]]]:
-        """Create a broadcast callback for streaming updates"""
-        # This would be implemented to broadcast updates via SSE
-        # For now, return None as we'll implement this later
-        return None
 
-    async def _get_prompt_content(self, session: Session, step: PromptStep) -> str | list:
+
+    async def _get_prompt_content(self, session: Session, step: PromptStep) -> str | list[MCPMessage]:
         """Get the content for a prompt step"""
         if step.content is not None:
             return step.content

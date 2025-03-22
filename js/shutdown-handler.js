@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     // Listen for the custom SSE event
     document.body.addEventListener('htmx:sseMessage', function(event) {
+        console.log('[SSE Message] ', event.detail)
 
     });
 });
