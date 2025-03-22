@@ -1,33 +1,35 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Callable, AsyncGenerator
 import uuid
 import asyncio
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from psycopg import AsyncConnection
+from psycopg.sql import SQL, Identifier, Composed
 
 from src.core.workflow.engine import PersistenceProvider
-from src.models.models import Session
+from src.models.models import Session, Message, MessageStatus, SessionStatus, WorkflowData
 from src.repository.session import SessionRepository
+from src.repository.message import MessageRepository
 from src.service.logging import logger
 
 
 class DatabasePersistenceProvider(PersistenceProvider):
     """Persistence provider that saves session state to the database"""
 
-    def __init__(self, get_db: async_sessionmaker[AsyncSession], session_repository=None):
+    def __init__(self, get_db: Callable[[], AsyncGenerator[AsyncConnection, None]]):
         """
         Initialize the persistence provider
         
         Args:
-            get_db: Factory function that returns a database session
-            session_repository: Optional repository for session operations
+            get_db: Factory function that returns a database connection
         """
         self.get_db = get_db
-        self.session_repo = session_repository or SessionRepository()
+        self.session_repo = SessionRepository()
+        self.message_repo = MessageRepository()
         self._lock = asyncio.Lock()  # Lock to prevent concurrent writes to the same session
 
     async def save_session(self, session: Session) -> None:
         """
-        Save session state to the database and refresh the session object
+        Save session state to the database
         
         Args:
             session: The session to save
@@ -36,38 +38,61 @@ class DatabasePersistenceProvider(PersistenceProvider):
             logger.info(f"Saving session {session.id} with state {session.current_state}")
 
             try:
-                async with self.get_db() as db:
-                    # Merge the session into the current db session
-                    # This will attach it to the session if it exists, or add it if it doesn't
-                    db_session = await db.merge(session)
+                async for conn in self.get_db():
+                    # Save the session first
+                    session_data = {
+                        "status": session.status.value if isinstance(session.status, SessionStatus) else session.status,
+                        "current_state": session.current_state,
+                        "workflow_data": session.workflow_data.model_dump() if session.workflow_data else None,
+                        "error": session.error
+                    }
                     
-                    # Save any temporary messages
+                    await self.session_repo.update(conn, session.id, session_data)
+                    
+                    # Save any messages that need to be persisted
+                    for message in session.messages:
+                        if message.status == MessageStatus.CREATED:
+                            # New message, insert it
+                            message.status = MessageStatus.PENDING
+                            message_data = message.model_dump()
+                            await self.message_repo.create(conn, message_data)
+                            message.status = MessageStatus.DELIVERED
+                        elif message.status == MessageStatus.PENDING:
+                            # Update existing message
+                            message_data = {
+                                "text": message.text,
+                                "status": MessageStatus.DELIVERED.value,
+                                "extra": message.extra
+                            }
+                            await self.message_repo.update(conn, message.id, message_data)
+                            message.status = MessageStatus.DELIVERED
+                    
+                    # Handle any temporary messages that haven't been saved yet
                     if hasattr(session, '_temp_messages') and session._temp_messages:
                         for msg in session._temp_messages:
-                            # Ensure message has session_id and ID
+                            # Ensure message has session_id
                             if not msg.session_id:
                                 msg.session_id = session.id
-                            if not msg.id:
-                                msg.id = uuid.uuid4()
-                            db.add(msg)
-                        session._temp_messages = []  # Clear the temporary messages
-
-                    # Commit the changes
-                    await db.commit()
+                                
+                            msg.status = MessageStatus.PENDING
+                            message_data = msg.model_dump()
+                            await self.message_repo.create(conn, message_data)
+                            msg.status = MessageStatus.DELIVERED
+                            
+                            # Add to the main messages list
+                            session.messages.append(msg)
+                        
+                        # Clear temporary messages
+                        session._temp_messages = []
                     
-                    # Refresh the session to load all relationships (including messages)
-                    await db.refresh(db_session, ['messages'])
-                    
-                    # Update the original session object with the refreshed data
-                    # This ensures all relationships are properly loaded
-                    session.messages = db_session.messages
-                    
-                    logger.info(f"Successfully saved and refreshed session {session.id}")
+                    # Commit the transaction
+                    await conn.commit()
+                    logger.info(f"Successfully saved session {session.id}")
 
             except Exception as e:
                 logger.error(f"Error saving session {session.id}: {e}")
-                if db:
-                    await db.rollback()
+                if 'conn' in locals():
+                    await conn.rollback()
                 raise
 
     async def load_session(self, session_id: uuid.UUID) -> Optional[Session]:
@@ -83,27 +108,24 @@ class DatabasePersistenceProvider(PersistenceProvider):
         logger.info(f"Loading session {session_id}")
 
         try:
-            async with self.get_db() as db:
+            async for conn in self.get_db():
                 # Load the session with its messages
-                session = await self.session_repo.get_by_id(
-                    db, 
-                    session_id, 
-                    load_relations=['messages']
-                )
-
+                session = await self.session_repo.get_with_messages(conn, session_id)
                 
-            if not session:
-                logger.warning(f"Session {session_id} not found")
-                return None
-
-            if not isinstance(session.messages, list):
-                raise "Session messages are not a list"
-            
-            # Initialize temporary messages list
-            session._temp_messages = []
-            
-            logger.info(f"Successfully loaded session {session_id} with state {session.current_state}")
-            return session
+                if not session:
+                    logger.warning(f"Session {session_id} not found")
+                    return None
+                
+                # Initialize temporary messages list
+                session._temp_messages = []
+                
+                # Convert workflow_data from dict to WorkflowData if needed
+                if session.workflow_data and isinstance(session.workflow_data, dict):
+                    session.workflow_data = WorkflowData(**session.workflow_data)
+                
+                logger.info(f"Successfully loaded session {session_id} with state {session.current_state}")
+                return session
+                
         except Exception as e:
             logger.error(f"Error loading session {session_id}: {e}")
             raise
@@ -118,30 +140,45 @@ class DatabasePersistenceProvider(PersistenceProvider):
         Returns:
             The created session
         """
-        session_template = session_data.get('template', {})
-        logger.info(f"Creating new session with template {session_template.name}")
+        template = session_data.get('template')
+        template_name = getattr(template, 'name', 'unknown') if template else 'unknown'
+        logger.info(f"Creating new session with template {template_name}")
         
-        # Create the session object first
+        # Create the session object
         session = Session(**session_data)
         
         # Initialize temporary messages list
         session._temp_messages = []
         
         try:
-            async with self.get_db() as db:
-                # Add to database
-                db.add(session)
-                await db.flush()
-                await db.commit()
-                logger.info(f"Successfully created session {session.id}")
-                await db.refresh(session)
+            async for conn in self.get_db():
+                # Convert enum values to strings
+                if isinstance(session.status, SessionStatus):
+                    session_data['status'] = session.status.value
+                
+                # Convert workflow_data to dict if it's a Pydantic model
+                if session.workflow_data and hasattr(session.workflow_data, 'model_dump'):
+                    session_data['workflow_data'] = session.workflow_data.model_dump()
+                
+                # Remove relationships and internal fields
+                session_data.pop('messages', None)
+                session_data.pop('machine', None)
+                session_data.pop('_temp_messages', None)
+                
+                # Create the session in the database
+                created_session = await self.session_repo.create(conn, session_data)
+                
+                # Commit the transaction
+                await conn.commit()
+                logger.info(f"Successfully created session {created_session.id}")
+                
+                return created_session
+                
         except Exception as e:
             logger.error(f"Error creating session: {e}")
-            if db:
-                await db.rollback()
+            if 'conn' in locals():
+                await conn.rollback()
             raise
-            
-        return session
 
 
 class InMemoryPersistenceProvider(PersistenceProvider):
@@ -163,7 +200,7 @@ class InMemoryPersistenceProvider(PersistenceProvider):
             'id': session.id,
             'status': session.status,
             'current_state': session.current_state,
-            'workflow_data': session.workflow_data.copy() if session.workflow_data else {},
+            'workflow_data': session.workflow_data.model_dump() if session.workflow_data else {},
             'messages': []
         }
         
@@ -200,7 +237,7 @@ class InMemoryPersistenceProvider(PersistenceProvider):
             id=session_id,
             status=session_data['status'],
             current_state=session_data['current_state'],
-            workflow_data=session_data['workflow_data'].copy()
+            workflow_data=WorkflowData(**session_data['workflow_data']) if session_data['workflow_data'] else None
         )
         
         # Initialize temporary messages list

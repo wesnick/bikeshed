@@ -1,11 +1,11 @@
-from typing import Dict, Any, List, Optional, Union, AsyncGenerator
+from typing import Dict, Any, List, Optional, Union, Callable, AsyncGenerator
 import uuid
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from psycopg import AsyncConnection
 
 from src.core.config_types import SessionTemplate, Step
 from src.core.registry import Registry
-from src.models.models import Session
+from src.models.models import Session, SessionStatus
 from src.core.workflow.engine import WorkflowEngine, WorkflowTransitionResult
 from src.core.workflow.persistence import DatabasePersistenceProvider
 from src.core.workflow.handlers.message import MessageStepHandler
@@ -19,14 +19,14 @@ class WorkflowService:
     """Service for managing workflow state machines"""
 
     def __init__(self,
-                 get_db: async_sessionmaker[AsyncSession],
+                 get_db: Callable[[], AsyncGenerator[AsyncConnection, None]],
                  registry: Registry,
                  llm_service):
         """
         Initialize the WorkflowService with required dependencies.
         
         Args:
-            get_db: async generator for getting database session
+            get_db: async generator for getting database connection
             registry: Registry instance
             llm_service: Service for interacting with language models
         """
@@ -59,7 +59,7 @@ class WorkflowService:
             "description": description or template.description,
             "goal": goal or template.goal,
             "template": template,
-            "status": "created",
+            "status": SessionStatus.PENDING,
             "workflow_data": initial_data or {}
         }
 
@@ -92,10 +92,11 @@ class WorkflowService:
         return await self.engine.execute_next_step(session)
 
     async def run_workflow(self, session: Session) -> None:
+        """Run the workflow until completion or waiting for input"""
         while True:
             exec_result = await self.engine.execute_next_step(session)
 
-            if not exec_result.success:
+            if not exec_result.success or session.status == SessionStatus.WAITING_FOR_INPUT:
                 break
 
     async def provide_user_input(
@@ -112,7 +113,7 @@ class WorkflowService:
                 message=f"Session {session_id} not found"
             )
 
-        if session.status != 'waiting_for_input':
+        if session.status != SessionStatus.WAITING_FOR_INPUT:
             return WorkflowTransitionResult(
                 success=False,
                 state=session.current_state,
@@ -120,7 +121,7 @@ class WorkflowService:
             )
 
         # Handle different input types
-        if 'missing_variables' in session.workflow_data:
+        if session.workflow_data and 'missing_variables' in session.workflow_data.variables:
             # For variable inputs
             if not isinstance(user_input, dict):
                 return WorkflowTransitionResult(
@@ -130,15 +131,14 @@ class WorkflowService:
                 )
 
             # Update variables
-            variables = session.workflow_data.get('variables', {})
-            variables.update(user_input)
-            session.workflow_data['variables'] = variables
-
+            session.workflow_data.variables.update(user_input)
+            
             # Clear missing variables flag
-            session.workflow_data.pop('missing_variables')
+            session.workflow_data.variables.pop('missing_variables')
         else:
             # For user_input steps
-            session.workflow_data['user_input'] = user_input
+            if session.workflow_data:
+                session.workflow_data.variables['user_input'] = user_input
 
         # Save changes
         await self.persistence.save_session(session)
@@ -161,7 +161,7 @@ class WorkflowService:
             SVG representation of the workflow graph
         """
         # Make sure the session has a state machine
-        if not hasattr(session, 'machine'):
+        if not hasattr(session, 'machine') or session.machine is None:
             await self.engine.initialize_session(session)
             
         return await WorkflowVisualizer.create_graph(session)
@@ -216,11 +216,12 @@ class WorkflowService:
         if step.type == "prompt":
             if step.template:
                 prompt = self.registry.get_prompt(step.template)
-                for arg in prompt.arguments:
-                    inputs[arg.name] = {
-                        "description": arg.description,
-                        "required": arg.required
-                    }
+                if prompt and hasattr(prompt, 'arguments'):
+                    for arg in prompt.arguments:
+                        inputs[arg.name] = {
+                            "description": arg.description,
+                            "required": arg.required
+                        }
             if step.template_args:
                 for arg_name in step.template_args:
                     if arg_name in inputs:
