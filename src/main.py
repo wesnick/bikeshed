@@ -1,22 +1,15 @@
 from contextlib import asynccontextmanager
-from random import randint
 import uvicorn
 import asyncio
-import json
 import uuid
-import signal
-import threading
 
-from fastapi import FastAPI, Request, Depends, BackgroundTasks
+from fastapi import FastAPI, Request, Depends
 from psycopg import AsyncConnection
 from starlette.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
 from sse_starlette.sse import EventSourceResponse
 
 from src.core.registry import Registry
 from src.service.broadcast import BroadcastService
-from src.types import MessageCreate
-from src.models import Message
 from src.service.logging import logger, setup_logging
 from src.service.mcp_client import MCPClient
 from src.service.shutdown_helper import shutdown_manager
@@ -74,7 +67,7 @@ async def lifespan(app: FastAPI):
         # Perform cleanup - these are now registered with shutdown_manager
         # but we'll call them directly here too for the lifespan exit case
         try:
-            await app.state.broadcast_service.shutdown("Server is shutting down for maintenance")
+            await app.state.broadcast_service.shutdown("Server is shutting down")
         except Exception as e:
             logger.error(f"Error during broadcast shutdown: {e}")
             
