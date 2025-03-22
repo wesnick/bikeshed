@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from src.service.cache import RedisService
 from src.service.llm import FakerCompletionService
 from src.service.mcp_client import MCPClient
+from src.service.broadcast import BroadcastService
 from src.config import get_config
 from src.core.registry import Registry
 from src.core.registry_loader import RegistryBuilder
@@ -94,6 +95,13 @@ async def get_registry() -> AsyncGenerator[Registry, None]:
     
     yield registry
 
+# Create the singleton BroadcastService instance
+broadcast_service = BroadcastService()
+
+async def get_broadcast_service() -> AsyncGenerator[BroadcastService, None]:
+    """Dependency for getting the singleton BroadcastService instance"""
+    yield broadcast_service
+
 # Create the singleton WorkflowService instance
 _workflow_service = None
 _workflow_service_lock = asyncio.Lock()
@@ -113,11 +121,14 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
             if not registry_instance:
                 raise RuntimeError("Failed to get registry instance")
 
+            # Create the LLM service with broadcast capability
+            llm_service = FakerCompletionService(broadcast_service=broadcast_service)
+            
             # Create the WorkflowService instance with the actual registry
             _workflow_service = WorkflowService(
                 get_db,
                 registry_instance,
-                llm_service=FakerCompletionService()
+                llm_service=llm_service
             )
     
     yield _workflow_service

@@ -10,8 +10,9 @@ class LiteLLMConfig:
         self.api_key = api_key
 
 class LiteLLMCompletionService(CompletionService):
-    def __init__(self, config: LiteLLMConfig):
+    def __init__(self, config: LiteLLMConfig, broadcast_service=None):
         self.config = config
+        self.broadcast_service = broadcast_service
         litellm.suppress_debug_info = True
 
     async def complete(
@@ -22,6 +23,14 @@ class LiteLLMCompletionService(CompletionService):
         try:
             messages = self._prepare_messages(session)
             assistant_msg = session.messages[-1]
+            
+            # Broadcast that we're starting LLM processing
+            if self.broadcast_service:
+                await self.broadcast_service.broadcast("llm_update", {
+                    "session_id": str(session.id),
+                    "status": "processing",
+                    "message_id": str(assistant_msg.id)
+                })
             
             response = await litellm.acompletion(
                 model=f"{self.config.provider}/{self.config.model}",
@@ -36,13 +45,43 @@ class LiteLLMCompletionService(CompletionService):
                 if delta:
                     content += delta
                     assistant_msg.text = content
+                    
+                    # Use both the provided broadcast callback and our broadcast service
                     if broadcast:
                         await broadcast(assistant_msg)
+                    
+                    # Also broadcast via SSE if available
+                    if self.broadcast_service:
+                        await self.broadcast_service.broadcast("message_update", {
+                            "session_id": str(session.id),
+                            "message_id": str(assistant_msg.id),
+                            "content": content,
+                            "status": "streaming"
+                        })
             
             assistant_msg.text = content
             assistant_msg.status = MessageStatus.DELIVERED
+            
+            # Broadcast completion
+            if self.broadcast_service:
+                await self.broadcast_service.broadcast("llm_update", {
+                    "session_id": str(session.id),
+                    "status": "completed",
+                    "message_id": str(assistant_msg.id)
+                })
+                
             return assistant_msg
             
         except Exception as e:
             assistant_msg.status = MessageStatus.FAILED
+            
+            # Broadcast error
+            if self.broadcast_service:
+                await self.broadcast_service.broadcast("llm_update", {
+                    "session_id": str(session.id),
+                    "status": "error",
+                    "message_id": str(assistant_msg.id),
+                    "error": str(e)
+                })
+                
             raise LLMException(f"LiteLLM error: {str(e)}") from e

@@ -26,6 +26,10 @@ from src.repository import session_repository
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
+    
+    # Store the broadcast service in app state
+    from src.dependencies import broadcast_service
+    app.state.broadcast_service = broadcast_service
 
     # Boot the registry
     async for registry in get_registry():
@@ -38,6 +42,9 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    # Use broadcast service for shutdown
+    await app.state.broadcast_service.shutdown("Server is shutting down for maintenance")
+    
     # Stop the watcher task
     await app.state.registry.stop_watching()
 
@@ -68,10 +75,11 @@ def setup_signal_handlers():
         logger.warning(f"Received signal {sig}, initiating graceful shutdown...")
 
         # Schedule the shutdown task without blocking
-        asyncio.create_task(shutdown_sse_connections())
+        from src.dependencies import broadcast_service
+        asyncio.create_task(broadcast_service.shutdown(f"Server is shutting down due to signal {sig}"))
 
         # Chain to the original handler after a short delay
-        # This allows our shutdown_sse_connections to start running
+        # This allows our shutdown process to start running
         def chain_to_original():
             logger.info(f"Chaining to original signal handler for {sig}")
             # Call the original handler
@@ -81,7 +89,6 @@ def setup_signal_handlers():
                 original_int_handler(sig, frame)
 
         # Schedule the original handler to run after a short delay
-        # This gives our shutdown_sse_connections time to start
         timer = threading.Timer(0.5, chain_to_original)
         timer.daemon = True  # Make sure this doesn't block process exit
         timer.start()
@@ -92,34 +99,7 @@ def setup_signal_handlers():
 
     logger.info("Signal handlers registered for graceful shutdown")
 
-async def shutdown_sse_connections():
-    """Send shutdown message to all SSE clients and close connections"""
-    logger.info(f"Shutting down {len(ACTIVE_SESSIONS)} SSE connections...")
-    try:
-        # Broadcast shutdown message to all clients with more detailed information
-        await broadcast_event("server_shutdown", "Server is shutting down for restart")
-        # Give clients a moment to process the shutdown message
-        # Use a shorter sleep time to ensure we don't block shutdown
-        await asyncio.sleep(0.2)
-        # Close all connections
-        for client_id in list(ACTIVE_SESSIONS.keys()):
-            try:
-                queue = ACTIVE_SESSIONS[client_id]
-                await queue.put(None)  # Signal to close the connection
-            except Exception as e:
-                logger.error(f"Error closing connection for client {client_id}: {e}")
-
-        # Shutdown the file watcher
-        if hasattr(app.state, 'registry'):
-            await app.state.registry.stop_watching()
-
-    except Exception as e:
-        logger.error(f"Error during shutdown of SSE connections: {e}")
-    finally:
-        logger.info("All SSE connections have been notified of shutdown")
-        # Clear the collections to help with cleanup
-        ACTIVE_SESSIONS.clear()
-        SSE_CLIENTS.clear()
+# This function is replaced by BroadcastService.shutdown
 
 # Initialize signal handlers
 setup_signal_handlers()
@@ -351,7 +331,8 @@ async def process_tool_execution(tool_id: str, tool_name: str, session, params: 
     }
 
     # Notify all clients to update the session component
-    await broadcast_event("session_update", "update")
+    from src.dependencies import broadcast_service
+    await broadcast_service.broadcast("session_update", "update")
 
     try:
         from mcp import ClientSession
@@ -377,7 +358,7 @@ async def process_tool_execution(tool_id: str, tool_name: str, session, params: 
         }
 
     # Notify all clients to update the session component again
-    await broadcast_event("session_update", "update")
+    await broadcast_service.broadcast("session_update", "update")
 
 @app.get("/kitchen-sink")
 @jinja.hx('components/kitchen_sink.html.j2', no_data=True)
@@ -386,31 +367,24 @@ async def kitchen_sink_component() -> None:
 
 
 @app.get("/sse")
-async def sse(request: Request):
+async def sse(request: Request, broadcast_service: BroadcastService = Depends(get_broadcast_service)):
     """SSE endpoint for all component updates"""
     client_id = str(uuid.uuid4())
-    queue = asyncio.Queue()
-    SSE_CLIENTS.add(client_id)
-    logger.info(f"New SSE connection: {client_id}")
-
+    queue = broadcast_service.register_client(client_id)
+    
     try:
         async def event_generator():
             # Send initial connection message
             yield {"event": "connected", "data": "Connected to SSE stream"}
-
-            # Create a queue for this client
-            ACTIVE_SESSIONS[client_id] = queue
-
+            
             try:
                 while True:
-                    # Wait for the next event with a timeout
+                    # Wait for the next event
                     event = await queue.get()
                     if event is None:  # None is our signal to stop
                         logger.info(f"Closing SSE connection for client {client_id}")
                         break
                     yield event
-            except asyncio.TimeoutError:
-                pass
             except asyncio.CancelledError:
                 logger.warning(f"SSE connection for client {client_id} was cancelled")
                 raise  # Re-raise to ensure proper cleanup
@@ -420,27 +394,10 @@ async def sse(request: Request):
         return EventSourceResponse(event_generator())
     finally:
         # Clean up when the generator exits
-        if client_id in ACTIVE_SESSIONS:
-            del ACTIVE_SESSIONS[client_id]
-        if client_id in SSE_CLIENTS:
-            SSE_CLIENTS.remove(client_id)
-        logger.info(f"Cleaned up client {client_id}")
+        broadcast_service.unregister_client(client_id)
 
 
-async def broadcast_event(event_name, data):
-    """Send an event to all connected SSE clients"""
-    logger.debug(f"Broadcasting {event_name} to {len(ACTIVE_SESSIONS)} clients")
-    for client_id in list(ACTIVE_SESSIONS.keys()):
-        try:
-            queue = ACTIVE_SESSIONS[client_id]
-            # Format the event properly for SSE
-            event_data = json.dumps(data) if isinstance(data, (dict, list)) else data
-            await queue.put({"event": event_name, "data": event_data})
-        except Exception as e:
-            logger.error(f"Error broadcasting to client {client_id}: {e}")
-            # If we can't send to this client, remove it
-            if client_id in ACTIVE_SESSIONS:
-                del ACTIVE_SESSIONS[client_id]
+# This function is replaced by BroadcastService.broadcast
 
 
 if __name__ == "__main__":
