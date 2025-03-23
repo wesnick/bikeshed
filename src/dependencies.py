@@ -12,7 +12,7 @@ from psycopg.types.json import set_json_dumps
 from pydantic import BaseModel
 
 from src.service.cache import RedisService
-from src.service.llm import FakerCompletionService
+from src.service.llm import FakerCompletionService, LiteLLMCompletionService, LiteLLMConfig, ChainedCompletionService
 from src.service.mcp_client import MCPClient
 from src.service.broadcast import BroadcastService
 from src.config import get_config
@@ -123,8 +123,22 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
             if not registry_instance:
                 raise RuntimeError("Failed to get registry instance")
 
-            # Create the LLM service with broadcast capability
-            llm_service = FakerCompletionService(broadcast_service=broadcast_service)
+            # Create the LLM services with broadcast capability
+            faker_service = FakerCompletionService(broadcast_service=broadcast_service)
+            litellm_service = LiteLLMCompletionService(
+                config=LiteLLMConfig(
+                    provider=settings.llm_provider,
+                    model=settings.llm_model,
+                    api_key=settings.llm_api_key
+                ),
+                broadcast_service=broadcast_service
+            )
+            
+            # Chain the services together
+            llm_service = ChainedCompletionService([
+                faker_service,  # Try faker first (for test sessions)
+                litellm_service  # Fall back to litellm for production
+            ])
             
             # Create the WorkflowService instance with the actual registry
             _workflow_service = WorkflowService(

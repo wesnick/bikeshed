@@ -14,6 +14,27 @@ class FakerCompletionService(CompletionService):
         self.faker = Faker()
         self.config = config or FakerLLMConfig()
         self.broadcast_service = broadcast_service
+    
+    def supports(self, session: Session) -> bool:
+        """
+        Check if this service supports the given session.
+        Supports sessions with 'faker' in metadata or test sessions.
+        
+        Args:
+            session: The session to check
+            
+        Returns:
+            True if this service can handle the session
+        """
+        # If session has metadata specifying the provider
+        if session.metadata and 'llm_provider' in session.metadata:
+            return session.metadata['llm_provider'] == 'faker'
+        
+        # Support test sessions
+        if session.metadata and session.metadata.get('test', False):
+            return True
+            
+        return False
 
     async def complete(
         self,

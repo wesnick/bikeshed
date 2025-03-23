@@ -14,6 +14,24 @@ class LiteLLMCompletionService(CompletionService):
         self.config = config
         self.broadcast_service = broadcast_service
         litellm.suppress_debug_info = True
+    
+    def supports(self, session: Session) -> bool:
+        """
+        Check if this service supports the given session.
+        By default, supports sessions with 'litellm' in metadata or no specific provider.
+        
+        Args:
+            session: The session to check
+            
+        Returns:
+            True if this service can handle the session
+        """
+        # If session has metadata specifying the provider
+        if session.metadata and 'llm_provider' in session.metadata:
+            return session.metadata['llm_provider'] == 'litellm'
+        
+        # Default provider if none specified
+        return True
 
     async def complete(
         self,
