@@ -1,23 +1,21 @@
-from typing import Dict, Type, Callable, Any, Optional, List, Protocol, TypeVar, Generic, cast
+from typing import Any, List, Protocol
 
 from pydantic import BaseModel
+from typing_extensions import TypeVar
 
 from src.models.models import Message, Session, MessageStatus, SessionStatus
-from src.service.broadcast import BroadcastService
-from src.service.logging import logger
-
 
 T = TypeVar('T', bound=BaseModel)
 
 
-class BroadcastStrategy(Protocol, Generic[T]):
+class BroadcastStrategy(Protocol):
     """Protocol for model broadcast strategies"""
-    
-    def should_broadcast(self, model: T) -> bool:
+
+    async def should_broadcast(self, model: T) -> bool:
         """Determine if the model should trigger a broadcast"""
         ...
-    
-    def get_events(self, model: T) -> List[tuple[str, Any]]:
+
+    async def get_events(self, model: T) -> List[tuple[str, Any]]:
         """Get list of events to broadcast (event_name, data)"""
         ...
 
@@ -25,11 +23,11 @@ class BroadcastStrategy(Protocol, Generic[T]):
 class MessageBroadcastStrategy:
     """Strategy for broadcasting Message model updates"""
     
-    def should_broadcast(self, model: Message) -> bool:
+    async def should_broadcast(self, model: Message) -> bool:
         """Broadcast for all message statuses except CREATED"""
         return model.status != MessageStatus.CREATED
     
-    def get_events(self, model: Message) -> List[tuple[str, Any]]:
+    async def get_events(self, model: Message) -> List[tuple[str, Any]]:
         """Get events based on message status"""
         events = []
         
@@ -62,11 +60,11 @@ class MessageBroadcastStrategy:
 class SessionBroadcastStrategy:
     """Strategy for broadcasting Session model updates"""
     
-    def should_broadcast(self, model: Session) -> bool:
+    async def should_broadcast(self, model: Session) -> bool:
         """Always broadcast session updates"""
         return True
     
-    def get_events(self, model: Session) -> List[tuple[str, Any]]:
+    async def get_events(self, model: Session) -> List[tuple[str, Any]]:
         """Get events based on session status"""
         events = []
         
@@ -99,40 +97,3 @@ class SessionBroadcastStrategy:
             
         return events
 
-
-class ModelUpdates:
-    """Handler for broadcasting model updates"""
-    
-    def __init__(self, broadcast_service: BroadcastService):
-        self.broadcast_service = broadcast_service
-        self._strategies: Dict[Type[BaseModel], BroadcastStrategy] = {}
-        
-        # Register default strategies
-        self.register_strategy(Message, MessageBroadcastStrategy())
-        self.register_strategy(Session, SessionBroadcastStrategy())
-    
-    def register_strategy(self, model_class: Type[BaseModel], strategy: BroadcastStrategy) -> None:
-        """Register a broadcast strategy for a model class"""
-        self._strategies[model_class] = strategy
-        logger.info(f"Registered broadcast strategy for {model_class.__name__}")
-    
-    async def broadcast_update(self, model: BaseModel) -> None:
-        """Broadcast updates for a model if it has an id field and a registered strategy"""
-        # Skip if model doesn't have an id
-        if not hasattr(model, "id"):
-            return
-            
-        model_class = type(model)
-        strategy = self._strategies.get(model_class)
-        
-        if not strategy:
-            # No strategy registered for this model type
-            return
-            
-        # Use the appropriate strategy to determine if and what to broadcast
-        if strategy.should_broadcast(model):
-            events = strategy.get_events(model)
-            
-            for event_name, data in events:
-                await self.broadcast_service.broadcast(event_name, data)
-                logger.debug(f"Broadcast {event_name} for {model_class.__name__} {model.id}")

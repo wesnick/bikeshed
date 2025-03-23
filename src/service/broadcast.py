@@ -1,9 +1,15 @@
 import asyncio
 import json
-import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Type
+from pydantic import BaseModel
 
-logger = logging.getLogger(__name__)
+from src.service.broadcast_strategy import (
+    BroadcastStrategy,
+    MessageBroadcastStrategy,
+    SessionBroadcastStrategy
+)
+from src.service.logging import logger
+from src.models.models import Message, Session
 
 
 class BroadcastService:
@@ -12,7 +18,11 @@ class BroadcastService:
     def __init__(self):
         # Store active client queues
         self.active_clients: Dict[str, asyncio.Queue] = {}
-        self.model_updates = None  # Will be set after initialization to avoid circular imports
+        self._strategies: Dict[Type[BaseModel], BroadcastStrategy] = {}
+
+        # Register default strategies
+        self.register_strategy(Message, MessageBroadcastStrategy())
+        self.register_strategy(Session, SessionBroadcastStrategy())
 
     def register_client(self, client_id: str) -> asyncio.Queue:
         """Register a new client and return its queue"""
@@ -56,6 +66,32 @@ class BroadcastService:
                 # If we can't send to this client, remove it
                 self.unregister_client(client_id)
 
+    def register_strategy(self, model_class: Type[BaseModel], strategy: BroadcastStrategy) -> None:
+        """Register a broadcast strategy for a model class"""
+        self._strategies[model_class] = strategy
+        logger.info(f"Registered broadcast strategy for {model_class.__name__}")
+
+    async def model_update(self, model: BaseModel) -> None:
+        """Broadcast updates for a model if it has an id field and a registered strategy"""
+        # Skip if model doesn't have an id
+        if not hasattr(model, "id"):
+            return
+
+        model_class = type(model)
+        strategy = self._strategies.get(model_class)
+
+        if not strategy:
+            # No strategy registered for this model type
+            return
+
+        # Use the appropriate strategy to determine if and what to broadcast
+        if strategy.should_broadcast(model):
+            events = await strategy.get_events(model)
+
+            for event_name, data in events:
+                await self.broadcast(event_name, data)
+                logger.debug(f"Broadcast {event_name} for {model_class.__name__} {model.id}")
+
     async def shutdown(self, message: Optional[str] = "Server is shutting down") -> None:
         """Send shutdown message to all clients and close connections"""
         if not self.active_clients:
@@ -84,9 +120,3 @@ class BroadcastService:
             client_count = len(self.active_clients)
             self.active_clients.clear()
             logger.info(f"Cleared {client_count} SSE connections during shutdown")
-            
-    def init_model_updates(self):
-        """Initialize the model updates handler to avoid circular imports"""
-        from src.service.model_updates import ModelUpdates
-        self.model_updates = ModelUpdates(self)
-        return self.model_updates

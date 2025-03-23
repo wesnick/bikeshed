@@ -5,8 +5,8 @@ import signal
 import sys
 import threading
 import time
+from src.service.logging import logger
 
-logger = logging.getLogger(__name__)
 
 class ShutdownManager:
     """
