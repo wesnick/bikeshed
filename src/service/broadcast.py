@@ -47,8 +47,23 @@ class BroadcastService:
         """Initialize Redis connection for pub/sub"""
         if self.redis_client:
             try:
+                # Close any existing pubsub connection
+                if self.pubsub:
+                    await self.pubsub.unsubscribe()
+                    await self.pubsub.close()
+                
+                # Cancel any existing subscription task
+                if self.subscription_task:
+                    self.subscription_task.cancel()
+                    try:
+                        await self.subscription_task
+                    except asyncio.CancelledError:
+                        pass
+                
+                # Create a new pubsub connection
                 self.pubsub = self.redis_client.pubsub()
                 await self.pubsub.subscribe("broadcast_channel")
+                
                 # Start listening in background
                 self.subscription_task = asyncio.create_task(self._listen_for_redis_messages())
                 logger.info("Redis pub/sub initialized for broadcast service")
@@ -57,23 +72,40 @@ class BroadcastService:
     
     async def _listen_for_redis_messages(self):
         """Listen for messages from Redis and broadcast locally"""
+        # Flag to track if we're currently processing a message
+        processing = False
+        
         try:
             while True:
-                message = await self.pubsub.get_message(ignore_subscribe_messages=True)
-                if message and message['type'] == 'message':
-                    try:
-                        event = json.loads(message['data'])
-                        await self._local_broadcast(event['event'], event['data'])
-                    except json.JSONDecodeError:
-                        logger.error(f"Invalid JSON in Redis message: {message['data']}")
-                    except Exception as e:
-                        logger.error(f"Error processing Redis message: {e}")
-                await asyncio.sleep(0.01)  # Small delay to prevent CPU spinning
+                try:
+                    # Only get a new message if we're not currently processing one
+                    if not processing:
+                        message = await self.pubsub.get_message(ignore_subscribe_messages=True)
+                        if message and message['type'] == 'message':
+                            processing = True
+                            try:
+                                event = json.loads(message['data'])
+                                await self._local_broadcast(event['event'], event['data'])
+                            except json.JSONDecodeError:
+                                logger.error(f"Invalid JSON in Redis message: {message['data']}")
+                            except Exception as e:
+                                logger.error(f"Error processing Redis message: {e}")
+                            finally:
+                                processing = False
+                    
+                    # Always have a small delay to prevent CPU spinning
+                    await asyncio.sleep(0.01)
+                    
+                except redis.RedisError as e:
+                    logger.error(f"Redis error in subscription: {e}")
+                    # Wait before trying again
+                    await asyncio.sleep(1)
+                    
         except asyncio.CancelledError:
             logger.info("Redis subscription task cancelled")
         except Exception as e:
             logger.error(f"Redis subscription error: {e}")
-            # Try to reconnect
+            # Try to reconnect after a delay
             await asyncio.sleep(5)
             if self.redis_client:
                 self.subscription_task = asyncio.create_task(self._listen_for_redis_messages())
@@ -120,7 +152,7 @@ class BroadcastService:
     
     async def publish_to_redis(self, event_name: str, data: Any) -> None:
         """Publish an event to Redis for cross-process broadcasting"""
-        if not self.redis_client and self.is_worker:
+        if not self.redis_client:
             return
             
         try:
