@@ -1,6 +1,4 @@
-<p class="menu-label mt-6">
-  Registry Items
-</p>
+<p class="menu-label mt-6">Registry Items</p>
 <ul class="menu-list">
   <li>
     <a hx-get="/registry/prompts" hx-target="#dashboard" hx-push-url="true">
@@ -13,12 +11,16 @@
     </a>
   </li>
   <li>
-    <a hx-get="/registry/resources" hx-target="#dashboard" hx-push-url="true">
+    <a hx-get="/registry/resources"
+       hx-target="#dashboard"
+       hx-push-url="true">
       Resources <span class="tag is-info">{{ resources|length }}</span>
     </a>
   </li>
   <li>
-    <a hx-get="/registry/resource-templates" hx-target="#dashboard" hx-push-url="true">
+    <a hx-get="/registry/resource-templates"
+       hx-target="#dashboard"
+       hx-push-url="true">
       Resource Templates <span class="tag is-info">{{ resource_templates|length }}</span>
     </a>
   </li>
@@ -28,7 +30,9 @@
     </a>
   </li>
   <li>
-    <a hx-get="/registry/mcp-servers" hx-target="#dashboard" hx-push-url="true">
+    <a hx-get="/registry/mcp-servers"
+       hx-target="#dashboard"
+       hx-push-url="true">
       MCP Servers <span class="tag is-info">{{ mcp_servers|length }}</span>
     </a>
   </li>

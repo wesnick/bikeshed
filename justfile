@@ -5,11 +5,6 @@ default:
 # Create a local .env file from .env.dist if it doesn't exist
 setup-env:
     [ -f .env ] || cp .env.dist .env
-    uv pip install transitions[asyncio]
-
-# Install or update dependencies
-install-deps:
-    uv pip install transitions[asyncio] faker pydantic pydantic-settings litellm sse-starlette typing-extensions
 
 # Start the FastAPI development server with auto-reload
 fastapi-dev:
@@ -67,3 +62,7 @@ test:
 setup-test-db:
     PGPASSWORD=postgres createdb -U postgres app_test || echo "Test database already exists"
     PGPASSWORD=postgres psql -U postgres -d app_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+# Fix formatting on html templates
+html-lint:
+    uvx djlint templates/ --reformat --extension=html.j2 --indent 2

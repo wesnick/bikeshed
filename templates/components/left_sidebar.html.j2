@@ -6,37 +6,30 @@
       <details>
         <summary class="is-size-5">
           Sessions
-          [<a
-          hx-get="/session"
-          hx-target="#dashboard"
-          hx-push-url="true"
-        >view all</a>]
+          [<a hx-get="/session" hx-target="#dashboard" hx-push-url="true">view all</a>]
           [create]
         </summary>
         <ul class="menu-list">
           {% for session in sessions %}
-            <li><a
-              hx-get="/session/{{ session.id }}"
-              hx-target="#dashboard"
-              hx-push-url="true"
-            >{{ session.summary }}</a></li>
+            <li>
+              <a hx-get="/session/{{ session.id }}"
+                 hx-target="#dashboard"
+                 hx-push-url="true">{{ session.summary }}</a>
+            </li>
           {% endfor %}
         </ul>
       </details>
     {% endif %}
-    
     {% if session_templates %}
       <details>
-        <summary class="is-size-5">
-          Templates
-        </summary>
+        <summary class="is-size-5">Templates</summary>
         <ul class="menu-list">
           {% for template_name, template in session_templates.items() %}
-            <li><a
-              hx-get="/session/template-creator/{{ template_name }}"
-              hx-target="#dashboard"
-              hx-push-url="true"
-            >{{ template.name }}</a></li>
+            <li>
+              <a hx-get="/session/template-creator/{{ template_name }}"
+                 hx-target="#dashboard"
+                 hx-push-url="true">{{ template.name }}</a>
+            </li>
           {% endfor %}
         </ul>
       </details>

@@ -2,18 +2,29 @@
       hx-ext="form-json"
       hx-post="/session/session-submit"
       hx-swap="none"
-      hx-on::after-request="this.reset();"
->
-
+      hx-on::after-request="this.reset();">
   <div class="field">
     <div class="control">
       <label for="editor">Magic</label>
       <div class="control">
-        <textarea id="editor" name="text" class="textarea" placeholder="Normal textarea"></textarea>
+        <textarea id="editor"
+                  name="text"
+                  class="textarea"
+                  placeholder="Normal textarea"></textarea>
       </div>
     </div>
   </div>
-  <div class="field is-grouped is-grouped-right">
+  <div class="field is-grouped">
+    <label class="label" for="model">Model</label>
+    <div class="control">
+      <div class="select">
+        <select id="model" name="model">
+          <option value="faker">Faker</option>
+          <option value="ollama">Ollama</option>
+        </select>
+      </div>
+    </div>
+    <div class="control is-expanded"></div>
     <div class="control">
       <button type="submit" name="send_button" class="button is-primary">
         <span class="icon">
@@ -22,17 +33,16 @@
         <span>Generate Completion</span>
       </button>
     </div>
-      {% if session.status == 'waiting_for_input' %}
-          <div class="control">
-      <button type="submit" name="continue_button" class="button is-primary">
-        <span class="icon">
-          <i class="fas fa-paper-plane"></i>
-        </span>
-        <span>Continue Workflow</span>
-      </button>
-    </div>
-      {% endif %}
-
+    {% if session.status == 'waiting_for_input' %}
+      <div class="control">
+        <button type="submit" name="continue_button" class="button is-primary">
+          <span class="icon">
+            <i class="fas fa-paper-plane"></i>
+          </span>
+          <span>Continue Workflow</span>
+        </button>
+      </div>
+    {% endif %}
   </div>
   <input type="hidden" name="session_id" value="{{ session.id }}">
 </form>

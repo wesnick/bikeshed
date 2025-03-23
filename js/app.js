@@ -45,9 +45,9 @@ function initializeTheme() {
 // Setup theme toggle when navbar is loaded and highlight code blocks
 document.body.addEventListener('htmx:afterSettle', function(event) {
 
-  // if (event.detail.elt.querySelector && event.detail.elt.querySelector('#editor')) {
-  //   initializeEditor();
-  // }
+  if (event.detail.elt.querySelector && event.detail.elt.querySelector('#editor')) {
+    initializeEditor();
+  }
 
   // Apply syntax highlighting to any new code blocks
   // if (event.detail.elt.querySelector && event.detail.elt.querySelector('pre code')) {

@@ -1,31 +1,31 @@
 <div class="dropdown">
-    <div class="dropdown-trigger">
-        <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
-            <span>Processes <span class="tag is-rounded is-primary">{{ total_running }}</span></span>
-            <span class="icon ml-2"><i class="fas fa-bell"></i></span>
-        </button>
+  <div class="dropdown-trigger">
+    <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
+      <span>Processes <span class="tag is-rounded is-primary">{{ total_running }}</span></span>
+      <span class="icon ml-2"><i class="fas fa-bell"></i></span>
+    </button>
+  </div>
+  <div class="dropdown-menu" id="dropdown-menu" role="menu">
+    <div class="dropdown-content">
+      {% if total_running == 0 and total_waiting == 0 %}
+        No notifications!
+      {% else %}
+        {% if total_running > 0 %}
+          {# Running #}
+          <a href="#" class="dropdown-item">Dropdown item</a>
+          <a class="dropdown-item">Other dropdown item</a>
+          <a href="#" class="dropdown-item is-active">Active dropdown item</a>
+          <a href="#" class="dropdown-item">Other dropdown item</a>
+        {% endif %}
+        {% if total_waiting > 0 %}
+          <hr class="dropdown-divider" />
+          {# Waiting #}
+          <a href="#" class="dropdown-item">Dropdown item</a>
+          <a class="dropdown-item">Other dropdown item</a>
+          <a href="#" class="dropdown-item is-active">Active dropdown item</a>
+          <a href="#" class="dropdown-item">Other dropdown item</a>
+        {% endif %}
+      {% endif %}
     </div>
-    <div class="dropdown-menu" id="dropdown-menu" role="menu">
-        <div class="dropdown-content">
-            {% if total_running == 0 and total_waiting == 0 %}
-                No notifications!
-            {% else %}
-                {% if total_running > 0 %}
-                    {# Running #}
-                    <a href="#" class="dropdown-item"> Dropdown item </a>
-                    <a class="dropdown-item"> Other dropdown item </a>
-                    <a href="#" class="dropdown-item is-active"> Active dropdown item </a>
-                    <a href="#" class="dropdown-item"> Other dropdown item </a>
-                {% endif %}
-                {% if total_waiting > 0 %}
-                    <hr class="dropdown-divider"/>
-                    {# Waiting #}
-                    <a href="#" class="dropdown-item"> Dropdown item </a>
-                    <a class="dropdown-item"> Other dropdown item </a>
-                    <a href="#" class="dropdown-item is-active"> Active dropdown item </a>
-                    <a href="#" class="dropdown-item"> Other dropdown item </a>
-                {% endif %}
-            {% endif %}
-        </div>
-    </div>
+  </div>
 </div>

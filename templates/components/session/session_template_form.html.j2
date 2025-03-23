@@ -1,20 +1,12 @@
 <div class="box">
   <h2 class="title is-4">Launch Session from Template: {{ template.name }}</h2>
-  
-  {% if template.description %}
-    <p class="subtitle">{{ template.description }}</p>
-  {% endif %}
-  
+  {% if template.description %}<p class="subtitle">{{ template.description }}</p>{% endif %}
   {% if template.goal %}
     <div class="block">
       <strong>Goal:</strong> {{ template.goal }}
     </div>
   {% endif %}
-
-  <div class="block">
-    {{ session_workflow_svg | safe }}
-  </div>
-  
+  <div class="block">{{ session_workflow_svg | safe }}</div>
   {% if workflow_analysis %}
     <div class="block">
       <div class="columns">
@@ -28,9 +20,7 @@
                   <li>
                     <strong>{{ step_id }}</strong>:
                     <ul>
-                      {% for input_name, input_info in inputs.items() %}
-                        <li>{{ input_name }} - {{ input_info.description }}</li>
-                      {% endfor %}
+                      {% for input_name, input_info in inputs.items() %}<li>{{ input_name }} - {{ input_info.description }}</li>{% endfor %}
                     </ul>
                   </li>
                 {% endfor %}
@@ -39,7 +29,6 @@
             </div>
           </div>
         {% endif %}
-        
         {% if workflow_analysis.provided_outputs %}
           <div class="column">
             <h3 class="title is-5">Provided Outputs</h3>
@@ -63,43 +52,46 @@
       </div>
     </div>
   {% endif %}
-  
-  <form
-    hx-post="/session/template-creator/{{ template_name }}/create"
-    hx-target="#dashboard"
-    hx-push-url="true"
-    hx-ext="form-json"
-  >
+  <form hx-post="/session/template-creator/{{ template_name }}/create"
+        hx-target="#dashboard"
+        hx-push-url="true"
+        hx-ext="form-json">
     <div class="field">
       <label class="label">Description (optional)</label>
       <div class="control">
-        <input class="input" type="text" name="description" placeholder="Custom description for this session">
+        <input class="input"
+               type="text"
+               name="description"
+               placeholder="Custom description for this session">
       </div>
       <p class="help">Override the default description</p>
     </div>
-    
     <div class="field">
       <label class="label">Goal (optional)</label>
       <div class="control">
-        <textarea class="textarea" name="goal" placeholder="Custom goal for this session"></textarea>
+        <textarea class="textarea"
+                  name="goal"
+                  placeholder="Custom goal for this session"></textarea>
       </div>
       <p class="help">Override the default goal</p>
     </div>
-    
     {% if workflow_analysis and workflow_analysis.missing_inputs %}
       <div class="block">
         <h3 class="title is-5">Optional Input Values</h3>
-        <p class="help mb-3">Provide values for any inputs you want to pre-fill. Leave empty to be prompted during execution.</p>
-        
+        <p class="help mb-3">
+          Provide values for any inputs you want to pre-fill. Leave empty to be prompted during execution.
+        </p>
         {% for step_id, inputs in workflow_analysis.missing_inputs.items() %}
           <div class="box">
             <h4 class="title is-6">Step: {{ step_id }}</h4>
-            
             {% for input_name, input_info in inputs.items() %}
               <div class="field">
                 <label class="label">{{ input_name }}</label>
                 <div class="control">
-                  <input class="input" type="text" name="input[{{ input_name }}]" placeholder="{{ input_info.description }}">
+                  <input class="input"
+                         type="text"
+                         name="input[{{ input_name }}]"
+                         placeholder="{{ input_info.description }}">
                 </div>
                 <p class="help">{{ input_info.description }}</p>
               </div>
@@ -108,16 +100,15 @@
         {% endfor %}
       </div>
     {% endif %}
-    
     <div class="field is-grouped">
       <div class="control">
         <button class="button is-primary" type="submit">Create Session</button>
       </div>
       <div class="control">
-        <button class="button is-light" 
-          hx-get="/components/left-sidebar"
-          hx-target="#left-sidebar"
-          type="button">Cancel</button>
+        <button class="button is-light"
+                hx-get="/components/left-sidebar"
+                hx-target="#left-sidebar"
+                type="button">Cancel</button>
       </div>
     </div>
   </form>

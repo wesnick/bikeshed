@@ -1,6 +1,5 @@
 <div class="box">
   <h2 class="title is-4">MCP Servers</h2>
-
   {% if mcp_servers %}
     <table class="table is-fullwidth is-striped">
       <thead>
@@ -14,10 +13,16 @@
         {% for name, server in mcp_servers.items() %}
           <tr>
             <td>{{ name }}</td>
-            <td><code>{{ server.command }} {{ server.args | join(' ') }}</code></td>
+            <td>
+              <code>{{ server.command }} {{ server.args | join(" ") }}</code>
+            </td>
             <td>
               <span class="tag {% if server_status and server_status.get(name) %}is-success{% else %}is-danger{% endif %}">
-                {% if server_status and server_status.get(name) %}Connected{% else %}Disconnected{% endif %}
+                {% if server_status and server_status.get(name) %}
+                  Connected
+                {% else %}
+                  Disconnected
+                {% endif %}
               </span>
             </td>
           </tr>
@@ -25,8 +30,6 @@
       </tbody>
     </table>
   {% else %}
-    <div class="notification is-warning">
-      No MCP servers configured in the system.
-    </div>
+    <div class="notification is-warning">No MCP servers configured in the system.</div>
   {% endif %}
 </div>

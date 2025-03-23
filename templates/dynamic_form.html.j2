@@ -1,34 +1,18 @@
 {% from 'form_macros.html.j2' import render_field %}
-
 <form id="{{ form.id }}"
       method="post"
       class="dynamic-form"
-      hx-ext="form-json"
->
-  {% if form.title %}
-    <h3 class="title is-4">{{ form.title }}</h3>
-  {% endif %}
-
-  {% if form.description %}
-    <p class="subtitle is-6">{{ form.description }}</p>
-  {% endif %}
-
-  {% for field in form.fields %}
-    {{ render_field(field, values.get(field.name) if values else None) }}
-  {% endfor %}
-
+      hx-ext="form-json">
+  {% if form.title %}<h3 class="title is-4">{{ form.title }}</h3>{% endif %}
+  {% if form.description %}<p class="subtitle is-6">{{ form.description }}</p>{% endif %}
+  {% for field in form.fields %}{{ render_field(field, values.get(field.name) if values else None) }}{% endfor %}
   <div class="field is-grouped mt-5">
     <div class="control">
-      <button type="submit" class="button is-primary">
-        {{ form.submit_label }}
-      </button>
+      <button type="submit" class="button is-primary">{{ form.submit_label }}</button>
     </div>
-
     {% if form.cancel_url %}
       <div class="control">
-        <a href="{{ form.cancel_url }}" class="button is-light">
-          Cancel
-        </a>
+        <a href="{{ form.cancel_url }}" class="button is-light">Cancel</a>
       </div>
     {% endif %}
   </div>
