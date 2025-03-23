@@ -1,16 +1,12 @@
-import asyncio
-from typing import Any, Dict, Optional, AsyncGenerator
-from arq import create_pool
-from arq.connections import RedisSettings, ArqRedis
-from psycopg import AsyncConnection
+from typing import Any, Dict
+from arq.connections import RedisSettings
 import uuid
 
 from src.config import get_config
-from src.models.models import Session, Message
 from src.service.llm.base import CompletionService
 from src.service.broadcast import BroadcastService
 from src.repository.message import MessageRepository
-from src.dependencies import get_completion_service, get_broadcast_service, db_pool
+from src.dependencies import get_completion_service, get_remote_broadcast_service, db_pool
 
 settings = get_config()
 message_repository = MessageRepository()
@@ -31,7 +27,7 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
     from src.repository.session import SessionRepository
     session_repo = SessionRepository()
     
-    async with db_pool.connection() as db:
+    async with ctx['db_pool'].connection() as db:
         # Fetch the session from the database
         session = await session_repo.get_with_messages(db, session_id)
         
@@ -41,7 +37,7 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
 
     # Get services
     completion_service: CompletionService = await anext(get_completion_service())
-    broadcast_service: BroadcastService = await anext(get_broadcast_service())
+    broadcast_service: BroadcastService = ctx['broadcast_service']
 
     try:
         # Process with Completion service
@@ -55,7 +51,10 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
             await message_repository.update(db, result_message.id, result_message.model_dump(exclude={"children", "parent"}))
 
         # Notify all clients to update the session component
-        await broadcast_service.broadcast("session_update", "")
+        await broadcast_service.broadcast("session_update", {
+            "session_id": str(session_id),
+            "message_id": str(result_message.id)
+        })
         
         return {
             "success": True, 
@@ -90,9 +89,17 @@ class WorkerSettings:
         """Open database pool on worker startup"""
         await db_pool.open()
         ctx['db_pool'] = db_pool
+        
+        # Initialize broadcast service for the worker
+        broadcast_service = await anext(get_remote_broadcast_service())
+        ctx['broadcast_service'] = broadcast_service
     
     @staticmethod
     async def on_shutdown(ctx):
-        """Close database pool on worker shutdown"""
+        """Close database pool and broadcast service on worker shutdown"""
         await db_pool.close()
+        
+        # Clean up broadcast service if it was initialized
+        if 'broadcast_service' in ctx:
+            await ctx['broadcast_service'].shutdown("Worker shutting down")
 

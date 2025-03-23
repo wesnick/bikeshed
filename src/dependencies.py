@@ -106,10 +106,20 @@ async def get_registry() -> AsyncGenerator[Registry, None]:
     yield registry
 
 # Create the singleton BroadcastService instance
-broadcast_service = BroadcastService()
+broadcast_service = BroadcastService(redis_url=str(settings.redis_url))
+
+async def get_remote_broadcast_service() -> AsyncGenerator[BroadcastService, None]:
+    """Dependency for getting the singleton BroadcastService instance"""
+    global broadcast_service
+
+    yield broadcast_service
 
 async def get_broadcast_service() -> AsyncGenerator[BroadcastService, None]:
     """Dependency for getting the singleton BroadcastService instance"""
+    global broadcast_service
+
+    await broadcast_service.initialize_redis()
+
     yield broadcast_service
 
 # Create the singleton WorkflowService instance

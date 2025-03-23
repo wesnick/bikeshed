@@ -7,7 +7,6 @@ from fastapi import FastAPI, Request, Depends
 from psycopg import AsyncConnection
 from starlette.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
-from arq.connections import ArqRedis
 
 from src.core.registry import Registry
 from src.service.broadcast import BroadcastService

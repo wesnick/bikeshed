@@ -2,7 +2,6 @@ from typing import Optional
 import uuid
 from uuid import UUID
 
-from arq import ArqRedis
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from psycopg import AsyncConnection
 from starlette.responses import Response
