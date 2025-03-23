@@ -12,6 +12,7 @@ class BroadcastService:
     def __init__(self):
         # Store active client queues
         self.active_clients: Dict[str, asyncio.Queue] = {}
+        self.model_updates = None  # Will be set after initialization to avoid circular imports
 
     def register_client(self, client_id: str) -> asyncio.Queue:
         """Register a new client and return its queue"""
@@ -83,3 +84,9 @@ class BroadcastService:
             client_count = len(self.active_clients)
             self.active_clients.clear()
             logger.info(f"Cleared {client_count} SSE connections during shutdown")
+            
+    def init_model_updates(self):
+        """Initialize the model updates handler to avoid circular imports"""
+        from src.service.model_updates import ModelUpdates
+        self.model_updates = ModelUpdates(self)
+        return self.model_updates

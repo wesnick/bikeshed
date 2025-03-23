@@ -29,6 +29,15 @@ The application uses the Transitions library to implement a state machine for se
 - The workflow system supports different step types: message, prompt, user_input, and invoke
 - State is persisted in the database via the `workflow_data` JSONB field
 
+### Real-time Updates
+
+The application uses Server-Sent Events (SSE) to provide real-time updates to the UI:
+
+- The `BroadcastService` manages SSE connections and broadcasts events to clients
+- The `ModelUpdates` system uses a strategy pattern to broadcast model changes
+- Different broadcast strategies are implemented for different model types (Session, Message, etc.)
+- Updates are automatically broadcast when models change state or status
+
 ## Backend
 
 - Prefer a modular structure.  The goal is for core functionality to be available via the CLI as well as the UI.
