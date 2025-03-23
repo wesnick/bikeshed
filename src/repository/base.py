@@ -106,6 +106,86 @@ class BaseRepository(Generic[T]):
             if success:
                 await conn.commit()
             return success
+            
+    async def upsert(self, conn: AsyncConnection, model: BaseModel, 
+                     conflict_fields: List[str], update_fields: Optional[List[str]] = None) -> T:
+        """
+        Insert a new entity or update if it already exists based on conflict fields.
+        
+        Args:
+            conn: Database connection
+            model: Model instance to upsert
+            conflict_fields: Fields to check for conflicts (e.g., ['id', 'name'])
+            update_fields: Fields to update on conflict (defaults to all fields except conflict fields)
+            
+        Returns:
+            The created or updated entity
+        """
+        data = model.model_dump()
+        filtered_data = await filter_data(data, model.__non_persisted_fields__)
+        
+        if not filtered_data:
+            raise ValueError("No data provided for upsert")
+            
+        # Prepare columns and values
+        columns = SQL(", ").join([Identifier(k) for k in filtered_data.keys()])
+        placeholders = SQL(", ").join([SQL("%s") for _ in filtered_data])
+        values = tuple(filtered_data.values())
+        
+        # Prepare conflict target
+        conflict_target = SQL(", ").join([Identifier(field) for field in conflict_fields])
+        
+        # Determine which fields to update on conflict
+        if update_fields is None:
+            # Default to all fields except conflict fields
+            update_fields = [k for k in filtered_data.keys() if k not in conflict_fields]
+        
+        # Prepare update clause
+        if update_fields:
+            set_clause = SQL(", ").join([
+                SQL("{} = EXCLUDED.{}").format(Identifier(field), Identifier(field)) 
+                for field in update_fields
+            ])
+            
+            query = SQL("INSERT INTO {} ({}) VALUES ({}) ON CONFLICT ({}) DO UPDATE SET {} RETURNING *").format(
+                Identifier(self.table_name),
+                columns,
+                placeholders,
+                conflict_target,
+                set_clause
+            )
+        else:
+            # If no fields to update, do nothing on conflict
+            query = SQL("INSERT INTO {} ({}) VALUES ({}) ON CONFLICT ({}) DO NOTHING RETURNING *").format(
+                Identifier(self.table_name),
+                columns,
+                placeholders,
+                conflict_target
+            )
+        
+        async with conn.cursor(row_factory=class_row(self.model)) as cur:
+            await cur.execute(query, values)
+            entity = await cur.fetchone()
+            await conn.commit()
+            
+            # If DO NOTHING was used and no row was returned, fetch the existing record
+            if entity is None and not update_fields:
+                # Build a query to fetch by conflict fields
+                where_clauses = SQL(" AND ").join([
+                    SQL("{} = %s").format(Identifier(field)) 
+                    for field in conflict_fields
+                ])
+                conflict_values = tuple(filtered_data[field] for field in conflict_fields)
+                
+                fetch_query = SQL("SELECT * FROM {} WHERE {}").format(
+                    Identifier(self.table_name),
+                    where_clauses
+                )
+                
+                await cur.execute(fetch_query, conflict_values)
+                entity = await cur.fetchone()
+                
+            return entity
 
     async def filter(self, conn: AsyncConnection, filters: Dict[str, Any],
                     limit: int = 100, offset: int = 0) -> List[T]:
