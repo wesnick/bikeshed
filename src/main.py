@@ -7,15 +7,17 @@ from fastapi import FastAPI, Request, Depends
 from psycopg import AsyncConnection
 from starlette.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
+from arq.connections import ArqRedis
 
 from src.core.registry import Registry
 from src.service.broadcast import BroadcastService
 from src.service.logging import logger, setup_logging
 from src.service.shutdown_helper import shutdown_manager
 from src.http.middleware import HTMXRedirectMiddleware
-from src.dependencies import get_db, get_jinja, get_registry, get_broadcast_service
+from src.dependencies import get_db, get_jinja, get_registry, get_broadcast_service, get_arq_redis
 from src.routes import api_router
 from src.repository import session_repository
+from src.service.worker import get_arq_redis
 
 
 @asynccontextmanager
@@ -154,6 +156,20 @@ async def sse(request: Request, broadcast_service: BroadcastService = Depends(ge
 
     return EventSourceResponse(event_generator())
 
+
+async def enqueue_message_processing(session_id: uuid.UUID, arq_redis: ArqRedis) -> str:
+    """
+    Enqueue a message processing job with ARQ
+    
+    Args:
+        session_id: The UUID of the session to process
+        arq_redis: ARQ Redis connection
+        
+    Returns:
+        The job ID as a string
+    """
+    job = await arq_redis.enqueue_job('process_message_job', session_id)
+    return job.job_id
 
 if __name__ == "__main__":
     # Configure uvicorn to use our logging

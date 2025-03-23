@@ -58,6 +58,10 @@ create-ad-hoc description:
 test:
     pytest tests/ -v
 
+# Start the ARQ worker
+arq-worker:
+    python -m arq src.service.worker.WorkerSettings
+
 # Set up test database
 setup-test-db:
     PGPASSWORD=postgres createdb -U postgres app_test || echo "Test database already exists"

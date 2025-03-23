@@ -2,7 +2,7 @@ from typing import AsyncGenerator
 import asyncio
 import json
 
-
+from arq.connections import ArqRedis, create_pool, RedisSettings
 from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
 from markdown2 import markdown
@@ -45,6 +45,14 @@ async def get_db() -> AsyncGenerator[AsyncConnection, None]:
 
 async def get_cache() -> AsyncGenerator[RedisService, None]:
     yield RedisService(redis_url=str(settings.redis_url))
+
+async def get_arq_redis() -> AsyncGenerator[ArqRedis, None]:
+    """Dependency for getting ARQ Redis connection"""
+    redis = await create_pool(RedisSettings.from_dsn(str(settings.redis_url)))
+    try:
+        yield redis
+    finally:
+        await redis.close()
 
 def markdown2html(text: str):
     from src.main import logger
