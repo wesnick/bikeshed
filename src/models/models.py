@@ -35,7 +35,6 @@ class WorkflowData(BaseModel):
 
 
 class Message(BaseModel):
-
     __non_persisted_fields__ = ['children', 'parent']
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
@@ -53,6 +52,13 @@ class Message(BaseModel):
     # These will be populated when relationships are loaded
     children: List["Message"] = Field(default_factory=list)
     parent: Optional["Message"] = None
+
+    # custom validations
+    @model_validator(mode='after')
+    def validate_text_or_extra(self) -> 'Message':
+        if not self.role == 'assistant' and not self.model:
+            raise ValueError("Model must be set for assistant messages")
+        return self
 
 
 class Session(BaseModel):

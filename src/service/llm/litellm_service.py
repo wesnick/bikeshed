@@ -3,17 +3,11 @@ from typing import Optional, Callable, Awaitable
 from src.models.models import Session, Message, MessageStatus
 from .base import CompletionService, LLMException
 
-class LiteLLMConfig:
-    def __init__(self, provider: str, model: str, api_key: str):
-        self.provider = provider
-        self.model = model
-        self.api_key = api_key
 
 class LiteLLMCompletionService(CompletionService):
-    def __init__(self, config: LiteLLMConfig, broadcast_service=None):
-        self.config = config
+    def __init__(self, broadcast_service=None):
         self.broadcast_service = broadcast_service
-        litellm.suppress_debug_info = True
+        # litellm.suppress_debug_info = True
     
     def supports(self, session: Session) -> bool:
         """
@@ -41,6 +35,7 @@ class LiteLLMCompletionService(CompletionService):
         try:
             messages = self._prepare_messages(session)
             assistant_msg = session.messages[-1]
+            model = assistant_msg.model
             
             # Broadcast that we're starting LLM processing
             if self.broadcast_service:
@@ -51,9 +46,8 @@ class LiteLLMCompletionService(CompletionService):
                 })
             
             response = await litellm.acompletion(
-                model=f"{self.config.provider}/{self.config.model}",
+                model=model,
                 messages=messages,
-                api_key=self.config.api_key,
                 stream=True
             )
             

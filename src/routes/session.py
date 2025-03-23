@@ -7,7 +7,8 @@ from starlette.responses import Response
 
 from src.core.registry import Registry
 from src.core.workflow.service import WorkflowService
-from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry, get_broadcast_service
+from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry, get_broadcast_service, \
+    get_completion_service
 from src.models.models import MessageStatus
 from src.repository import session_repository, message_repository
 from src.models import Session, Message
@@ -148,14 +149,10 @@ async def session_submit(message: MessageCreate,
 async def process_message(session: Session,
                           db: AsyncConnection = Depends(get_db),
                           broadcast_service: BroadcastService = Depends(get_broadcast_service),
-                          llm_service: CompletionService = Depends(get_completion_service)):
+                          completion_service: CompletionService = Depends(get_completion_service)):
 
-    """Process the message and send response via SSE"""
-    from src.service.llm import FakerCompletionService, FakerLLMConfig
-    from src.dependencies import markdown2html
-
-    # Process with LLM service
-    result_message = await llm_service.complete(
+    # Process with Completion service
+    result_message = await completion_service.complete(
         session,
         broadcast=None
     )

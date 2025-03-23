@@ -15,16 +15,16 @@ class PromptStepHandler(StepHandler):
     """Handler for prompt steps"""
 
     def __init__(self, registry: Registry,
-                 llm_service: CompletionService):
+                 completion_service: CompletionService):
         """
         Initialize the PromptStepHandler
         
         Args:
             registry: Registry instance
-            llm_service: Optional CompletionService instance
+            completion_service: Optional CompletionService instance
         """
         self.registry = registry
-        self.llm_service = llm_service
+        self.completion_service = completion_service
 
 
     async def can_handle(self, session: Session, step: Step) -> bool:
@@ -113,7 +113,7 @@ class PromptStepHandler(StepHandler):
         session.messages.append(assistant_message)
         
         # Process with LLM service
-        result_message = await self.llm_service.complete(
+        result_message = await self.completion_service.complete(
             session,
             broadcast=None
         )

@@ -18,7 +18,7 @@ class FakerCompletionService(CompletionService):
     def supports(self, session: Session) -> bool:
         """
         Check if this service supports the given session.
-        Supports sessions with 'faker' in metadata or test sessions.
+        Supports sessions with 'faker' as model or test sessions.
         
         Args:
             session: The session to check
@@ -26,14 +26,13 @@ class FakerCompletionService(CompletionService):
         Returns:
             True if this service can handle the session
         """
-        # If session has metadata specifying the provider
-        if session.metadata and 'llm_provider' in session.metadata:
-            return session.metadata['llm_provider'] == 'faker'
-        
-        # Support test sessions
-        if session.metadata and session.metadata.get('test', False):
-            return True
-            
+        # Check the last message for the model, then the session for the model
+        if session.messages and session.messages[-1].model:
+            return session.messages[-1].model == 'faker'
+
+        if session.template and session.template.model:
+            return session.template.model == 'faker'
+
         return False
 
     async def complete(

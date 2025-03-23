@@ -11,9 +11,9 @@ from src.core.config_types import Step, MessageStep, PromptStep, UserInputStep, 
 class HandlerFactory:
     """Factory for creating step handlers"""
     
-    def __init__(self, registry_provider, llm_service):
+    def __init__(self, registry, completion_service):
         self.registry_provider = registry
-        self.llm_service = llm_service
+        self.completion_service = completion_service
         self._handlers = None
         
     async def get_handlers(self) -> Dict[str, StepHandler]:
@@ -22,7 +22,7 @@ class HandlerFactory:
         if self._handlers is None:
             self._handlers = {
                 'message': MessageStepHandler(self.registry_provider),
-                'prompt': PromptStepHandler(self.registry_provider, self.llm_service),
+                'prompt': PromptStepHandler(self.registry_provider, self.completion_service),
                 'user_input': UserInputStepHandler(),
                 'invoke': InvokeStepHandler()
             }

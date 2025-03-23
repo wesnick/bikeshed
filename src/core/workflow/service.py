@@ -22,7 +22,7 @@ class WorkflowService:
     def __init__(self,
                  get_db: Callable[[], AsyncGenerator[AsyncConnection, None]],
                  registry: Registry,
-                 llm_service: CompletionService):
+                 completion_service: CompletionService):
         """
         Initialize the WorkflowService with required dependencies.
         
@@ -36,7 +36,7 @@ class WorkflowService:
         # Create step handlers
         self.handlers = {
             'message': MessageStepHandler(registry=registry),
-            'prompt': PromptStepHandler(registry=registry, llm_service=llm_service),
+            'prompt': PromptStepHandler(registry=registry, completion_service=completion_service),
             'user_input': UserInputStepHandler(),
             'invoke': InvokeStepHandler()
         }
