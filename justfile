@@ -66,3 +66,7 @@ setup-test-db:
 # Fix formatting on html templates
 html-lint:
     uvx djlint templates/ --reformat --extension=html.j2 --indent 2
+
+# Python lint and fix
+py-lint:
+    uvx ruff check src/ --fix
