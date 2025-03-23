@@ -50,21 +50,12 @@ class DatabasePersistenceProvider(PersistenceProvider):
                     await self.session_repo.update(conn, session.id, session_data)
 
                     # Save any messages that need to be persisted
-                    for message in session.messages:
-                        if message.status == MessageStatus.CREATED:
-                            # New message, insert it
-                            message.status = MessageStatus.PENDING
-                            await self.message_repo.create(conn, message)
-                            message.status = MessageStatus.DELIVERED
-                        elif message.status == MessageStatus.PENDING:
-                            # Update existing message
-                            message_data = {
-                                "text": message.text,
-                                "status": MessageStatus.DELIVERED.value,
-                                "extra": message.extra
-                            }
-                            await self.message_repo.update(conn, message.id, message_data)
-                            message.status = MessageStatus.DELIVERED
+                    for i, message in enumerate(session.messages):
+                        # set parent lineage
+                        if i > 0:
+                            message.parent_id = session.messages[i-1].id
+
+                        await self.message_repo.upsert(conn, message, ['id'])
 
                     # Commit the transaction
                     await conn.commit()

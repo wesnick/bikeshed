@@ -10,10 +10,10 @@ from src.core.config_types import SessionTemplate, Step
 
 
 class MessageStatus(str, Enum):
-    CREATED = "created"
-    PENDING = "pending"
-    DELIVERED = "delivered"
-    FAILED = "failed"
+    CREATED = "created"       # The message has been created, but is incomplete, possible a stub
+    PENDING = "pending"       # The message is complete, but hasn't been sent
+    DELIVERED = "delivered"   # The message has been sent
+    FAILED = "failed"         # Some type of error happened and should be considered incomplete
 
 
 class SessionStatus(str, Enum):

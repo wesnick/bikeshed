@@ -26,6 +26,25 @@ async def list_sessions(db: AsyncConnection = Depends(get_db)):
     sessions = await session_repository.get_recent_sessions(db)
     return {"sessions": sessions}
 
+
+@router.post("/")
+@jinja.hx('components/session/session.html.j2')
+async def create_session(summary: Optional[str] = None, goal: Optional[str] = None,
+                        system_prompt: Optional[str] = None, flow_id: Optional[UUID] = None,
+                        db: AsyncConnection = Depends(get_db)):
+    """Create a new session"""
+    session_data = {
+        "summary": summary,
+        "goal": goal,
+        "system_prompt": system_prompt,
+        "flow_id": flow_id
+    }
+    session = Session(**session_data)
+    session = await session_repository.create(db, session)
+    return {"session": session, "messages": [], "message": "Session created successfully"}
+
+
+
 @router.get("/{session_id}")
 @jinja.hx('components/session/session.html.j2')
 async def get_session(session_id: UUID,
@@ -54,23 +73,6 @@ async def get_session_messages(session_id: UUID,
     return {
         "messages": messages,
     }
-
-
-@router.post("/")
-@jinja.hx('components/session/session.html.j2')
-async def create_session(summary: Optional[str] = None, goal: Optional[str] = None,
-                        system_prompt: Optional[str] = None, flow_id: Optional[UUID] = None,
-                        db: AsyncConnection = Depends(get_db)):
-    """Create a new session"""
-    session_data = {
-        "summary": summary,
-        "goal": goal,
-        "system_prompt": system_prompt,
-        "flow_id": flow_id
-    }
-    session = Session(**session_data)
-    session = await session_repository.create(db, session)
-    return {"session": session, "messages": [], "message": "Session created successfully"}
 
 
 @router.get("/{session_id}/session-form")
