@@ -113,53 +113,48 @@ async def session_submit(response: Response,
         background_tasks.add_task(workflow_service.run_workflow, session)
         return {"session": session, "current_step": session.get_current_step()}
 
+    user_message = Message(
+        id=uuid.uuid4(),
+        session_id=session.id,
+        role='user',
+        text=message.text,
+        parent_id=session.messages[-1].id if session.messages else None,
+        status=MessageStatus.PENDING
+    )
 
-    async for db in get_db():
-        user_message = Message(
-            id=uuid.uuid4(),
-            session_id=session.id,
-            role='user',
-            text=message.text,
-            parent_id=session.messages[-1].id if session.messages else None,
-            status=MessageStatus.PENDING
-        )
+    # Add user message to the database
+    await message_repository.create(db, user_message)
 
-        # Add user message to the database
-        await message_repository.create(db, user_message)
+    # Add to session for LLM processing
+    session.messages.append(user_message)
 
-        # Add to session for LLM processing
-        session.messages.append(user_message)
-
-        # Create assistant message placeholder
-        assistant_message = Message(
-            id=uuid.uuid4(),
-            session_id=session.id,
-            role='assistant',
-            model=message.model,
-            parent_id=user_message.id,
-            text="",
-            status=MessageStatus.CREATED
-        )
-        # Add to database and session
-        await message_repository.create(db, assistant_message)
-        session.messages.append(assistant_message)
+    # Create assistant message placeholder
+    assistant_message = Message(
+        id=uuid.uuid4(),
+        session_id=session.id,
+        role='assistant',
+        model=message.model,
+        parent_id=user_message.id,
+        text="",
+        status=MessageStatus.CREATED
+    )
+    # Add to database and session
+    await message_repository.create(db, assistant_message)
+    session.messages.append(assistant_message)
 
     background_tasks.add_task(
         process_message,
-        session,
-        db,
-        broadcast_service,
-        completion_service
+        session
     )
 
     response.headers['HX-Target'] = "#dashboard"
 
     return {"session": session, "current_step": session.get_current_step()}
 
-async def process_message(session: Session,
-                          db: AsyncConnection,
-                          broadcast_service: BroadcastService,
-                          completion_service: CompletionService):
+async def process_message(session: Session):
+
+    completion_service: CompletionService = await anext(get_completion_service())
+    broadcast_service: BroadcastService = await anext(get_broadcast_service())
 
     # Process with Completion service
     result_message = await completion_service.complete(
@@ -167,8 +162,9 @@ async def process_message(session: Session,
         broadcast=None
     )
 
-    # Update final message in database
-    await message_repository.update(db, result_message)
+    async for db in get_db():
+        # Update final message in database
+        await message_repository.update(db, result_message)
 
     # Notify all clients to update the session component
     await broadcast_service.broadcast("session_update", "")
