@@ -1,13 +1,11 @@
-import logging
-import uuid
 from typing import Dict, Type, Callable, Any, Optional, List, Protocol, TypeVar, Generic, cast
 
 from pydantic import BaseModel
 
 from src.models.models import Message, Session, MessageStatus, SessionStatus
 from src.service.broadcast import BroadcastService
+from src.service.logging import logger
 
-logger = logging.getLogger(__name__)
 
 T = TypeVar('T', bound=BaseModel)
 
