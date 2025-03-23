@@ -1,5 +1,5 @@
 from uuid import UUID
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from psycopg import AsyncConnection
 from psycopg.rows import class_row
 from psycopg.sql import SQL, Identifier

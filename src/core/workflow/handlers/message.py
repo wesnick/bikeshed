@@ -1,4 +1,4 @@
-from typing import Any, Dict, AsyncGenerator
+from typing import Any, Dict
 import uuid
 
 from src.core.registry import Registry

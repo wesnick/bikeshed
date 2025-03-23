@@ -1,8 +1,8 @@
-from typing import Generic, TypeVar, Type, List, Optional, Any, Dict, Union, cast
+from typing import Generic, TypeVar, Type, List, Optional, Any, Dict
 from uuid import UUID
 from psycopg import AsyncConnection
 from psycopg.rows import class_row
-from psycopg.sql import SQL, Identifier, Composed, Literal
+from psycopg.sql import SQL, Identifier
 from psycopg.types.json import Jsonb
 
 from pydantic import BaseModel

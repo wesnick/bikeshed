@@ -1,5 +1,5 @@
 import uuid
-from typing import Dict, Any, Optional, Callable, Awaitable
+from typing import Dict, Any
 
 from mcp.server.fastmcp.prompts.base import Message as MCPMessage
 

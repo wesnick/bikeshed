@@ -1,4 +1,4 @@
-from typing import Dict, Type
+from typing import Dict
 
 from src.core.workflow.engine import StepHandler
 from src.core.workflow.handlers.message import MessageStepHandler

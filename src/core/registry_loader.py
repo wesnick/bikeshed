@@ -1,5 +1,5 @@
 import yaml
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 
 from mcp import StdioServerParameters
 

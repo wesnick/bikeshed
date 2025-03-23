@@ -1,9 +1,7 @@
 import asyncio
-import logging
-from typing import Optional, Dict, Any, List
+from typing import List
 import signal
 import sys
-import threading
 import time
 from src.service.logging import logger
 

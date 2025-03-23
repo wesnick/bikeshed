@@ -4,11 +4,10 @@ import os
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.text import Text
 from rich.prompt import Prompt
-from typing import List, Optional
+from typing import Optional
 
-from src.dependencies import get_db, get_registry
+from src.dependencies import get_registry
 from src.service.pulse_mcp_api import PulseMCPAPI, MCPServer
 
 
@@ -190,8 +189,6 @@ def load_session_templates(files, validate_only):
     """Load session templates from YAML files."""
     from src.core.registry import Registry
     from src.core.config_loader import SessionTemplateLoader
-    from rich.console import Console
-    from rich.panel import Panel
     from rich.table import Table
 
     registry = Registry()
@@ -203,7 +200,7 @@ def load_session_templates(files, validate_only):
         total_templates.update(templates)
 
     # Create a nice summary table
-    table = Table(title=f"Session Template Loading Results")
+    table = Table(title="Session Template Loading Results")
     table.add_column("File", style="cyan")
     table.add_column("Templates", style="green")
     table.add_column("Status", style="yellow")
@@ -237,9 +234,6 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
     """Create and run a workflow from a template."""
     import asyncio
     from src.dependencies import get_workflow_service
-    from src.core.workflow.service import WorkflowService
-    from src.repository.session import SessionRepository
-    from src.repository.message import MessageRepository
 
     async def _run_workflow():
         # Load registry
@@ -263,7 +257,7 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
                     }
                 )
 
-                res = await service.run_workflow(session)
+                await service.run_workflow(session)
 
                 print("Updated diagram saved")
 
@@ -276,7 +270,7 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
                 # # Ensure any remaining resources are cleaned up
                 # await asyncio.sleep(0.1)  # Small delay to allow async tasks to complete
                 #
-                console.print(f"[bold green]Workflow completed successfully![/bold green]")
+                console.print("[bold green]Workflow completed successfully![/bold green]")
                 console.print(f"[bold]Session ID:[/bold] {session.id}")
                 console.print(f"[bold]Status:[/bold] {session.status}")
                 console.print(f"[bold]Final state:[/bold] {session.current_state}")
@@ -300,7 +294,7 @@ def create_ad_hoc(description: str, goal: Optional[str] = None):
         session_service = SessionService()
 
         async with async_session_factory() as db:
-            with console.status(f"Creating ad-hoc session..."):
+            with console.status("Creating ad-hoc session..."):
                 try:
                     session = await session_service.create_ad_hoc_session(db, description, goal)
 
@@ -321,9 +315,7 @@ def create_ad_hoc(description: str, goal: Optional[str] = None):
 def add_root(directory_path: str):
     """Add a directory as a root and scan its contents."""
     import asyncio
-    from pathlib import Path
     from src.dependencies import async_session_factory
-    from src.models.models import Root
     from src.core.roots.scanner import FileScanner
 
     async def _add_root(directory_path: str):

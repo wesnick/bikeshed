@@ -11,7 +11,6 @@ from sse_starlette.sse import EventSourceResponse
 from src.core.registry import Registry
 from src.service.broadcast import BroadcastService
 from src.service.logging import logger, setup_logging
-from src.service.mcp_client import MCPClient
 from src.service.shutdown_helper import shutdown_manager
 from src.http.middleware import HTMXRedirectMiddleware
 from src.dependencies import get_db, get_jinja, get_registry, get_broadcast_service

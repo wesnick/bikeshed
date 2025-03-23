@@ -6,7 +6,7 @@ import aiofiles
 import aiofiles.os
 import magic
 import uuid
-from typing import Optional, Callable, AsyncGenerator, Dict, List, Set, Tuple, Union, LiteralString
+from typing import Callable, AsyncGenerator, Dict, List, Tuple
 
 
 class FileScanner:

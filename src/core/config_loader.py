@@ -1,17 +1,15 @@
 import inspect
 import os
-import sys
 import yaml
 import jinja2
 from jinja2 import meta
-from typing import Any, Dict, List, Type, Optional, Callable, Union
+from typing import Any, Dict, List, Type, Optional, Union
 from pathlib import Path
 
 from mcp.server.fastmcp.prompts.base import PromptArgument
 
 from pydantic import BaseModel
 import importlib
-from functools import wraps
 
 from src.core.registry import Registry, Schema, TemplatePrompt
 from src.core.config_types import SessionTemplate

@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional, Union, Callable, AsyncGenerator
+from typing import Dict, Any, Optional, Union, Callable, AsyncGenerator
 import uuid
 
 from psycopg import AsyncConnection

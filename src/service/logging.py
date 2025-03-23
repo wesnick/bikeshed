@@ -1,6 +1,5 @@
 from loguru import logger
 import sys
-import os
 import logging
 from typing import Dict, Any
 from src.config import get_config

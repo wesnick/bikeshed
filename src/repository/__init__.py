@@ -1,4 +1,3 @@
-from src.repository.base import BaseRepository
 from src.repository.session import SessionRepository
 from src.repository.message import MessageRepository
 
