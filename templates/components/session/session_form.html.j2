@@ -1,7 +1,7 @@
 <form id="session-form"
       hx-ext="form-json"
       hx-post="/session/session-submit"
-      hx-swap="none"
+      hx-target="#messages-container"
       hx-on::after-request="this.reset();">
   <div class="field">
     <div class="control">

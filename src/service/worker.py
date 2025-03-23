@@ -26,24 +26,21 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
     Returns:
         Dict with job result information
     """
-    # Ensure the database pool is open
-    if not db_pool.is_open:
-        await db_pool.open()
-    
+
     # Get the session from the database
     from src.repository.session import SessionRepository
     session_repo = SessionRepository()
     
     async with db_pool.connection() as db:
         # Fetch the session from the database
-        session = await session_repo.get_by_id(db, session_id)
+        session = await session_repo.get_with_messages(db, session_id)
         
         if not session:
             return {"success": False, "error": f"Session {session_id} not found"}
 
 
     # Get services
-    completion_service: CompletionService = await anext(get_completion_service())
+    completion_service: Com   qpletionService = await anext(get_completion_service())
     broadcast_service: BroadcastService = await anext(get_broadcast_service())
 
     try:
@@ -88,14 +85,14 @@ class WorkerSettings:
     poll_delay = 0.5  # seconds
     
     # Lifecycle hooks
-    async def on_startup(self, ctx):
+    @staticmethod
+    async def on_startup(ctx):
         """Open database pool on worker startup"""
-        if not db_pool.is_open:
-            await db_pool.open()
+        await db_pool.open()
         ctx['db_pool'] = db_pool
     
-    async def on_shutdown(self, ctx):
+    @staticmethod
+    async def on_shutdown(ctx):
         """Close database pool on worker shutdown"""
-        if db_pool.is_open:
-            await db_pool.close()
+        await db_pool.close()
 

@@ -15,7 +15,7 @@
     <div id="messages-container"
          class="messages"
          hx-get="/session/{{ session.id }}/messages"
-         hx-trigger="sse:session_update">{% include 'components/session/message_list.html.j2' %}</div>
+         hx-trigger="load, sse:session_update"></div>
   </div>
 </div>
 <div id="dashboard-dock"

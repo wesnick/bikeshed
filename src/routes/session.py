@@ -1,6 +1,8 @@
 from typing import Optional
 import uuid
 from uuid import UUID
+
+from arq import ArqRedis
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from psycopg import AsyncConnection
 from starlette.responses import Response
@@ -8,7 +10,7 @@ from starlette.responses import Response
 from src.core.registry import Registry
 from src.core.workflow.service import WorkflowService
 from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry, get_broadcast_service, \
-    get_completion_service
+    get_completion_service, get_arq_redis
 from src.models.models import MessageStatus
 from src.repository import session_repository, message_repository
 from src.models import Session, Message
@@ -93,7 +95,7 @@ async def session_form_component(session_id: UUID,
 
 
 @router.post("/session-submit")
-@jinja.hx('components/session/session.html.j2')
+@jinja.hx('components/session/message_list.html.j2')
 async def session_submit(response: Response,
                          message: MessageCreate,
                          background_tasks: BackgroundTasks,
@@ -142,14 +144,33 @@ async def session_submit(response: Response,
     await message_repository.create(db, assistant_message)
     session.messages.append(assistant_message)
 
-    background_tasks.add_task(
-        process_message,
-        session
-    )
+    # Send it to the queue
+    await enqueue_message_processing(session.id)
 
-    response.headers['HX-Target'] = "#dashboard"
+    # response.headers['HX-Target'] = "#dashboard"
+    # response.headers['HX-Reswap'] = 'outerHTML'
 
-    return {"session": session, "current_step": session.get_current_step()}
+    return {
+        "session": session,
+        "messages": session.messages,
+        "current_step": session.get_current_step()
+    }
+
+
+async def enqueue_message_processing(session_id: uuid.UUID) -> str:
+    """
+    Enqueue a message processing job with ARQ
+
+    Args:
+        session_id: The UUID of the session to process
+        arq_redis: ARQ Redis connection
+
+    Returns:
+        The job ID as a string
+    """
+    async for arq_redis in get_arq_redis():
+        job = await arq_redis.enqueue_job('process_message_job', session_id)
+        return job.job_id
 
 async def process_message(session: Session):
 
