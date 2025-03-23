@@ -163,7 +163,7 @@ class PromptStep(BaseStep):
         description="Schema to validate LLM response"
     )
     config_extra: Optional[Dict[str, Any]] = Field(
-        default=None,
+        default={},
         description="Step-specific model configuration overrides"
     )
     

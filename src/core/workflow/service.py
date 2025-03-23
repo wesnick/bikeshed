@@ -2,6 +2,7 @@ from typing import Dict, Any, Optional, Union, Callable, AsyncGenerator
 import uuid
 
 from psycopg import AsyncConnection
+from requests import session
 
 from src.core.config_types import SessionTemplate, Step
 from src.core.registry import Registry

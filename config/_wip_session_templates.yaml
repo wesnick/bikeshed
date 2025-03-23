@@ -6,7 +6,7 @@ session_templates:
       tags: ['ideation', 'business']
       owner: wesnick
       version: 0.1
-    model: "anthropic.claude-3-7-sonnet-20250219-v1:0"     # litellm model
+    model: "faker"
     steps:
       - name: System setup
         type: message

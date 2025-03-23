@@ -68,6 +68,7 @@ class PromptStepHandler(StepHandler):
 
         # Get prompt content
         prompt_content = await self._get_prompt_content(session, step)
+        model = step.config_extra.get('model') or session.template.model
 
         step_messages = []
 
@@ -91,6 +92,7 @@ class PromptStepHandler(StepHandler):
                     id=uuid.uuid4(),
                     session_id=session.id,
                     role=prompt.role,
+                    model=model if prompt.role == 'assistant' else None,
                     text=prompt.content.text,
                     status=MessageStatus.PENDING
                 )
@@ -99,10 +101,10 @@ class PromptStepHandler(StepHandler):
                 session.messages.append(message)
                 step_messages.append(message)
 
-        
         # Create a placeholder for the assistant response
         assistant_message = Message(
             id=uuid.uuid4(),
+            model=model,
             session_id=session.id,
             role="assistant",
             text="",

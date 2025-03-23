@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from src.core.config_types import Step, SessionTemplate
 from src.core.workflow.visualization import BikeShedState
 from src.models.models import Session, SessionStatus
+from src.service.logging import logger
 
 
 class StepHandler(Protocol):
@@ -218,6 +219,7 @@ class WorkflowEngine:
                 )
 
             except Exception as e:
+                logger.error(f"Error executing step: {str(e)}")
                 # Save error state to workflow data
                 session.workflow_data.errors.append(str(e))
                 session.status = SessionStatus.FAILED

@@ -93,10 +93,14 @@ async def session_form_component(session_id: UUID,
 
 
 @router.post("/session-submit")
-@jinja.hx('components/session/session_form.html.j2')
-async def session_submit(message: MessageCreate,
-                        background_tasks: BackgroundTasks,
-                        workflow_service: WorkflowService = Depends(get_workflow_service)):
+@jinja.hx('components/session/session.html.j2')
+async def session_submit(response: Response,
+                         message: MessageCreate,
+                         background_tasks: BackgroundTasks,
+                         workflow_service: WorkflowService = Depends(get_workflow_service),
+                         db: AsyncConnection = Depends(get_db),
+                         broadcast_service: BroadcastService = Depends(get_broadcast_service),
+                         completion_service: CompletionService = Depends(get_completion_service)):
     """This route serves the session form component for htmx requests."""
 
     session = await workflow_service.get_session(message.session_id)
@@ -115,7 +119,6 @@ async def session_submit(message: MessageCreate,
             id=uuid.uuid4(),
             session_id=session.id,
             role='user',
-            model=message.model,
             text=message.text,
             parent_id=session.messages[-1].id if session.messages else None,
             status=MessageStatus.PENDING
@@ -141,15 +144,22 @@ async def session_submit(message: MessageCreate,
         await message_repository.create(db, assistant_message)
         session.messages.append(assistant_message)
 
-    background_tasks.add_task(process_message, session)
+    background_tasks.add_task(
+        process_message,
+        session,
+        db,
+        broadcast_service,
+        completion_service
+    )
 
-    # Return empty response as we'll update via SSE
+    response.headers['HX-Target'] = "#dashboard"
+
     return {"session": session, "current_step": session.get_current_step()}
 
 async def process_message(session: Session,
-                          db: AsyncConnection = Depends(get_db),
-                          broadcast_service: BroadcastService = Depends(get_broadcast_service),
-                          completion_service: CompletionService = Depends(get_completion_service)):
+                          db: AsyncConnection,
+                          broadcast_service: BroadcastService,
+                          completion_service: CompletionService):
 
     # Process with Completion service
     result_message = await completion_service.complete(
@@ -233,6 +243,7 @@ async def create_session_from_template_route(
 
     session_workflow_svg = await workflow_service.create_workflow_graph(session)
 
+    # @TODO this might better be HX-Location
     response.headers['HX-Push-Url'] = f"/session/{session.id}"
 
     return {

@@ -56,7 +56,7 @@ class Message(BaseModel):
     # custom validations
     @model_validator(mode='after')
     def validate_text_or_extra(self) -> 'Message':
-        if not self.role == 'assistant' and not self.model:
+        if self.role == 'assistant' and not self.model:
             raise ValueError("Model must be set for assistant messages")
         return self
 

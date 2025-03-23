@@ -63,12 +63,7 @@ class FakerCompletionService(CompletionService):
                 
                 # Also broadcast via SSE if available
                 if self.broadcast_service:
-                    await self.broadcast_service.broadcast("message_update", {
-                        "session_id": str(session.id),
-                        "message_id": str(assistant_msg.id),
-                        "content": assistant_msg.text,
-                        "status": "streaming"
-                    })
+                    await self.broadcast_service.broadcast("message-stream-" + str(assistant_msg.id), assistant_msg.text)
         else:
             await asyncio.sleep(self.config.response_delay)
             assistant_msg.text = response
