@@ -40,7 +40,7 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
 
 
     # Get services
-    completion_service: Com   qpletionService = await anext(get_completion_service())
+    completion_service: CompletionService = await anext(get_completion_service())
     broadcast_service: BroadcastService = await anext(get_broadcast_service())
 
     try:
