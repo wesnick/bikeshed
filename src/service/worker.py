@@ -10,7 +10,7 @@ from src.models.models import Session, Message
 from src.service.llm.base import CompletionService
 from src.service.broadcast import BroadcastService
 from src.repository.message import MessageRepository
-from src.dependencies import get_db, get_completion_service, get_broadcast_service
+from src.dependencies import get_completion_service, get_broadcast_service, db_pool
 
 settings = get_config()
 message_repository = MessageRepository()
@@ -26,11 +26,16 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
     Returns:
         Dict with job result information
     """
+    # Ensure the database pool is open
+    if not db_pool.is_open:
+        await db_pool.open()
+    
     # Get the session from the database
-    async for db in get_db():
+    from src.repository.session import SessionRepository
+    session_repo = SessionRepository()
+    
+    async with db_pool.connection() as db:
         # Fetch the session from the database
-        from src.repository.session import SessionRepository
-        session_repo = SessionRepository()
         session = await session_repo.get_by_id(db, session_id)
         
         if not session:
@@ -49,9 +54,8 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
         )
 
         # Update final message in database
-        async for db in get_db():
+        async with db_pool.connection() as db:
             await message_repository.update(db, result_message.id, result_message.model_dump(exclude={"children", "parent"}))
-            break  # We only need one connection
 
         # Notify all clients to update the session component
         await broadcast_service.broadcast("session_update", "")
@@ -82,4 +86,16 @@ class WorkerSettings:
     job_timeout = 300  # 5 minutes
     max_jobs = 10
     poll_delay = 0.5  # seconds
+    
+    # Lifecycle hooks
+    async def on_startup(self, ctx):
+        """Open database pool on worker startup"""
+        if not db_pool.is_open:
+            await db_pool.open()
+        ctx['db_pool'] = db_pool
+    
+    async def on_shutdown(self, ctx):
+        """Close database pool on worker shutdown"""
+        if db_pool.is_open:
+            await db_pool.close()
 
