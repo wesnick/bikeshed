@@ -106,7 +106,7 @@ class PromptStepHandler(StepHandler):
             session_id=session.id,
             role="assistant",
             text="",
-            status=MessageStatus.PENDING
+            status=MessageStatus.CREATED
         )
 
         # Add the assistant message to the session

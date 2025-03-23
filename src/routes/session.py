@@ -12,6 +12,7 @@ from src.models.models import MessageStatus
 from src.repository import session_repository, message_repository
 from src.models import Session, Message
 from src.service.broadcast import BroadcastService
+from src.service.llm import CompletionService
 from src.types import SessionTemplateCreationRequest, MessageCreate
 from src.service.logging import logger
 
@@ -101,7 +102,8 @@ async def session_submit(message: MessageCreate,
 
     next_action = "continue" if message.button_pressed == "continue" else "send"
     logger.warning(f"{next_action} pressed")
-    
+
+    # Workflow continue
     if next_action == "continue":
         background_tasks.add_task(workflow_service.run_workflow, session)
         return {"session": session, "current_step": session.get_current_step()}
@@ -114,6 +116,7 @@ async def session_submit(message: MessageCreate,
             role='user',
             model=message.model,
             text=message.text,
+            parent_id=session.messages[-1].id if session.messages else None,
             status=MessageStatus.PENDING
         )
 
@@ -129,8 +132,9 @@ async def session_submit(message: MessageCreate,
             session_id=session.id,
             role='assistant',
             model=message.model,
+            parent_id=user_message.id,
             text="",
-            status=MessageStatus.PENDING
+            status=MessageStatus.CREATED
         )
         # Add to database and session
         await message_repository.create(db, assistant_message)
@@ -143,23 +147,18 @@ async def session_submit(message: MessageCreate,
 
 async def process_message(session: Session,
                           db: AsyncConnection = Depends(get_db),
-                          broadcast_service: BroadcastService = Depends(get_broadcast_service)):
+                          broadcast_service: BroadcastService = Depends(get_broadcast_service),
+                          llm_service: CompletionService = Depends(get_completion_service)):
+
     """Process the message and send response via SSE"""
     from src.service.llm import FakerCompletionService, FakerLLMConfig
     from src.dependencies import markdown2html
 
-    # Create LLM service
-    llm_service = FakerCompletionService(FakerLLMConfig(response_delay=0.1))
-
-    # Create broadcast function
-    async def broadcast_message(updated_msg: Message):
-        # Update message in database
-        await message_repository.update(db, updated_msg)
-        # Broadcast update to clients
-        await broadcast_service.broadcast("message-stream-" + str(updated_msg.id), markdown2html(updated_msg.text))
-
-    # Process with LLM
-    result_message = await llm_service.complete(session, broadcast=broadcast_message)
+    # Process with LLM service
+    result_message = await llm_service.complete(
+        session,
+        broadcast=None
+    )
 
     # Update final message in database
     await message_repository.update(db, result_message)
