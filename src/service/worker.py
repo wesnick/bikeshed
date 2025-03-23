@@ -35,8 +35,7 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
         
         if not session:
             return {"success": False, "error": f"Session {session_id} not found"}
-        
-        break  # We only need one connection
+
 
     # Get services
     completion_service: CompletionService = await anext(get_completion_service())
@@ -84,10 +83,3 @@ class WorkerSettings:
     max_jobs = 10
     poll_delay = 0.5  # seconds
 
-async def get_arq_redis() -> AsyncGenerator[ArqRedis, None]:
-    """Dependency for getting ARQ Redis connection"""
-    redis = await create_pool(RedisSettings.from_dsn(str(settings.redis_url)))
-    try:
-        yield redis
-    finally:
-        await redis.close()
