@@ -74,3 +74,11 @@ html-lint:
 # Python lint and fix
 py-lint:
     uvx ruff check src/ --fix
+
+# List all blobs in the database
+list-blobs:
+    python -m src.cli list-blobs
+
+# Upload a file as a blob
+upload-blob file_path:
+    python -m src.cli upload-blob {{file_path}}

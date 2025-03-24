@@ -155,3 +155,28 @@ class RootFile(BaseModel):
         # This would be handled at the database level in a real implementation
         # Here we just provide a placeholder for validation logic
         return self
+
+
+class Blob(BaseModel):
+    """
+    A media object similar to schema.org MediaObject.
+    Represents a file with metadata, with the actual bytes stored on disk.
+    """
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    name: str  # Name of the media object
+    description: Optional[str] = None  # Description of the media object
+    content_type: str  # MIME type of the media object
+    content_url: str  # URL or file path where the actual bytes are stored
+    byte_size: Optional[int] = None  # Size of the media object in bytes
+    sha256: Optional[str] = None  # SHA-256 hash of the media object for integrity verification
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    metadata: Optional[Dict[str, Any]] = None  # Additional metadata about the media object
+
+    @model_validator(mode='after')
+    def validate_content_type(self) -> 'Blob':
+        """Validate that the content_type is a valid MIME type"""
+        # Basic validation - could be enhanced with a more comprehensive check
+        if '/' not in self.content_type:
+            raise ValueError("content_type must be a valid MIME type (e.g., 'image/jpeg')")
+        return self

@@ -50,3 +50,17 @@ create table root_files
     extra     jsonb
 );
 
+create table blobs
+(
+    id           uuid         not null primary key,
+    name         varchar(255) not null,
+    description  text,
+    content_type varchar(100) not null,
+    content_url  text         not null,
+    byte_size    bigint,
+    sha256       varchar(64),
+    created_at   timestamp    not null default current_timestamp,
+    updated_at   timestamp    not null default current_timestamp,
+    metadata     jsonb
+);
+
