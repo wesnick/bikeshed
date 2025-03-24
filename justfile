@@ -68,6 +68,10 @@ html-lint:
 # Python lint and fix
 py-lint:
     uvx ruff check src/ --fix
+    
+# Lint the jinja extensions file
+jinja-ext-lint:
+    uvx ruff check src/jinja_extensions.py --fix
 
 # List all blobs in the database
 list-blobs:

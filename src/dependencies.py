@@ -5,7 +5,6 @@ import json
 from arq.connections import ArqRedis, create_pool, RedisSettings
 from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
-from markdown2 import markdown
 from psycopg_pool import AsyncConnectionPool
 from psycopg import AsyncConnection
 from psycopg.types.json import set_json_dumps
@@ -54,28 +53,10 @@ async def get_arq_redis() -> AsyncGenerator[ArqRedis, None]:
     finally:
         await redis.close()
 
-def markdown2html(text: str):
-    from src.main import logger
-    logger.debug(f"Converting markdown to html: {text}")
-    return markdown(text, extras={
-        'breaks': {'on_newline': True},
-        'fenced-code-blocks': {},
-        'highlightjs-lang': {},
-    })
-
-def format_file_size(byte_size):
-    """Format byte size to human readable format"""
-    if byte_size is None:
-        return "Unknown size"
-    
-    if byte_size < 1024:
-        return f"{byte_size} bytes"
-    elif byte_size < 1024 * 1024:
-        return f"{byte_size / 1024:.1f} KB"
-    else:
-        return f"{byte_size / (1024 * 1024):.1f} MB"
 
 def get_jinja() -> Jinja:
+    from src.jinja_extensions import markdown2html, format_file_size
+    
     jinja_templates = Jinja2Templates(directory="templates")
     jinja_templates.env.filters['markdown2html'] = markdown2html
     jinja_templates.env.filters['format_file_size'] = format_file_size
