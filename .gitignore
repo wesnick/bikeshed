@@ -74,3 +74,4 @@ pytestdebug.log
 node_modules
 build
 .env
+var/blobs/

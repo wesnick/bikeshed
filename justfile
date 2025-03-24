@@ -1,3 +1,5 @@
+set dotenv-load
+
 # List all available commands
 default:
     @just --list
@@ -31,16 +33,8 @@ docdown:
     docker compose down
 
 # Run database migrations to the latest version
-migrate:
-    alembic upgrade head
-
-# Create a new migration with the specified message
-migmake args:
-    alembic revision --autogenerate -m "{{args}}"
-
-# Show current migration version
-alembic-current:
-    alembic current
+migrate *args:
+    pg-schema-diff apply --dsn "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB" --schema-dir config/database --allow-hazards ACQUIRES_ACCESS_EXCLUSIVE_LOCK,INDEX_BUILD,INDEX_DROPPED {{args}}
 
 # Search MCP with an optional query
 search-mcp query="":
@@ -64,8 +58,8 @@ arq-worker:
 
 # Set up test database
 setup-test-db:
-    PGPASSWORD=postgres createdb -U postgres app_test || echo "Test database already exists"
-    PGPASSWORD=postgres psql -U postgres -d app_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
+    PGPASSWORD=$POSTGRES_PASSWORD createdb -U $POSTGRES_USER $POSTGRES_DB_test || echo "Test database already exists"
+    PGPASSWORD=$POSTGRES_PASSWORD psql -U $POSTGRES_USER -d $POSTGRES_DB_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
 # Fix formatting on html templates
 html-lint:

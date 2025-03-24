@@ -1,9 +1,12 @@
+create extension vector;
+
 create table sessions
 (
     id            uuid      not null primary key,
     description   text,
     goal          text,
-    created_at    timestamp,
+    created_at    timestamp    not null default current_timestamp,
+    updated_at    timestamp    not null default current_timestamp,
     template      jsonb,
     status        varchar(50),
     current_state varchar(100),
@@ -34,7 +37,6 @@ create table roots
     extra            jsonb
 );
 
-
 create table root_files
 (
     id        uuid         not null primary key,
@@ -49,6 +51,10 @@ create table root_files
     ctime     timestamp,
     extra     jsonb
 );
+
+-- Unique index on root_id/path
+create unique index uq_root_files_root_id_path on root_files (root_id, path);
+
 
 create table blobs
 (

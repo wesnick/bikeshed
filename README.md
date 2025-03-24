@@ -42,6 +42,10 @@ To get started with BikeShed, follow these steps:
 sudo apt-get install libmagic1 graphviz graphviz-dev
 ```
 
+```bash
+go install github.com/stripe/pg-schema-diff/cmd/pg-schema-diff@latest
+```
+
    *(Ensure you have Python installed on your machine)*
 
 3. **Run the project**:

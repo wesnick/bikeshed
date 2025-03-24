@@ -134,9 +134,9 @@ dependencies = [
     { name = "aiofiles" },
     { name = "arq" },
     { name = "click" },
-    { name = "fastapi" },
     { name = "fastapi-events" },
     { name = "fasthx", extra = ["jinja"] },
+    { name = "fsspec" },
     { name = "graphviz" },
     { name = "httpx" },
     { name = "jinja2" },
@@ -148,6 +148,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pygraphviz" },
     { name = "python-magic" },
+    { name = "python-multipart" },
     { name = "redis" },
     { name = "rich" },
     { name = "sse-starlette" },
@@ -171,9 +172,9 @@ requires-dist = [
     { name = "aiofiles", specifier = ">=24.1.0" },
     { name = "arq", specifier = ">=0.26.3" },
     { name = "click", specifier = ">=8.1.8" },
-    { name = "fastapi", specifier = ">=0.115.11" },
     { name = "fastapi-events", specifier = ">=0.12.2" },
     { name = "fasthx", extras = ["jinja"], specifier = ">=2.2.1" },
+    { name = "fsspec", specifier = ">=2025.3.0" },
     { name = "graphviz", specifier = ">=0.20.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "jinja2", specifier = ">=3.1.5" },
@@ -185,6 +186,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.8.1" },
     { name = "pygraphviz", specifier = ">=1.14" },
     { name = "python-magic", specifier = ">=0.4.27" },
+    { name = "python-multipart", specifier = ">=0.0.20" },
     { name = "redis", specifier = ">=5.2.1" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "sse-starlette", specifier = ">=2.2.1" },
@@ -1112,6 +1114,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/da/db/0b3e28ac047452d079d375ec6798bf76a036a08182dbb39ed38116a49130/python-magic-0.4.27.tar.gz", hash = "sha256:c1ba14b08e4a5f5c31a302b7721239695b2f0f058d125bd5ce1ee36b9d9d3c3b", size = 14677 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6c/73/9f872cb81fc5c3bb48f7227872c28975f998f3e7c2b1c16e95e6432bbb90/python_magic-0.4.27-py2.py3-none-any.whl", hash = "sha256:c212960ad306f700aa0d01e5d7a325d20548ff97eb9920dcd29513174f0294d3", size = 13840 },
+]
+
+[[package]]
+name = "python-multipart"
+version = "0.0.20"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f3/87/f44d7c9f274c7ee665a29b885ec97089ec5dc034c7f3fafa03da9e39a09e/python_multipart-0.0.20.tar.gz", hash = "sha256:8dd0cab45b8e23064ae09147625994d090fa46f5b0d1e13af944c331a7fa9d13", size = 37158 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/45/58/38b5afbc1a800eeea951b9285d3912613f2603bdf897a4ab0f4bd7f405fc/python_multipart-0.0.20-py3-none-any.whl", hash = "sha256:8a62d3a8335e06589fe01f2a3e178cdcc632f3fbe0d492ad9ee0ec35aab1f104", size = 24546 },
 ]
 
 [[package]]

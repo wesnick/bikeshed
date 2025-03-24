@@ -7,7 +7,7 @@ from typing import Optional, List, Dict, Any, BinaryIO
 from uuid import UUID
 
 from fastapi import UploadFile
-from psycopg_pool import AsyncConnection
+from psycopg import AsyncConnection
 
 from src.models.models import Blob
 from src.repository.blob import BlobRepository
@@ -16,7 +16,7 @@ from src.repository.blob import BlobRepository
 class BlobService:
     """Service for managing blob objects"""
     
-    def __init__(self, storage_path: str = "storage/blobs"):
+    def __init__(self, storage_path: str = "var/blobs"):
         self.repository = BlobRepository()
         self.storage_path = storage_path
         # Ensure storage directory exists
@@ -56,7 +56,7 @@ class BlobService:
             name=name,
             description=description,
             content_type=content_type,
-            content_url=f"/api/blobs/{blob_id}/content",
+            content_url=self._get_relative_blob_path(blob_id),
             byte_size=byte_size,
             sha256=sha256_hash.hexdigest(),
             metadata=metadata or {}
@@ -126,9 +126,14 @@ class BlobService:
     def get_blob_content_path(self, blob_id: UUID) -> str:
         """Get the filesystem path to a blob's content"""
         return self._get_blob_path(blob_id)
-    
-    def _get_blob_path(self, blob_id: UUID) -> str:
+
+    @staticmethod
+    def _get_relative_blob_path(blob_id: UUID) -> str:
         """Get the storage path for a blob"""
         # Use the first 2 chars of the UUID as a subdirectory to avoid too many files in one dir
         blob_id_str = str(blob_id)
-        return os.path.join(self.storage_path, blob_id_str[:2], blob_id_str)
+        return os.path.join(blob_id_str[:2], blob_id_str)
+
+    def _get_blob_path(self, blob_id: UUID) -> str:
+        """Get the storage path for a blob"""
+        return os.path.join(self.storage_path, self._get_relative_blob_path(blob_id))

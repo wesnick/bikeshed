@@ -11,14 +11,14 @@ from src.dependencies import get_db
 from src.models.models import Blob
 from src.service.blob_service import BlobService
 
-router = APIRouter(prefix="/api/blobs", tags=["blobs"])
+router = APIRouter(prefix="/blobs", tags=["blobs"])
 blob_service = BlobService()
 
 # HTML template for the dropzone upload form
 UPLOAD_FORM_HTML = """
 <div id="dropzone-container" class="box">
   <form id="upload-form" 
-        hx-post="/api/blobs/upload" 
+        hx-post="/blobs/upload" 
         hx-encoding="multipart/form-data"
         hx-ext="form-json"
         hx-target="#blob-list"
