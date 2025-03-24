@@ -405,6 +405,63 @@ def upload_blob(file_path: str, name: str = None, description: str = None):
 
     asyncio.run(_upload_blob())
 
+@click.command()
+@click.argument("message", required=True)
+@click.option("--model", "-m", default="ollama/llama3", help="Model to use for completion")
+def chat(message: str, model: str):
+    """Send a message to an LLM model and get a response"""
+    import asyncio
+    from src.service.llm.litellm_service import LiteLLMCompletionService
+    from src.models.models import Session, Message, MessageRole, MessageStatus
+    import uuid
+
+    async def _chat():
+        service = LiteLLMCompletionService()
+        
+        # Create a simple session with user message
+        session_id = uuid.uuid4()
+        user_message = Message(
+            id=uuid.uuid4(),
+            session_id=session_id,
+            role=MessageRole.USER,
+            text=message,
+            status=MessageStatus.DELIVERED
+        )
+        
+        # Create assistant message that will be filled by the completion
+        assistant_message = Message(
+            id=uuid.uuid4(),
+            session_id=session_id,
+            role=MessageRole.ASSISTANT,
+            text="",
+            status=MessageStatus.PENDING,
+            model=model
+        )
+        
+        # Create a minimal session
+        session = Session(
+            id=session_id,
+            messages=[user_message, assistant_message],
+            description="CLI chat",
+            current_state="initial"
+        )
+        
+        # Define a simple broadcast function to print progress
+        async def print_progress(msg: Message):
+            # Clear line and print current text
+            print(f"\r{msg.text}", end="", flush=True)
+        
+        with console.status(f"Getting response from {model}..."):
+            try:
+                result = await service.complete(session, broadcast=print_progress)
+                print("\n\n")  # Add some spacing after the streamed response
+                console.print(Panel(result.text, title=f"[bold green]{model} Response[/bold green]", 
+                                   expand=False, border_style="green"))
+            except Exception as e:
+                console.print(f"[bold red]Error:[/bold red] {str(e)}")
+
+    asyncio.run(_chat())
+
 group.add_command(hello)
 group.add_command(search_mcp)
 group.add_command(load_schemas)
@@ -415,6 +472,7 @@ group.add_command(create_ad_hoc)
 group.add_command(add_root)
 group.add_command(list_blobs)
 group.add_command(upload_blob)
+group.add_command(chat)
 
 if __name__ == '__main__':
     group()

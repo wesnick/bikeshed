@@ -85,6 +85,10 @@ list-blobs:
 upload-blob file_path:
     python -m src.cli upload-blob {{file_path}}
 
+# Chat with an LLM model
+chat message model="ollama/llama3":
+    python -m src.cli chat --model {{model}} "{{message}}"
+
 # Install python-magic dependency
 install-magic:
     uv pip install python-magic
