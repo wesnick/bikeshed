@@ -7,133 +7,79 @@ from fastapi.responses import FileResponse, HTMLResponse
 from psycopg_pool import AsyncConnection
 from starlette.status import HTTP_404_NOT_FOUND
 
-from src.dependencies import get_db
+from src.dependencies import get_db, get_jinja
 from src.models.models import Blob
 from src.service.blob_service import BlobService
 
 router = APIRouter(prefix="/blobs", tags=["blobs"])
 blob_service = BlobService()
+jinja = get_jinja()
 
-# HTML template for the dropzone upload form
-UPLOAD_FORM_HTML = """
-<div id="dropzone-container" class="box">
-  <form id="upload-form" 
-        hx-post="/blobs/upload" 
-        hx-encoding="multipart/form-data"
-        hx-ext="form-json"
-        hx-target="#blob-list"
-        hx-swap="afterbegin"
-        class="dropzone">
-    <div class="dz-message" data-dz-message>
-      <span>Drop files here or click to upload</span>
-    </div>
-    <div class="fallback">
-      <input name="file" type="file" multiple />
-    </div>
-    <input type="hidden" name="description" value="" />
-  </form>
-</div>
-"""
-
-# HTML template for rendering a single blob
-BLOB_ITEM_HTML = """
-<div class="card mb-3" id="blob-{id}">
-  <div class="card-content">
-    <div class="media">
-      <div class="media-left">
-        <figure class="image is-48x48">
-          <img src="{thumbnail}" alt="{name}">
-        </figure>
-      </div>
-      <div class="media-content">
-        <p class="title is-4">{name}</p>
-        <p class="subtitle is-6">{content_type}</p>
-      </div>
-      <div class="media-right">
-        <button class="button is-small is-danger"
-                hx-delete="/api/blobs/{id}"
-                hx-target="#blob-{id}"
-                hx-swap="outerHTML">
-          Delete
-        </button>
-      </div>
-    </div>
-    <div class="content">
-      <p>{description}</p>
-      <p><small>{byte_size_formatted} • {created_at}</small></p>
-      <a href="{content_url}" class="button is-small is-primary" target="_blank">Download</a>
-    </div>
-  </div>
-</div>
-"""
-
-
-@router.get("/upload-form", response_class=HTMLResponse)
-async def get_upload_form():
-    """Return the HTML for the dropzone upload form"""
-    return UPLOAD_FORM_HTML
-
-
-@router.get("/", response_model=List[Blob])
-async def list_blobs(
+@router.get("/", response_class=HTMLResponse)
+@jinja.hx('components/blobs/blobs_page.html.j2')
+async def get_blobs_page(
+    request: Request,
     limit: int = 100, 
     offset: int = 0,
     db: AsyncConnection = Depends(get_db)
 ):
-    """List all blobs"""
+    """Get the blobs page"""
+    blobs = await blob_service.list_blobs(db, limit, offset)
+    return {"request": request, "blobs": blobs}
+
+@router.get("/upload", response_class=HTMLResponse)
+@jinja.hx('components/blobs/upload_form.html.j2')
+async def get_upload_form(request: Request):
+    """Return the upload form page"""
+    return {"request": request}
+
+
+@router.get("/api", response_model=List[Blob])
+async def list_blobs_api(
+    limit: int = 100, 
+    offset: int = 0,
+    db: AsyncConnection = Depends(get_db)
+):
+    """List all blobs (API endpoint)"""
     return await blob_service.list_blobs(db, limit, offset)
 
 
 @router.get("/search", response_model=List[Blob])
-async def search_blobs(
+async def search_blobs_api(
     q: str,
     limit: int = 20, 
     offset: int = 0,
     db: AsyncConnection = Depends(get_db)
 ):
-    """Search for blobs by name or description"""
+    """Search for blobs by name or description (API endpoint)"""
     return await blob_service.search_blobs(db, q, limit, offset)
 
 
-@router.get("/html", response_class=HTMLResponse)
+@router.get("/list-html", response_class=HTMLResponse)
+@jinja.hx('components/blobs/blob_list.html.j2')
 async def list_blobs_html(
+    request: Request,
     limit: int = 100, 
     offset: int = 0,
     db: AsyncConnection = Depends(get_db)
 ):
     """List all blobs as HTML for HTMX"""
     blobs = await blob_service.list_blobs(db, limit, offset)
-    html = ""
-    for blob in blobs:
-        # Format the blob size
-        if blob.byte_size is not None:
-            if blob.byte_size < 1024:
-                size_formatted = f"{blob.byte_size} bytes"
-            elif blob.byte_size < 1024 * 1024:
-                size_formatted = f"{blob.byte_size / 1024:.1f} KB"
-            else:
-                size_formatted = f"{blob.byte_size / (1024 * 1024):.1f} MB"
-        else:
-            size_formatted = "Unknown size"
-        
-        # Get thumbnail URL based on content type
-        if blob.content_type.startswith("image/"):
-            thumbnail = blob.content_url
-        else:
-            # Use a generic file icon
-            thumbnail = "/static/file-icon.png"
-        
-        html += BLOB_ITEM_HTML.format(
-            id=blob.id,
-            name=blob.name,
-            description=blob.description or "",
-            content_type=blob.content_type,
-            byte_size_formatted=size_formatted,
-            created_at=blob.created_at.strftime("%Y-%m-%d %H:%M"),
-            content_url=blob.content_url,
-            thumbnail=thumbnail
-        )
-    return html
+    return {"request": request, "blobs": blobs}
+
+
+@router.get("/search-html", response_class=HTMLResponse)
+@jinja.hx('components/blobs/blob_list.html.j2')
+async def search_blobs_html(
+    request: Request,
+    q: str,
+    limit: int = 20, 
+    offset: int = 0,
+    db: AsyncConnection = Depends(get_db)
+):
+    """Search for blobs as HTML for HTMX"""
+    blobs = await blob_service.search_blobs(db, q, limit, offset)
+    return {"request": request, "blobs": blobs}
 
 
 @router.post("/", response_model=Blob)
@@ -153,7 +99,9 @@ async def create_blob(
 
 
 @router.post("/upload", response_class=HTMLResponse)
+@jinja.hx('components/blobs/blob_item.html.j2')
 async def upload_blob(
+    request: Request,
     file: UploadFile = File(...),
     description: Optional[str] = Form(None),
     db: AsyncConnection = Depends(get_db)
@@ -165,34 +113,7 @@ async def upload_blob(
         description=description
     )
     
-    # Format the blob size
-    if blob.byte_size is not None:
-        if blob.byte_size < 1024:
-            size_formatted = f"{blob.byte_size} bytes"
-        elif blob.byte_size < 1024 * 1024:
-            size_formatted = f"{blob.byte_size / 1024:.1f} KB"
-        else:
-            size_formatted = f"{blob.byte_size / (1024 * 1024):.1f} MB"
-    else:
-        size_formatted = "Unknown size"
-    
-    # Get thumbnail URL based on content type
-    if blob.content_type.startswith("image/"):
-        thumbnail = blob.content_url
-    else:
-        # Use a generic file icon
-        thumbnail = "/static/file-icon.png"
-    
-    return BLOB_ITEM_HTML.format(
-        id=blob.id,
-        name=blob.name,
-        description=blob.description or "",
-        content_type=blob.content_type,
-        byte_size_formatted=size_formatted,
-        created_at=blob.created_at.strftime("%Y-%m-%d %H:%M"),
-        content_url=blob.content_url,
-        thumbnail=thumbnail
-    )
+    return {"request": request, "blob": blob}
 
 
 @router.get("/{blob_id}", response_model=Blob)
@@ -228,7 +149,7 @@ async def get_blob_content(
     )
 
 
-@router.delete("/{blob_id}", response_class=HTMLResponse)
+@router.delete("/api/blobs/{blob_id}", response_class=HTMLResponse)
 async def delete_blob(
     blob_id: UUID,
     db: AsyncConnection = Depends(get_db)

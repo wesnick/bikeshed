@@ -1,0 +1,17 @@
+<div id="dropzone-container" class="box">
+  <form id="upload-form" 
+        hx-post="/blobs/upload" 
+        hx-encoding="multipart/form-data"
+        hx-ext="form-json"
+        hx-target="#blob-list"
+        hx-swap="afterbegin"
+        class="dropzone">
+    <div class="dz-message" data-dz-message>
+      <span>Drop files here or click to upload</span>
+    </div>
+    <div class="fallback">
+      <input name="file" type="file" multiple />
+    </div>
+    <input type="hidden" name="description" value="" />
+  </form>
+</div>

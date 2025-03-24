@@ -63,10 +63,22 @@ def markdown2html(text: str):
         'highlightjs-lang': {},
     })
 
+def format_file_size(byte_size):
+    """Format byte size to human readable format"""
+    if byte_size is None:
+        return "Unknown size"
+    
+    if byte_size < 1024:
+        return f"{byte_size} bytes"
+    elif byte_size < 1024 * 1024:
+        return f"{byte_size / 1024:.1f} KB"
+    else:
+        return f"{byte_size / (1024 * 1024):.1f} MB"
 
 def get_jinja() -> Jinja:
     jinja_templates = Jinja2Templates(directory="templates")
     jinja_templates.env.filters['markdown2html'] = markdown2html
+    jinja_templates.env.filters['format_file_size'] = format_file_size
 
     return Jinja(jinja_templates)
 
