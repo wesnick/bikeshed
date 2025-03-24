@@ -71,7 +71,7 @@ class BlobService:
             name=name,
             description=description,
             content_type=content_type,
-            content_url=self._get_relative_blob_path(blob_id),
+            content_url=self._get_relative_blob_path(blob_id, ext),
             byte_size=byte_size,
             sha256=sha256_hash.hexdigest(),
             metadata=metadata or {}
