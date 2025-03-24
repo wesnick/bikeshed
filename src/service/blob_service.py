@@ -73,6 +73,9 @@ class BlobService:
         metadata: Optional[Dict[str, Any]] = None
     ) -> Blob:
         """Create a new blob from a FastAPI UploadFile"""
+        # Use magic to determine MIME type
+        # mime_type = magic.from_file(str(file_path), mime=True)
+
         return await self.create_blob(
             conn=conn,
             name=upload_file.filename or "unnamed_file",
@@ -85,11 +88,7 @@ class BlobService:
     async def get_blob(self, conn: AsyncConnection, blob_id: UUID) -> Optional[Blob]:
         """Get a blob by ID"""
         return await self.repository.get_by_id(conn, blob_id)
-    
-    async def get_blob_by_hash(self, conn: AsyncConnection, sha256: str) -> Optional[Blob]:
-        """Get a blob by its SHA-256 hash"""
-        return await self.repository.get_by_content_hash(conn, sha256)
-    
+
     async def list_blobs(
         self, 
         conn: AsyncConnection, 
@@ -98,17 +97,7 @@ class BlobService:
     ) -> List[Blob]:
         """List all blobs"""
         return await self.repository.get_all(conn, limit, offset)
-    
-    async def search_blobs(
-        self, 
-        conn: AsyncConnection, 
-        query: str, 
-        limit: int = 20, 
-        offset: int = 0
-    ) -> List[Blob]:
-        """Search for blobs by name or description"""
-        return await self.repository.search(conn, query, limit, offset)
-    
+
     async def delete_blob(self, conn: AsyncConnection, blob_id: UUID) -> bool:
         """Delete a blob by ID"""
         blob = await self.repository.get_by_id(conn, blob_id)

@@ -11,7 +11,7 @@ class HTMXRedirectMiddleware(BaseHTTPMiddleware):
     """
     async def dispatch(self, request: Request, call_next):
         # Static file paths that should be allowed
-        static_paths = ["/build/", "/sse"]
+        static_paths = ["/build/", "/sse", "/blobs/upload"]
 
         # Check if the request is for a static file
         is_static = any(request.url.path.startswith(path) for path in static_paths)

@@ -16,7 +16,7 @@
       </div>
       <div class="media-right">
         <button class="button is-small is-danger"
-                hx-delete="/api/blobs/{{ blob.id }}"
+                hx-delete="/blobs/{{ blob.id }}"
                 hx-target="#blob-{{ blob.id }}"
                 hx-swap="outerHTML">
           Delete

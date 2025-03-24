@@ -10,7 +10,7 @@ from src.repository.base import BaseRepository
 class MessageRepository(BaseRepository[Message]):
     def __init__(self):
         super().__init__(Message)
-        self.table_name = "messages"  # Ensure correct table name
+        self.table_name = "messages"
     
     async def get_by_session(self, conn: AsyncConnection, session_id: UUID) -> List[Message]:
         """Get all messages for a session"""

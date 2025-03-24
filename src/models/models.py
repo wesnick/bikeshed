@@ -162,6 +162,7 @@ class Blob(BaseModel):
     A media object similar to schema.org MediaObject.
     Represents a file with metadata, with the actual bytes stored on disk.
     """
+    __non_persisted_fields__ = []
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     name: str  # Name of the media object
     description: Optional[str] = None  # Description of the media object

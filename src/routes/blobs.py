@@ -1,10 +1,10 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from fastapi.responses import FileResponse, HTMLResponse
-from psycopg_pool import AsyncConnection
+from psycopg import AsyncConnection
 from starlette.status import HTTP_404_NOT_FOUND
 
 from src.dependencies import get_db, get_jinja
@@ -116,6 +116,23 @@ async def upload_blob(
     return {"request": request, "blob": blob}
 
 
+@router.post("/upload-multi")
+@jinja.hx('components/blobs/blob_item.html.j2')
+async def upload_blobs(
+    files: Annotated[list[UploadFile], File()],
+    db: AsyncConnection = Depends(get_db)
+):
+    """Upload a blob and return HTML for HTMX"""
+    blobs = []
+    for file in files:
+        blob = await blob_service.create_blob_from_upload(
+            conn=db,
+            upload_file=file
+        )
+        blobs.append(blob)
+    return {"blobs": blobs}
+
+
 @router.get("/{blob_id}", response_model=Blob)
 async def get_blob(
     blob_id: UUID,
@@ -149,7 +166,7 @@ async def get_blob_content(
     )
 
 
-@router.delete("/api/blobs/{blob_id}", response_class=HTMLResponse)
+@router.delete("/{blob_id}", response_class=HTMLResponse)
 async def delete_blob(
     blob_id: UUID,
     db: AsyncConnection = Depends(get_db)
