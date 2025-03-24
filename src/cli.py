@@ -334,6 +334,77 @@ def add_root(directory_path: str):
 def group():
     pass
 
+@click.command()
+@click.option("--limit", default=100, help="Maximum number of blobs to list")
+@click.option("--offset", default=0, help="Offset for pagination")
+def list_blobs(limit: int, offset: int):
+    """List all blobs in the database"""
+    import asyncio
+    from src.service.blob_service import BlobService
+    from src.dependencies import get_db
+
+    async def _list_blobs():
+        blob_service = BlobService()
+        async for db in get_db():
+            blobs = await blob_service.list_blobs(db, limit, offset)
+            if not blobs:
+                click.echo("No blobs found.")
+                return
+            
+            click.echo(f"Found {len(blobs)} blobs:")
+            for blob in blobs:
+                size = f"{blob.byte_size / 1024:.1f} KB" if blob.byte_size else "Unknown size"
+                click.echo(f"- {blob.name} ({blob.content_type}, {size})")
+                if blob.description:
+                    click.echo(f"  Description: {blob.description}")
+                click.echo(f"  ID: {blob.id}")
+                click.echo(f"  Created: {blob.created_at}")
+                click.echo("")
+
+    asyncio.run(_list_blobs())
+
+@click.command()
+@click.argument("file_path", type=click.Path(exists=True, file_okay=True, dir_okay=False))
+@click.option("--name", help="Name for the blob (defaults to filename)")
+@click.option("--description", help="Description for the blob")
+def upload_blob(file_path: str, name: str = None, description: str = None):
+    """Upload a file as a blob"""
+    import asyncio
+    import os
+    import mimetypes
+    from src.service.blob_service import BlobService
+    from src.dependencies import get_db
+
+    async def _upload_blob():
+        blob_service = BlobService()
+        
+        # Determine the file name and content type
+        file_name = name or os.path.basename(file_path)
+        content_type, _ = mimetypes.guess_type(file_path)
+        if not content_type:
+            content_type = "application/octet-stream"
+        
+        click.echo(f"Uploading {file_path} as {file_name} ({content_type})...")
+        
+        with open(file_path, "rb") as file:
+            async for db in get_db():
+                blob = await blob_service.create_blob(
+                    conn=db,
+                    name=file_name,
+                    content_type=content_type,
+                    file=file,
+                    description=description
+                )
+                
+                size = f"{blob.byte_size / 1024:.1f} KB" if blob.byte_size else "Unknown size"
+                click.echo(f"Uploaded successfully!")
+                click.echo(f"- ID: {blob.id}")
+                click.echo(f"- Size: {size}")
+                click.echo(f"- SHA256: {blob.sha256}")
+                click.echo(f"- URL: {blob.content_url}")
+
+    asyncio.run(_upload_blob())
+
 group.add_command(hello)
 group.add_command(search_mcp)
 group.add_command(load_schemas)
@@ -342,6 +413,8 @@ group.add_command(load_session_templates)
 group.add_command(run_workflow)
 group.add_command(create_ad_hoc)
 group.add_command(add_root)
+group.add_command(list_blobs)
+group.add_command(upload_blob)
 
 if __name__ == '__main__':
     group()
