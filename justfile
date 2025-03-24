@@ -76,3 +76,7 @@ list-blobs:
 # Upload a file as a blob
 upload-blob file_path:
     python -m src.cli upload-blob {{file_path}}
+
+# Install python-magic dependency
+install-magic:
+    uv pip install python-magic

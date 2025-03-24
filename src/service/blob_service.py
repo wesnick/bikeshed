@@ -2,6 +2,7 @@ import os
 import uuid
 import hashlib
 import shutil
+import magic
 from pathlib import Path
 from typing import Optional, List, Dict, Any, BinaryIO
 from uuid import UUID
@@ -26,7 +27,7 @@ class BlobService:
         self, 
         conn: AsyncConnection,
         name: str,
-        content_type: str,
+        content_type: Optional[str],
         file: BinaryIO,
         description: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
@@ -39,16 +40,30 @@ class BlobService:
         sha256_hash = hashlib.sha256()
         byte_size = 0
         
-        # Create the storage path for this blob
-        blob_path = self._get_blob_path(blob_id)
-        os.makedirs(os.path.dirname(blob_path), exist_ok=True)
-        
-        # Write the file to storage and calculate hash/size
-        with open(blob_path, 'wb') as f:
+        # Create a temporary file to detect content type if not provided
+        temp_file_path = os.path.join(self.storage_path, f"temp_{blob_id}")
+        with open(temp_file_path, 'wb') as temp_f:
+            # Read the file in chunks to handle large files
+            file_content = bytearray()
             while chunk := file.read(8192):
+                file_content.extend(chunk)
                 sha256_hash.update(chunk)
                 byte_size += len(chunk)
-                f.write(chunk)
+                temp_f.write(chunk)
+        
+        # Detect content type if not provided
+        if not content_type:
+            content_type = magic.from_file(temp_file_path, mime=True)
+        
+        # Get file extension from original name
+        _, ext = os.path.splitext(name)
+        
+        # Create the storage path for this blob with extension
+        blob_path = self._get_blob_path(blob_id, ext)
+        os.makedirs(os.path.dirname(blob_path), exist_ok=True)
+        
+        # Move the temporary file to the final location
+        shutil.move(temp_file_path, blob_path)
         
         # Create the blob record
         blob = Blob(
@@ -73,13 +88,10 @@ class BlobService:
         metadata: Optional[Dict[str, Any]] = None
     ) -> Blob:
         """Create a new blob from a FastAPI UploadFile"""
-        # Use magic to determine MIME type
-        # mime_type = magic.from_file(str(file_path), mime=True)
-
         return await self.create_blob(
             conn=conn,
             name=upload_file.filename or "unnamed_file",
-            content_type=upload_file.content_type or "application/octet-stream",
+            content_type=upload_file.content_type,  # May be None, will be detected by create_blob
             file=upload_file.file,
             description=description,
             metadata=metadata
@@ -117,12 +129,24 @@ class BlobService:
         return self._get_blob_path(blob_id)
 
     @staticmethod
-    def _get_relative_blob_path(blob_id: UUID) -> str:
-        """Get the storage path for a blob"""
+    def _get_relative_blob_path(blob_id: UUID, extension: str = "") -> str:
+        """
+        Get the relative storage path for a blob
+        
+        Args:
+            blob_id: The UUID of the blob
+            extension: Optional file extension including the dot (e.g., '.jpg')
+        """
         # Use the first 2 chars of the UUID as a subdirectory to avoid too many files in one dir
         blob_id_str = str(blob_id)
-        return os.path.join(blob_id_str[:2], blob_id_str)
+        return os.path.join(blob_id_str[:2], f"{blob_id_str}{extension}")
 
-    def _get_blob_path(self, blob_id: UUID) -> str:
-        """Get the storage path for a blob"""
-        return os.path.join(self.storage_path, self._get_relative_blob_path(blob_id))
+    def _get_blob_path(self, blob_id: UUID, extension: str = "") -> str:
+        """
+        Get the absolute storage path for a blob
+        
+        Args:
+            blob_id: The UUID of the blob
+            extension: Optional file extension including the dot (e.g., '.jpg')
+        """
+        return os.path.join(self.storage_path, self._get_relative_blob_path(blob_id, extension))
