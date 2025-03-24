@@ -55,7 +55,7 @@ class LiteLLMCompletionService(CompletionService):
             response = await litellm.acompletion(
                 model=model,
                 messages=messages,
-                api_base="http://localhost:11434",
+                # api_base="http://localhost:11434",  # @TODO:
                 stream=True
             )
             

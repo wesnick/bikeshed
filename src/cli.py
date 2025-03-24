@@ -412,8 +412,9 @@ def chat(message: str, model: str):
     """Send a message to an LLM model and get a response"""
     import asyncio
     from src.service.llm.litellm_service import LiteLLMCompletionService
-    from src.models.models import Session, Message, MessageRole, MessageStatus
+    from src.models.models import Session, Message, MessageStatus
     import uuid
+    import os
 
     async def _chat():
         service = LiteLLMCompletionService()
@@ -423,7 +424,7 @@ def chat(message: str, model: str):
         user_message = Message(
             id=uuid.uuid4(),
             session_id=session_id,
-            role=MessageRole.USER,
+            role='user',
             text=message,
             status=MessageStatus.DELIVERED
         )
@@ -432,7 +433,7 @@ def chat(message: str, model: str):
         assistant_message = Message(
             id=uuid.uuid4(),
             session_id=session_id,
-            role=MessageRole.ASSISTANT,
+            role='assistant',
             text="",
             status=MessageStatus.PENDING,
             model=model
