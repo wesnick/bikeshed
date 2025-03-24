@@ -55,11 +55,12 @@ async def get_arq_redis() -> AsyncGenerator[ArqRedis, None]:
 
 
 def get_jinja() -> Jinja:
-    from src.jinja_extensions import markdown2html, format_file_size
+    from src.jinja_extensions import markdown2html, format_file_size, get_file_icon
     
     jinja_templates = Jinja2Templates(directory="templates")
     jinja_templates.env.filters['markdown2html'] = markdown2html
     jinja_templates.env.filters['format_file_size'] = format_file_size
+    jinja_templates.env.filters['file_icon'] = get_file_icon
 
     return Jinja(jinja_templates)
 

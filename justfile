@@ -73,6 +73,10 @@ py-lint:
 jinja-ext-lint:
     uvx ruff check src/jinja_extensions.py --fix
 
+# Test the file icon filter
+test-file-icon filename:
+    python -c "from src.jinja_extensions import get_file_icon; print(f'Icon for {\"{{filename}}\"}: {get_file_icon(\"{{filename}}\")}');"
+
 # List all blobs in the database
 list-blobs:
     python -m src.cli list-blobs
