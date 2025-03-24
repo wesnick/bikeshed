@@ -151,9 +151,10 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
 
             # Create the WorkflowService instance with the actual registry
             _workflow_service = WorkflowService(
-                get_db,
-                registry_instance,
-                completion_service=completion_service
+                get_db=get_db,
+                registry=registry_instance,
+                completion_service=completion_service,
+                broadcast_service=broadcast_service
             )
     
     yield _workflow_service

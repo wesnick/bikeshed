@@ -53,7 +53,7 @@ class FakerCompletionService(CompletionService):
         if self.config.fake_stream:
             for i in range(50):
                 await asyncio.sleep(self.config.response_delay)
-                assistant_msg.text = f" {self.faker.bs()}"
+                assistant_msg.text = assistant_msg.text + f" {self.faker.bs()}"
                 
                 # Use both the provided broadcast callback and our broadcast service
                 if broadcast:

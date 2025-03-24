@@ -13,6 +13,7 @@ from src.core.workflow.handlers.prompt import PromptStepHandler
 from src.core.workflow.handlers.user_input import UserInputStepHandler
 from src.core.workflow.handlers.invoke import InvokeStepHandler
 from src.core.workflow.visualization import WorkflowVisualizer
+from src.service.broadcast import BroadcastService
 from src.service.llm import CompletionService
 
 
@@ -22,7 +23,8 @@ class WorkflowService:
     def __init__(self,
                  get_db: Callable[[], AsyncGenerator[AsyncConnection, None]],
                  registry: Registry,
-                 completion_service: CompletionService):
+                 completion_service: CompletionService,
+                 broadcast_service: BroadcastService):
         """
         Initialize the WorkflowService with required dependencies.
         
@@ -44,6 +46,8 @@ class WorkflowService:
         # Create workflow engine
         self.engine = WorkflowEngine(self.persistence, self.handlers)
         self.registry = registry
+        self.broadcast_service = broadcast_service
+
 
     async def create_session_from_template(
             self,
@@ -77,24 +81,14 @@ class WorkflowService:
 
         return await self.engine.initialize_session(session)
 
-    async def execute_next_step(
-            self, session_id: uuid.UUID
-    ) -> WorkflowTransitionResult:
-        """Execute the next step in a workflow"""
-        session = await self.get_session(session_id)
-        if not session:
-            return WorkflowTransitionResult(
-                success=False,
-                state="unknown",
-                message=f"Session {session_id} not found"
-            )
-
-        return await self.engine.execute_next_step(session)
-
     async def run_workflow(self, session: Session) -> None:
         """Run the workflow until completion or waiting for input"""
         while True:
+            await self.broadcast_service.broadcast("session_update", str(session.id))
+
             exec_result = await self.engine.execute_next_step(session)
+
+            await self.broadcast_service.broadcast("session_update", str(session.id))
 
             if not exec_result.success or session.status == SessionStatus.WAITING_FOR_INPUT:
                 break

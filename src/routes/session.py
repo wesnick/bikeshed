@@ -111,7 +111,7 @@ async def session_submit(response: Response,
 
     # Workflow continue
     if next_action == "continue":
-        background_tasks.add_task(workflow_service.run_workflow, session)
+        await enqueue_session_run_workflow(session.id)
         return {"session": session, "current_step": session.get_current_step()}
 
     user_message = Message(
@@ -189,6 +189,7 @@ async def session_template_form(template_name: str,
     # Analyze workflow dependencies
     workflow_analysis = await workflow_service.analyze_workflow_dependencies(template)
 
+    # @TODO: refactor this to not use engine directly
     await workflow_service.engine.initialize_session(session)
     session_workflow_svg = await workflow_service.create_workflow_graph(session)
 
@@ -237,7 +238,8 @@ async def create_session_from_template_route(
     if not session:
         return {"error": "Failed to create session"}
 
-    background_tasks.add_task(workflow_service.run_workflow, session)
+
+    await enqueue_session_run_workflow(session.id)
 
     session_workflow_svg = await workflow_service.create_workflow_graph(session)
 
@@ -249,3 +251,19 @@ async def create_session_from_template_route(
         "messages": session.messages,
         "session_workflow_svg": session_workflow_svg,
     }
+
+async def enqueue_session_run_workflow(session_id: uuid.UUID) -> str:
+    """
+    Enqueue a message processing job with ARQ
+
+    Args:
+        session_id: The UUID of the session to process
+        arq_redis: ARQ Redis connection
+
+    Returns:
+        The job ID as a string
+    """
+    async for arq_redis in get_arq_redis():
+        job = await arq_redis.enqueue_job('session_run_workflow_job', session_id)
+        return job.job_id
+

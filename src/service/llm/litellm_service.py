@@ -1,3 +1,5 @@
+import json
+
 import litellm
 from typing import Optional, Callable, Awaitable
 from src.models.models import Session, Message, MessageStatus
@@ -21,11 +23,12 @@ class LiteLLMCompletionService(CompletionService):
             True if this service can handle the session
         """
         # If session has metadata specifying the provider
-        if session.metadata and 'llm_provider' in session.metadata:
-            return session.metadata['llm_provider'] == 'litellm'
-        
-        # Default provider if none specified
-        return True
+        step = session.get_current_step()
+        if step and step.config_extra:
+            if 'model' in step.config_extra:
+                return True
+
+        return session.template.model is not None
 
     async def complete(
         self,
@@ -36,6 +39,10 @@ class LiteLLMCompletionService(CompletionService):
             messages = self._prepare_messages(session)
             assistant_msg = session.messages[-1]
             model = assistant_msg.model
+
+            from src.service.logging import logger
+            logger.warning(f"LiteLLM model: {json.dumps(messages, indent=4)}")
+
             
             # Broadcast that we're starting LLM processing
             if self.broadcast_service:
@@ -48,6 +55,7 @@ class LiteLLMCompletionService(CompletionService):
             response = await litellm.acompletion(
                 model=model,
                 messages=messages,
+                api_base="http://localhost:11434",
                 stream=True
             )
             
@@ -57,19 +65,14 @@ class LiteLLMCompletionService(CompletionService):
                 if delta:
                     content += delta
                     assistant_msg.text = content
-                    
+                    logger.warning(f"LiteLLM messages: {content}")
                     # Use both the provided broadcast callback and our broadcast service
                     if broadcast:
                         await broadcast(assistant_msg)
                     
                     # Also broadcast via SSE if available
                     if self.broadcast_service:
-                        await self.broadcast_service.broadcast("message_update", {
-                            "session_id": str(session.id),
-                            "message_id": str(assistant_msg.id),
-                            "content": content,
-                            "status": "streaming"
-                        })
+                        await self.broadcast_service.broadcast("message-stream-" + str(assistant_msg.id), content)
             
             assistant_msg.text = content
             assistant_msg.status = MessageStatus.DELIVERED
