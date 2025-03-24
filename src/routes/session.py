@@ -171,24 +171,6 @@ async def enqueue_message_processing(session_id: uuid.UUID) -> str:
         job = await arq_redis.enqueue_job('process_message_job', session_id)
         return job.job_id
 
-async def process_message(session: Session):
-
-    completion_service: CompletionService = await anext(get_completion_service())
-    broadcast_service: BroadcastService = await anext(get_broadcast_service())
-
-    # Process with Completion service
-    result_message = await completion_service.complete(
-        session,
-        broadcast=None
-    )
-
-    async for db in get_db():
-        # Update final message in database
-        await message_repository.update(db, result_message)
-
-    # Notify all clients to update the session component
-    await broadcast_service.broadcast("session_update", "")
-
 
 @router.get("/template-creator/{template_name}")
 @jinja.hx('components/session/session_template_form.html.j2')

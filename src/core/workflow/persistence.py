@@ -41,7 +41,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
                 async for conn in self.get_db():
                     # Save the session first
                     session_data = {
-                        "status": session.status.value if isinstance(session.status, SessionStatus) else session.status,
+                        "status": session.status,
                         "current_state": session.current_state,
                         "workflow_data": session.workflow_data,
                         "error": session.error

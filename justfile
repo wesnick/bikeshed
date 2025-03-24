@@ -60,7 +60,7 @@ test:
 
 # Start the ARQ worker
 arq-worker:
-    python -m arq src.service.worker.WorkerSettings
+    .venv/bin/arq src.service.worker.WorkerSettings --watch src/
 
 # Set up test database
 setup-test-db:

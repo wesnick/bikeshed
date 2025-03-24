@@ -97,9 +97,7 @@ class WorkerSettings:
     @staticmethod
     async def on_shutdown(ctx):
         """Close database pool and broadcast service on worker shutdown"""
-        await db_pool.close()
-        
-        # Clean up broadcast service if it was initialized
-        if 'broadcast_service' in ctx:
-            await ctx['broadcast_service'].shutdown("Worker shutting down")
+        # We actually don't need to close the pool, in fact, it breaks watch
+        # await db_pool.close()
+
 

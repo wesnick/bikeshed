@@ -5,7 +5,7 @@ from src.models.models import Session, Message, MessageStatus
 from .base import CompletionService
 
 class FakerLLMConfig:
-    def __init__(self, response_delay: float = 0.5, fake_stream: bool = True):
+    def __init__(self, response_delay: float = 0.2, fake_stream: bool = True):
         self.response_delay = response_delay
         self.fake_stream = fake_stream
 
@@ -41,7 +41,6 @@ class FakerCompletionService(CompletionService):
         broadcast: Optional[Callable[[Message], Awaitable[None]]] = None
     ) -> Message:
         assistant_msg = session.messages[-1]
-        response = self.faker.paragraph(nb_sentences=5)
         
         # Broadcast that we're starting LLM processing
         if self.broadcast_service:
@@ -52,10 +51,9 @@ class FakerCompletionService(CompletionService):
             })
         
         if self.config.fake_stream:
-            words = response.split()
-            for i in range(len(words)):
+            for i in range(50):
                 await asyncio.sleep(self.config.response_delay)
-                assistant_msg.text = " ".join(words[:i+1])
+                assistant_msg.text = f" {self.faker.bs()}"
                 
                 # Use both the provided broadcast callback and our broadcast service
                 if broadcast:
@@ -66,7 +64,7 @@ class FakerCompletionService(CompletionService):
                     await self.broadcast_service.broadcast("message-stream-" + str(assistant_msg.id), assistant_msg.text)
         else:
             await asyncio.sleep(self.config.response_delay)
-            assistant_msg.text = response
+            assistant_msg.text = self.faker.paragraph(nb_sentences=10)
             
             if broadcast:
                 await broadcast(assistant_msg)
@@ -75,7 +73,7 @@ class FakerCompletionService(CompletionService):
                 await self.broadcast_service.broadcast("message_update", {
                     "session_id": str(session.id),
                     "message_id": str(assistant_msg.id),
-                    "content": response,
+                    "content": assistant_msg.text,
                     "status": "complete"
                 })
         
