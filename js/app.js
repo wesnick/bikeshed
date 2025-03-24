@@ -75,7 +75,7 @@ document.body.addEventListener('htmx:afterSettle', function(event) {
       dictDefaultMessage: "Drop files here or click to upload (max 30MB per file)",
       success: function(file, response) {
           // Refresh the file list using HTMX after upload
-          htmx.trigger("#file-list", "htmx:load");
+          //htmx.trigger("#file-list", "htmx:load");
       },
       error: function(file, errorMessage) {
           console.error("Upload error:", errorMessage);

@@ -1,4 +1,4 @@
-<div id="blob-list" class="blob-list">
+<div id="blob-list" class="blob-list" hx-trigger="file_update" hx-get="/blobs/list">
   {% for blob in blobs %}
     {% include 'components/blobs/blob_item.html.j2' %}
   {% else %}

@@ -2,13 +2,7 @@
   <div class="card-content">
     <div class="media">
       <div class="media-left">
-        <figure class="image is-48x48">
-          {% if blob.content_type.startswith('image/') %}
-            <img src="{{ blob.content_url }}" alt="{{ blob.name }}">
-          {% else %}
-            <img src="/static/file-icon.png" alt="{{ blob.name }}">
-          {% endif %}
-        </figure>
+          <i class="{{ blob.name | file_icon }} fa-2x"></i>
       </div>
       <div class="media-content">
         <p class="title is-4">{{ blob.name }}</p>

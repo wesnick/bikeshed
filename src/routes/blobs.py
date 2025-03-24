@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from psycopg import AsyncConnection
+from starlette.responses import Response
 from starlette.status import HTTP_404_NOT_FOUND
 
 from src.dependencies import get_db, get_jinja
@@ -98,39 +99,21 @@ async def create_blob(
     )
 
 
-@router.post("/upload", response_class=HTMLResponse)
-@jinja.hx('components/blobs/blob_item.html.j2')
-async def upload_blob(
-    request: Request,
-    file: UploadFile = File(...),
-    description: Optional[str] = Form(None),
-    db: AsyncConnection = Depends(get_db)
-):
-    """Upload a blob and return HTML for HTMX"""
-    blob = await blob_service.create_blob_from_upload(
-        conn=db,
-        upload_file=file,
-        description=description
-    )
-    
-    return {"request": request, "blob": blob}
-
 
 @router.post("/upload-multi")
-@jinja.hx('components/blobs/blob_item.html.j2')
-async def upload_blobs(
-    files: Annotated[list[UploadFile], File()],
-    db: AsyncConnection = Depends(get_db)
-):
+async def upload_blobs(response: Response,
+                       files: Annotated[list[UploadFile], File()],
+                       db: AsyncConnection = Depends(get_db)):
     """Upload a blob and return HTML for HTMX"""
-    blobs = []
+
     for file in files:
         blob = await blob_service.create_blob_from_upload(
             conn=db,
             upload_file=file
         )
-        blobs.append(blob)
-    return {"blobs": blobs}
+
+    return {}
+
 
 
 @router.get("/{blob_id}", response_model=Blob)
@@ -155,12 +138,11 @@ async def get_blob_content(
     if not blob:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Blob not found")
     
-    file_path = blob_service.get_blob_content_path(blob_id)
-    if not os.path.exists(file_path):
+    if not os.path.exists(blob.content_url):
         raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Blob content not found")
     
     return FileResponse(
-        path=file_path,
+        path=blob.content_url,
         media_type=blob.content_type,
         filename=blob.name
     )

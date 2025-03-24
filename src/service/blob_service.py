@@ -117,19 +117,14 @@ class BlobService:
             return False
         
         # Delete the file from storage
-        blob_path = self._get_blob_path(blob_id)
-        if os.path.exists(blob_path):
-            os.remove(blob_path)
+        if os.path.exists(os.path.join(self.storage_path, blob.content_url)):
+            os.remove(os.path.join(self.storage_path, blob.content_url))
         
         # Delete from database
         return await self.repository.delete(conn, blob_id)
-    
-    def get_blob_content_path(self, blob_id: UUID) -> str:
-        """Get the filesystem path to a blob's content"""
-        return self._get_blob_path(blob_id)
 
     @staticmethod
-    def _get_relative_blob_path(blob_id: UUID, extension: str = "") -> str:
+    def _get_relative_blob_path(blob_id: UUID, extension: str) -> str:
         """
         Get the relative storage path for a blob
         
@@ -141,7 +136,7 @@ class BlobService:
         blob_id_str = str(blob_id)
         return os.path.join(blob_id_str[:2], f"{blob_id_str}{extension}")
 
-    def _get_blob_path(self, blob_id: UUID, extension: str = "") -> str:
+    def _get_blob_path(self, blob_id: UUID, extension: str) -> str:
         """
         Get the absolute storage path for a blob
         
