@@ -9,12 +9,14 @@ export function initializeDrawer() {
   // Side-by-side mode
   sideBySlideBtn.addEventListener('click', () => {
     // Reset any existing classes
-    drawer.classList.remove('drawer-closed', 'drawer-overlay');
+    drawer.classList.remove('drawer-closed', 'drawer-overlay', 'drawer-closing');
     drawer.classList.add('drawer-side-by-side');
     
-    // Adjust main content area
-    dashboard.classList.remove('is-7');
-    dashboard.classList.add('is-6');
+    // Adjust main content area with a slight delay for smoother transition
+    setTimeout(() => {
+      dashboard.classList.remove('is-7');
+      dashboard.classList.add('is-6');
+    }, 50);
     
     // Show close button, hide open buttons
     closeBtn.classList.remove('is-hidden');
@@ -30,7 +32,7 @@ export function initializeDrawer() {
   // Overlay mode
   overlayBtn.addEventListener('click', () => {
     // Reset any existing classes
-    drawer.classList.remove('drawer-closed', 'drawer-side-by-side');
+    drawer.classList.remove('drawer-closed', 'drawer-side-by-side', 'drawer-closing');
     drawer.classList.add('drawer-overlay', 'is-5');
     
     // Keep main content area the same size
@@ -50,13 +52,29 @@ export function initializeDrawer() {
 
   // Close drawer
   closeBtn.addEventListener('click', () => {
-    // Reset drawer classes
-    drawer.classList.remove('drawer-side-by-side', 'drawer-overlay', 'is-5');
-    drawer.classList.add('drawer-closed');
-    
-    // Reset main content area
-    dashboard.classList.remove('is-6');
-    dashboard.classList.add('is-7');
+    // Add closing animation class
+    if (drawer.classList.contains('drawer-overlay')) {
+      drawer.classList.add('drawer-closing');
+      
+      // Wait for animation to complete before hiding
+      setTimeout(() => {
+        // Reset drawer classes
+        drawer.classList.remove('drawer-side-by-side', 'drawer-overlay', 'is-5', 'drawer-closing');
+        drawer.classList.add('drawer-closed');
+        
+        // Reset main content area
+        dashboard.classList.remove('is-6');
+        dashboard.classList.add('is-7');
+      }, 300); // Match animation duration
+    } else {
+      // For side-by-side, no slide animation needed
+      drawer.classList.remove('drawer-side-by-side', 'drawer-overlay', 'is-5');
+      drawer.classList.add('drawer-closed');
+      
+      // Reset main content area
+      dashboard.classList.remove('is-6');
+      dashboard.classList.add('is-7');
+    }
     
     // Hide close button, show open buttons
     closeBtn.classList.add('is-hidden');

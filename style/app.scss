@@ -246,13 +246,30 @@ html, body {
     }
 
 /* Drawer Component Styles */
+/* Drawer animations and transitions */
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .drawer-closed {
   display: none !important;
 }
 
 .drawer-side-by-side {
   display: block !important;
-  transition: all 0.3s ease;
+  animation: fadeIn 0.4s ease forwards;
+  transition: width 0.3s ease, transform 0.3s ease;
 }
 
 .drawer-overlay {
@@ -264,9 +281,13 @@ html, body {
   z-index: 30;
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
   background-color: white;
-  transition: all 0.3s ease;
   margin-top: 52px; /* Adjust based on your navbar height */
   overflow-y: auto;
+  animation: slideIn 0.3s ease forwards;
+}
+
+.drawer-closing {
+  animation: slideOut 0.3s ease forwards;
 }
 
 html[data-theme="dark"] .drawer-overlay {
