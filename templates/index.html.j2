@@ -59,9 +59,25 @@
           <div id="dashboard" class="is-flex is-flex-direction-column"></div>
         </div>
         <!-- Drawer Section -->
-        <div class="column is-3 section p-5"
+        <div id="right-drawer" class="column is-3 section p-5 drawer-closed"
              hx-get="/components/right-drawer"
              hx-trigger="load, sse:drawer_update from:body"></div>
+      </div>
+      
+      <!-- Drawer Test Controls -->
+      <div class="drawer-controls">
+        <button id="drawer-side-by-side" class="button is-primary">
+          <span class="icon"><i class="fas fa-columns"></i></span>
+          <span>Side-by-Side</span>
+        </button>
+        <button id="drawer-overlay" class="button is-info">
+          <span class="icon"><i class="fas fa-layer-group"></i></span>
+          <span>Overlay</span>
+        </button>
+        <button id="drawer-close" class="button is-danger is-hidden">
+          <span class="icon"><i class="fas fa-times"></i></span>
+          <span>Close</span>
+        </button>
       </div>
     </div>
   </body>

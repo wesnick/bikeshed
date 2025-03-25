@@ -7,11 +7,19 @@ import hljs from 'highlight.js';
 import Dropdown from "@vizuaalog/bulmajs/src/plugins/dropdown";
 
 import {initializeEditor} from './prosemirror';
+import {initializeDrawer, openDrawer, closeDrawer} from './drawer';
 
 import Dropzone from "dropzone";
 
 // Import custom handlers
 import './shutdown-handler';
+
+// Export drawer functions for global access
+window.bikeshed = window.bikeshed || {};
+window.bikeshed.drawer = {
+  open: openDrawer,
+  close: closeDrawer
+};
 
 
 // Initialize application
@@ -34,6 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize theme from localStorage
   initializeTheme();
   setupThemeToggle();
+  
+  // Initialize drawer functionality
+  initializeDrawer();
 });
 
 // Function to initialize theme
