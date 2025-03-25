@@ -65,11 +65,11 @@ py-lint:
 jinja-ext-lint:
     uvx ruff check src/jinja_extensions.py --fix
 
-llm-prompt:
+commit:
     #!/usr/bin/env bash
     git diff --staged > /tmp/git_diff_tmp
     cat templates/prompts/git_commit.md.j2 | sed -e '/{{{{ git_diff }}/{r /tmp/git_diff_tmp' -e 'd}' > /tmp/commit_prompt_tmp
-    cat /tmp/commit_prompt_tmp | llm --model gemma3:latest > /tmp/commit_msg_tmp
+    cat /tmp/commit_prompt_tmp | llm > /tmp/commit_msg_tmp
 
     # Display the generated commit message
     echo "Generated commit message:"
