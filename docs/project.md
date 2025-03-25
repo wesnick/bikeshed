@@ -8,9 +8,10 @@ Postgres (17)
  - pgvector
 Redis
 Python (3.12):
- - Packages are managed with uv (NOT `pip`!)
+ - Packages are managed with `uv` (NOT `pip`!)
  - FastAPI 
  - Transitions (for state machine workflow)
+ - arq (simple job runner)
 Frontend:
  - build system is vite
  - HTMX v2
@@ -68,4 +69,5 @@ The UI uses Bulma CSS framework.
 
 ### Shell commands
 
-All shell commands should be run through `just` using the `justfile` in root.
+Shell commands that might be run frequently should be run through `just` using the `justfile` in root.
+Other ad-hoc commands

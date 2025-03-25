@@ -1,8 +1,14 @@
 # BikeShed
 
+### WIP: This project should be considered a work-in-progress.  Currently, Linux Only
+
+Bikeshed, a place to sweat the details, however trivial.
+
 ## Overview
 
-**BikeShed** is an experimental project designed to explore and investigate ideas related to the Model Context Protocol (MCP). This project aims to provide a flexible playground for working with context-aware models.
+**BikeShed** is an experimental project built as a Model Context Protocol (MCP) client. There are many like it, this is mine.
+
+This project aims to provide a flexible playground creating reusable context sets: instructions, tools, resources.  The main goal is to be able to experiment with simple workflows to create artifacts.  Eventually, a goal it to generate a detailed specification for a workflow that can be "compiled" into a executable application.
 
 ## Table of Contents
 
@@ -16,9 +22,8 @@
 ## Features
 
 - **Experimental**: BikeShed serves as a playground for developers interested in experimenting with MCP-related concepts.
-- **Modular Design**: The project's architecture is modular, allowing easy modification and extension of components.
+- **Declarative Workflow Syntax**: Trying to make building simple workflow components using YAML easy
 - **Context Management**: Tools for managing and manipulating model contexts.
-- **Open-ended Exploration**: Encourages open-ended experimentation.
 
 ## Installation
 
@@ -26,48 +31,61 @@ To get started with BikeShed, follow these steps:
 
 1. **Clone the repository**:
 
-   ```bash
-   git clone https://github.com/wesnick/bikeshed.git
-   cd bikeshed
-   ```
+```bash
+git clone https://github.com/wesnick/bikeshed.git
+cd bikeshed
+```
 
 2. **Install dependencies**:
 
- 
-   ```bash
-   uv install
-   ```
+You need uv, rust, go, npm installed.  Sorry, this is a developer app so these are table stakes.
+
+OS dependencies, assuming Debian-flavored distro
 
 ```bash
 sudo apt-get install libmagic1 graphviz graphviz-dev
 ```
+Python
+
+```bash
+uv sync
+```
+
+Rust
+```bash
+cargo install just
+cargo install monolith
+```
+
+Golang
 
 ```bash
 go install github.com/stripe/pg-schema-diff/cmd/pg-schema-diff@latest
 ```
 
-   *(Ensure you have Python installed on your machine)*
+Node
+```bash
+npm install
+```
 
 3. **Run the project**:
 
-   Depending on the configuration, you might be able to run the project with:
+From here on out, use `just`
 
-   ```bash
-   python main.py
-   ```
+```bash
+just setup-env  # be sure to edit your .env
+just docup
+# Dev has 3 processes
+just fastapi-dev
+just frontend-dev
+just arq-dev
+```
 
-Make sure to check the documentation for additional setup requirements.
+Make sure to check the [docs/project.md] for additional info.
 
 ## Usage
 
-BikeShed is designed for experimentation. Here’s a basic guide to get you started:
-
-1. **Set Up Your Context**: Define your model context using the provided tools.
-2. **Integrate Models**: Experiment with integrating different models into the framework.
-3. **Run Experiments**: Utilize the modular components to run various experiments and capture results.
-4. **Analyze Outcomes**: Examine the effects of different contexts on model performance or behavior.
-
-Since this is an experimental project, feel free to tweak configurations and document your findings.
+TBD
 
 ## Contributing
 

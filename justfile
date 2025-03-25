@@ -16,6 +16,10 @@ fastapi-dev:
 frontend-dev:
     npm run dev
 
+# Start the ARQ worker
+arq-dev:
+    .venv/bin/arq src.service.worker.WorkerSettings --watch src/
+
 # Build the frontend assets for production
 build:
     npm run build
@@ -40,21 +44,9 @@ migrate *args:
 search-mcp query="":
     python -m src.cli search-mcp {{query}}
 
-# Create and run a workflow from a template
-run-workflow template_name:
-    python -m src.cli run-workflow {{template_name}}
-
-# Create an ad-hoc session
-create-ad-hoc description:
-    python -m src.cli create-ad-hoc "{{description}}"
-
 # Run all tests
 test:
     pytest tests/ -v
-
-# Start the ARQ worker
-arq-worker:
-    .venv/bin/arq src.service.worker.WorkerSettings --watch src/
 
 # Set up test database
 setup-test-db:
@@ -73,22 +65,25 @@ py-lint:
 jinja-ext-lint:
     uvx ruff check src/jinja_extensions.py --fix
 
-# Test the file icon filter
-test-file-icon filename:
-    python -c "from src.jinja_extensions import get_file_icon; print(f'Icon for {\"{{filename}}\"}: {get_file_icon(\"{{filename}}\")}');"
+llm-prompt:
+    #!/usr/bin/env bash
+    git diff --staged > /tmp/git_diff_tmp
+    cat templates/prompts/git_commit.md.j2 | sed -e '/{{{{ git_diff }}/{r /tmp/git_diff_tmp' -e 'd}' > /tmp/commit_prompt_tmp
+    cat /tmp/commit_prompt_tmp | llm --model gemma3:latest > /tmp/commit_msg_tmp
 
-# List all blobs in the database
-list-blobs:
-    python -m src.cli list-blobs
+    # Display the generated commit message
+    echo "Generated commit message:"
+    echo "------------------------"
+    cat /tmp/commit_msg_tmp
+    echo "------------------------"
 
-# Upload a file as a blob
-upload-blob file_path:
-    python -m src.cli upload-blob {{file_path}}
+    # Prompt for confirmation
+    read -p "Proceed with this commit message? (y/n) " confirm
+    if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+        git commit -F /tmp/commit_msg_tmp
+        echo "Changes committed successfully!"
+    else
+        echo "Commit canceled."
+    fi
 
-# Chat with an LLM model
-chat message model="ollama/llama3":
-    python -m src.cli chat --model {{model}} "{{message}}"
-
-# Install python-magic dependency
-install-magic:
-    uv pip install python-magic
+    rm /tmp/git_diff_tmp /tmp/commit_prompt_tmp /tmp/commit_msg_tmp
