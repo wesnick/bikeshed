@@ -31,7 +31,7 @@ export function initializeDrawer() {
   overlayBtn.addEventListener('click', () => {
     // Reset any existing classes
     drawer.classList.remove('drawer-closed', 'drawer-side-by-side');
-    drawer.classList.add('drawer-overlay');
+    drawer.classList.add('drawer-overlay', 'is-5');
     
     // Keep main content area the same size
     dashboard.classList.remove('is-6');
@@ -51,7 +51,7 @@ export function initializeDrawer() {
   // Close drawer
   closeBtn.addEventListener('click', () => {
     // Reset drawer classes
-    drawer.classList.remove('drawer-side-by-side', 'drawer-overlay');
+    drawer.classList.remove('drawer-side-by-side', 'drawer-overlay', 'is-5');
     drawer.classList.add('drawer-closed');
     
     // Reset main content area
