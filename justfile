@@ -61,10 +61,6 @@ html-lint:
 py-lint:
     uvx ruff check src/ --fix
     
-# Lint the jinja extensions file
-jinja-ext-lint:
-    uvx ruff check src/jinja_extensions.py --fix
-
 commit:
     #!/usr/bin/env bash
     git diff --staged > /tmp/git_diff_tmp

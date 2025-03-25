@@ -2,7 +2,7 @@
   <div class="card-content">
     <div class="media">
       <div class="media-left">
-          <i class="{{ blob.name | file_icon }} fa-2x"></i>
+        <i class="{{ blob.name | file_icon }} fa-2x"></i>
       </div>
       <div class="media-content">
         <p class="title is-4">{{ blob.name }}</p>
@@ -12,15 +12,17 @@
         <button class="button is-small is-danger"
                 hx-delete="/blobs/{{ blob.id }}"
                 hx-target="#blob-{{ blob.id }}"
-                hx-swap="outerHTML">
-          Delete
-        </button>
+                hx-swap="outerHTML">Delete</button>
       </div>
     </div>
     <div class="content">
       <p>{{ blob.description }}</p>
-      <p><small>{{ blob.byte_size|format_file_size }} • {{ blob.created_at.strftime("%Y-%m-%d %H:%M") }}</small></p>
-      <a href="{{ blob.content_url }}" class="button is-small is-primary" target="_blank">Download</a>
+      <p>
+        <small>{{ blob.byte_size|format_file_size }} • {{ blob.created_at.strftime("%Y-%m-%d %H:%M") }}</small>
+      </p>
+      <a href="{{ blob.content_url }}"
+         class="button is-small is-primary"
+         target="_blank">Download</a>
     </div>
   </div>
 </div>

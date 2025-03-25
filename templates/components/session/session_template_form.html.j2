@@ -6,7 +6,9 @@
       <strong>Goal:</strong> {{ template.goal }}
     </div>
   {% endif %}
-  <div class="block">{{ session_workflow_svg | safe }}</div>
+      {% with session_template=template %}
+        {% include 'components/session/workflow.html.j2' %}
+      {% endwith %}
   {% if workflow_analysis %}
     <div class="block">
       <div class="columns">

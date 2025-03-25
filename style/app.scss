@@ -15,6 +15,9 @@
   //$link: iv.$blue !default,
 );
 
+// Bulma steps
+@use 'bulma-o-steps/bulma-steps.css';
+
 // Fancy editor stuff
 @use 'highlight.js/styles/atom-one-dark.min.css';
 @use 'prosemirror-view/style/prosemirror.css';
@@ -46,14 +49,13 @@ html, body {
 }
 
 #main-content {
-  height: calc(100vh - 60px); /* Subtract navbar height */
+  height: calc(100vh - 65px); /* Subtract navbar height */
   overflow: hidden;
 }
 
 #dashboard-top {
   height: 100%;
-  overflow-y: auto;
-  padding-bottom: 60px; /* Add padding to account for the sticky form */
+  padding-bottom: 65px; /* Add padding to account for the sticky form */
   display: flex;
   flex-direction: column;
 }
@@ -279,20 +281,12 @@ html, body {
   top: 0;
   height: 100%;
   z-index: 30;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
-  background-color: white;
-  margin-top: 52px; /* Adjust based on your navbar height */
   overflow-y: auto;
   animation: slideIn 0.3s ease forwards;
 }
 
 .drawer-closing {
   animation: slideOut 0.3s ease forwards;
-}
-
-html[data-theme="dark"] .drawer-overlay {
-  background-color: #121212;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3);
 }
 
 .drawer-controls {
@@ -305,16 +299,3 @@ html[data-theme="dark"] .drawer-overlay {
   gap: 10px;
 }
 
-.drawer-controls .button {
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.drawer-controls .button span:not(.icon) {
-  display: none;
-}

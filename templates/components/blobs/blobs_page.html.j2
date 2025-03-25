@@ -1,29 +1,26 @@
 <div class="container">
   <h1 class="title">Blobs</h1>
-  
   <div class="columns">
     <div class="column is-one-third">
       <h2 class="subtitle">Upload New Files</h2>
       {% include 'components/blobs/upload_form.html.j2' %}
     </div>
-    
     <div class="column is-two-thirds">
       <h2 class="subtitle">Files</h2>
       <div class="field">
         <div class="control has-icons-left">
-          <input class="input" 
-                 type="text" 
-                 placeholder="Search files..." 
-                 hx-get="/blobs/search-html" 
-                 hx-trigger="keyup changed delay:500ms, search" 
-                 hx-target="#blob-list" 
+          <input class="input"
+                 type="text"
+                 placeholder="Search files..."
+                 hx-get="/blobs/search-html"
+                 hx-trigger="keyup changed delay:500ms, search"
+                 hx-target="#blob-list"
                  name="q">
           <span class="icon is-small is-left">
             <i class="fas fa-search"></i>
           </span>
         </div>
       </div>
-      
       {% include 'components/blobs/blob_list.html.j2' %}
     </div>
   </div>

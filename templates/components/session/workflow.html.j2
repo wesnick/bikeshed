@@ -1,9 +1,9 @@
-<ul class="steps has-content-above">
+<ul class="steps is-small has-content-above">
   {% for step in session_template.steps %}
     <li class="steps-segment {% if active_step == 'step_' ~ loop.index0 %}is-active{% endif %}">
       <span class="steps-marker"></span>
       <div class="steps-content is-divider-content">
-        <p class="is-size-4">{{ step.name }}</p>
+        <p class="is-size-6">{{ step.name }}</p>
       </div>
     </li>
   {% endfor %}

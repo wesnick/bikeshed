@@ -32,7 +32,9 @@
         <div class="navbar-end">
           <div class="navbar-item"
                hx-get="/components/navbar-notifications"
-               hx-trigger="load, sse:session_update, sse:notification_update">{% include 'components/skeleton.html.j2' %}</div>
+               hx-trigger="load, sse:session_update, sse:notification_update">
+            {% include 'components/skeleton.html.j2' %}
+          </div>
           <div class="navbar-item">
             <a class="theme-toggle" href="#">
               <span class="icon"><i class="fas fa-moon"></i></span>
@@ -59,13 +61,13 @@
           <div id="dashboard" class="is-flex is-flex-direction-column"></div>
         </div>
         <!-- Drawer Section -->
-        <div id="right-drawer" class="column is-3 section p-5 drawer-closed"
-             hx-get="/components/right-drawer"
+        <div id="right-drawer"
+             class="column is-4 section p-5 drawer-closed has-background-primary"
+             hx-swap=""
              hx-trigger="load, sse:drawer_update from:body"></div>
       </div>
-      
       <!-- Drawer Test Controls -->
-      <div class="drawer-controls">
+      <div class="drawer-controls is-align-content-center">
         <button id="drawer-side-by-side" class="button is-primary">
           <span class="icon"><i class="fas fa-columns"></i></span>
           <span>Side-by-Side</span>
@@ -75,7 +77,7 @@
           <span>Overlay</span>
         </button>
         <button id="drawer-close" class="button is-danger is-hidden">
-          <span class="icon"><i class="fas fa-times"></i></span>
+          <span class="icon"><i class="fas fa-2x fa-times"></i></span>
           <span>Close</span>
         </button>
       </div>

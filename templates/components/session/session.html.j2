@@ -1,23 +1,15 @@
 <!-- Workspace -->
 <div id="dashboard-top" class="p-2">
-  {% if session %}
-    <div class="box mb-3">
-      <h1 class="title">{{ session.summary or "Untitled Session" }}</h1>
-      {% if session.goal %}<p class="subtitle">Goal: {{ session.goal }}</p>{% endif %}
-      <div class="block">
-        {{ session_workflow_svg | safe }}
-        <p class="subtitle">Status: {{ session.status }}</p>
-        <p class="subtitle">Status: {{ session.current_state }}</p>
-      </div>
-    </div>
-  {% endif %}
-  <div class="box p-0 mb-3 flex-grow-1">
-    <div id="messages-container"
-         class="messages"
-         hx-get="/session/{{ session.id }}/messages"
-         hx-trigger="load, sse:session_update"></div>
-  </div>
+  <div id="session-overview"
+       hx-get="/session/{{ session_id }}/overview"
+       hx-trigger="load, sse:session_update"></div>
+</div>
+<div class="box p-0 mb-3 flex-grow-1">
+  <div id="messages-container"
+       class="messages"
+       hx-get="/session/{{ session_id }}/messages"
+       hx-trigger="load, sse:session_update"></div>
 </div>
 <div id="dashboard-dock"
-     hx-get="/session/{{ session.id }}/session-form"
+     hx-get="/session/{{ session_id }}/session-form"
      hx-trigger="load, sse:form_update from:body"></div>

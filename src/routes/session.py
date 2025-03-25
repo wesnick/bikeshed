@@ -44,26 +44,33 @@ async def create_session(summary: Optional[str] = None, goal: Optional[str] = No
     }
     session = Session(**session_data)
     session = await session_repository.create(db, session)
-    return {"session": session, "messages": [], "message": "Session created successfully"}
+    return {
+        "session": session,
+        "messages": [],
+        "message": "Session created successfully"
+    }
 
 
 
 @router.get("/{session_id}")
 @jinja.hx('components/session/session.html.j2')
+async def get_session(session_id: UUID):
+    """Container for session mini-dash"""
+    return {
+        "session_id": session_id,
+    }
+
+@router.get("/{session_id}/overview")
+@jinja.hx('components/session/session_overview.html.j2', no_data=True)
 async def get_session(session_id: UUID,
                       workflow_service: WorkflowService = Depends(get_workflow_service)):
-    """Get a specific session with its messages"""
+    """Container for session mini-dash"""
     session = await workflow_service.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-
-    logger.warning(f"Session: {session.id} Message count: {len(session.messages)}")
-    session_workflow_svg = await workflow_service.create_workflow_graph(session)
     return {
         "session": session,
-        "messages": session.messages,
-        "session_workflow_svg": session_workflow_svg,
     }
 
 @router.get("/{session_id}/messages")
@@ -90,18 +97,19 @@ async def session_form_component(session_id: UUID,
 
     current_step = session.get_current_step()
 
-    return {"session": session, "current_step": current_step}
+    return {
+        "session": session,
+        "current_step": current_step
+    }
 
 
 @router.post("/session-submit")
 @jinja.hx('components/session/message_list.html.j2')
 async def session_submit(response: Response,
                          message: MessageCreate,
-                         background_tasks: BackgroundTasks,
                          workflow_service: WorkflowService = Depends(get_workflow_service),
                          db: AsyncConnection = Depends(get_db),
-                         broadcast_service: BroadcastService = Depends(get_broadcast_service),
-                         completion_service: CompletionService = Depends(get_completion_service)):
+                         broadcast_service: BroadcastService = Depends(get_broadcast_service)):
     """This route serves the session form component for htmx requests."""
 
     session = await workflow_service.get_session(message.session_id)
@@ -191,12 +199,10 @@ async def session_template_form(template_name: str,
 
     # @TODO: refactor this to not use engine directly
     await workflow_service.engine.initialize_session(session)
-    session_workflow_svg = await workflow_service.create_workflow_graph(session)
 
     return {
         "template": template,
         "template_name": template_name,
-        "session_workflow_svg": session_workflow_svg,
         "workflow_analysis": workflow_analysis,
     }
 
@@ -207,7 +213,6 @@ async def create_session_from_template_route(
         response: Response,
         template_name: str,
         session_create: SessionTemplateCreationRequest,
-        background_tasks: BackgroundTasks,
         workflow_service: WorkflowService = Depends(get_workflow_service),
         registry: Registry = Depends(get_registry),
 ):
@@ -241,15 +246,13 @@ async def create_session_from_template_route(
 
     await enqueue_session_run_workflow(session.id)
 
-    session_workflow_svg = await workflow_service.create_workflow_graph(session)
-
     # @TODO this might better be HX-Location
-    response.headers['HX-Push-Url'] = f"/session/{session.id}"
+    response.headers['HX-Location'] = f"/session/{session.id}"
+    response.headers['HX-Trigger'] = 'sse:session_updated'
 
     return {
         "session": session,
         "messages": session.messages,
-        "session_workflow_svg": session_workflow_svg,
     }
 
 async def enqueue_session_run_workflow(session_id: uuid.UUID) -> str:
