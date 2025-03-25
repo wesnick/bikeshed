@@ -1,35 +1,12 @@
-
 <ul class="steps has-content-above">
-  <li class="steps-segment">
-    <span class="steps-marker"></span>
-    <div class="steps-content is-divider-content">
-      <p class="is-size-4">Step 1</p>
-    </div>
-  </li>
-  <li class="steps-segment">
-    <span class="steps-marker"></span>
-    <div class="steps-content is-divider-content">
-      <p class="is-size-4">Step 2</p>
-    </div>
-  </li>
-  <li class="steps-segment is-active">
-    <span class="steps-marker"></span>
-    <div class="steps-content is-divider-content">
-      <p class="is-size-4">Step 3</p>
-    </div>
-  </li>
-  <li class="steps-segment">
-    <span class="steps-marker"></span>
-    <div class="steps-content is-divider-content">
-      <p class="is-size-4">Step 4</p>
-    </div>
-  </li>
-  <li class="steps-segment">
-    <span class="steps-marker"></span>
-    <div class="steps-content is-divider-content">
-      <p class="is-size-4">Step 5</p>
-    </div>
-  </li>
+  {% for step in session_template.steps %}
+    <li class="steps-segment {% if active_step == 'step_' ~ loop.index0 %}is-active{% endif %}">
+      <span class="steps-marker"></span>
+      <div class="steps-content is-divider-content">
+        <p class="is-size-4">{{ step.name }}</p>
+      </div>
+    </li>
+  {% endfor %}
   <li class="steps-segment">
     <span class="steps-marker"></span>
   </li>
