@@ -27,8 +27,11 @@ async def _prepare_data_for_db(model_instance: DBModelMixin) -> Dict[str, Any]:
     JSON serializer for complex types.
     """
     data = model_instance.model_dump_db()
-    prepared_data = {}
+    return await _do_prepare_data(data)
 
+
+async def _do_prepare_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    prepared_data = {}
     for k, v in data.items():
         if isinstance(v, list):
             # Check if list items are models or dicts, requiring Jsonb wrapping for the whole list
@@ -102,25 +105,8 @@ class BaseRepository(Generic[T]):
         Non-persisted fields in update_data will be ignored.
         """
         # Filter out non-persisted fields and None values from the input dict
-        valid_update_data = {}
-        for k, v in update_data.items():
-             if k not in self.model.__non_persisted_fields__ and v is not None:
-                 # Check if the field type annotation suggests JSON/dict/list or if it's a Pydantic model/dict
-                 field_info = self.model.model_fields.get(k)
-                 is_json_like = False
-                 # Check if the value itself requires Jsonb wrapping
-                 if isinstance(v, dict) or (isinstance(v, list) and v and (isinstance(v[0], BaseModel) or isinstance(v[0], dict))):
-                     valid_update_data[k] = Jsonb(v)
-                 else:
-                     valid_update_data[k] = v # Assume primitive or let psycopg handle it
-
-            # Check if 'id' was the only thing passed, which isn't an update
-            if 'id' in update_data and len(update_data) == 1:
-                 return await self.get_by_id(conn, id)
-            # Otherwise, maybe only non-persisted fields were passed, raise or log?
-            # For now, let's proceed, maybe only updated_at needs changing.
-            pass # Or return await self.get_by_id(conn, id) if no update is truly intended
-
+        valid_update_data = await _do_prepare_data(update_data)
+        
         # Always update the updated_at timestamp
         valid_update_data['updated_at'] = SQL("NOW()") # Use SQL function
 
