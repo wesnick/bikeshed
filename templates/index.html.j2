@@ -49,19 +49,28 @@
         </div>
       </nav>
       </header>
+      <!-- Left Sidebar -->
       <aside class="sidebar p-2 is-flex is-flex-direction-column">
         <div class="sidebar-navigation"
                class="overflow-y-auto"
                hx-get="/components/left-sidebar"
-               hx-trigger="load, sse:route.change from:body">
+               hx-trigger="load">
           {% include 'components/skeleton.html.j2' %}
         </div>
           <div class="sidebar-settings mt-auto"
                hx-get="/registry"
                hx-trigger="load, sse:registry.updated from:body"></div>
       </aside>
+      <!-- Main Dash -->
       <main class="dashboard pt-2 px-2 is-flex is-flex-direction-column is-overflow-y-scroll is-overflow-x-clip"></main>
-      <aside class="drawer p-2"><p>I am a drawer</p></aside>
+      <!-- Drawer -->
+      <aside class="drawer-container p-2">
+        <div class="drawer"
+               hx-get="/components/drawer"
+               hx-trigger="load, drawer.updated from:body">
+          {% include 'components/skeleton.html.j2' %}
+        </div>
+      </aside>
     </div>
   </body>
 </html>

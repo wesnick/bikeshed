@@ -6,6 +6,7 @@ import uuid
 from fastapi import FastAPI, Request, Depends
 from psycopg import AsyncConnection
 from starlette.staticfiles import StaticFiles
+from starlette.responses import Response
 from sse_starlette.sse import EventSourceResponse
 
 from src.core.registry import Registry
@@ -21,7 +22,7 @@ from src.repository import session_repository
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
-    
+
     # Store the broadcast service in app state
     from src.dependencies import broadcast_service, db_pool
     await db_pool.open()
@@ -29,12 +30,12 @@ async def lifespan(app: FastAPI):
 
     # Use the shutdown manager's event
     app.state.shutdown_event = shutdown_manager.shutdown_event
-    
+
     # Register broadcast service shutdown with the shutdown manager
     shutdown_manager.register_cleanup_hook(broadcast_service.shutdown)
 
     shutdown_manager.register_cleanup_hook(db_pool.close)
-    
+
     # Set up signal handlers using the shutdown manager
     shutdown_manager.install_signal_handlers()
 
@@ -69,9 +70,10 @@ app.include_router(api_router)
 
 @app.get("/")
 @jinja.page('index.html.j2')
-def index() -> dict:
+def index(response: Response) -> dict:
     """This route serves the index.html template with all components initialized."""
     # Return empty data to ensure all components are properly initialized
+    response.headers['HX-Trigger-After-Swap'] = 'drawer.updated'
     return {}
 
 @app.get("/settings")
@@ -88,7 +90,7 @@ async def left_sidebar_component(db: AsyncConnection = Depends(get_db), registry
     sessions = await session_repository.get_recent_sessions(db)
 
     session_templates = registry.session_templates
-    
+
     return {
         "flows": [],
         "sessions": sessions,
@@ -97,10 +99,16 @@ async def left_sidebar_component(db: AsyncConnection = Depends(get_db), registry
         "session_templates": session_templates,
     }
 
-@app.get("/components/right-drawer")
-@jinja.hx('components/right_drawer.html.j2', no_data=True)
-async def right_drawer_component() -> None:
+@app.get("/components/drawer")
+@jinja.hx('components/drawer.html.j2')
+async def right_drawer_component(request: Request):
     """This route serves the right drawer component for htmx requests."""
+
+    all_headers = [f'{key}: {value}' for key, value in request.headers.items()]
+
+    return {
+        'data': f"Current URL: {request.headers.get('hx-current-url')} \n\n"
+    }
 
 @app.get("/components/navbar-notifications")
 @jinja.hx('components/navbar-notifications.html.j2')
@@ -123,14 +131,14 @@ async def sse(request: Request, broadcast_service: BroadcastService = Depends(ge
     """SSE endpoint for all component updates"""
     client_id = str(uuid.uuid4())
     queue = broadcast_service.register_client(client_id)
-    
+
     async def event_generator():
         # Send initial connection message
         yield {
             "event": "connected",
             "data": "Connected to SSE stream"
         }
-        
+
         try:
             while True:
                 # Wait for the next event
@@ -138,10 +146,10 @@ async def sse(request: Request, broadcast_service: BroadcastService = Depends(ge
                 if event is None:  # None is our signal to stop
                     logger.info(f"Closing SSE connection for client {client_id}")
                     break
-                    
+
                 # Yield the event for SSE
                 yield event
-                
+
         except asyncio.CancelledError:
             logger.warning(f"SSE connection for client {client_id} was cancelled")
             raise  # Re-raise to ensure proper cleanup

@@ -123,7 +123,7 @@ class MessageStep(BaseStep):
         default=None,
         description="Arguments to pass to the template"
     )
-    
+
     @model_validator(mode='after')
     def validate_content_or_template(self) -> 'MessageStep':
         """Validate that either content or template is provided, but not both."""
@@ -166,7 +166,7 @@ class PromptStep(BaseStep):
         default={},
         description="Step-specific model configuration overrides"
     )
-    
+
     @model_validator(mode='after')
     def validate_content_or_template(self) -> 'PromptStep':
         """Validate that either content or template is provided, but not both."""
@@ -214,7 +214,7 @@ class UserInputStep(BaseStep):
         default=None,
         description="Step-specific model configuration"
     )
-    
+
     @model_validator(mode='after')
     def validate_template_args(self) -> 'UserInputStep':
         """Validate that template_args is only provided with template."""
@@ -243,7 +243,7 @@ class InvokeStep(BaseStep):
         default=None,
         description="Schema to validate function result"
     )
-    
+
     @model_validator(mode='after')
     def validate_callable(self) -> 'InvokeStep':
         """Validate that callable is provided and properly formatted."""
@@ -309,13 +309,13 @@ class SessionTemplate(BaseModel):
         default=None,
         description="Default error handling strategy"
     )
-    
+
     @model_validator(mode='after')
     def validate_steps(self) -> 'SessionTemplate':
         """Validate that steps are properly configured."""
         if not self.steps:
             raise ValueError("At least one step must be provided")
-        
+
         # Check for fallback steps that don't exist
         step_names = {step.name for step in self.steps}
         for step in self.steps:
@@ -325,14 +325,14 @@ class SessionTemplate(BaseModel):
                         f"Fallback step '{step.error_handling.fallback_step}' "
                         f"referenced in step '{step.name}' does not exist"
                     )
-        
+
         # Check session-level error handling
         if self.error_handling and self.error_handling.fallback_step:
             if self.error_handling.fallback_step not in step_names:
                 raise ValueError(
                     f"Session-level fallback step '{self.error_handling.fallback_step}' does not exist"
                 )
-                
+
         return self
 
 

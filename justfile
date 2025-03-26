@@ -60,7 +60,10 @@ html-lint:
 # Python lint and fix
 py-lint:
     uvx ruff check src/ --fix
-    
+
+kill-fapi:
+    ps uax |grep -v 'just'| grep python |grep spawn | awk '{print $2}' |xargs kill -5
+   
 commit:
     #!/usr/bin/env bash
     git diff --staged > /tmp/git_diff_tmp

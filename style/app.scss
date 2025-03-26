@@ -62,7 +62,7 @@
   border-left: 1px var(--bulma-primary-on-scheme) solid;
   border-right: 1px var(--bulma-primary-on-scheme) solid;
 }
-.drawer { grid-area: drawer; }
+.drawer-container { grid-area: drawer; }
 
 .dashboard-dock {
   position: sticky;

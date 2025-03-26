@@ -6,7 +6,7 @@ session_templates:
       tags: ['ideation', 'business']
       owner: wesnick
       version: 0.1
-    model: "ollama/gemma3"
+    model: "ollama_chat/qwq"
     steps:
       - name: System setup
         type: message

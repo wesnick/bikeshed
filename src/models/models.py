@@ -40,7 +40,7 @@ class Message(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     parent_id: Optional[uuid.UUID] = None
     session_id: uuid.UUID
-    
+
     role: str  # user, assistant, system
     model: Optional[str] = None
     text: str
@@ -48,7 +48,7 @@ class Message(BaseModel):
     mime_type: str = "text/plain"
     timestamp: datetime = Field(default_factory=datetime.now)
     extra: Optional[Dict[str, Any]] = None  # For LLM parameters, UI customization, etc.
-    
+
     # These will be populated when relationships are loaded
     children: List["Message"] = Field(default_factory=list)
     parent: Optional["Message"] = None
@@ -69,7 +69,7 @@ class Session(BaseModel):
     goal: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.now)
     template: Optional[SessionTemplate] = None
-    
+
     # Workflow state fields
     status: SessionStatus = SessionStatus.PENDING
     current_state: str = "start"  # Current state in the workflow
@@ -78,7 +78,7 @@ class Session(BaseModel):
 
     # Relationships
     messages: List[Message] = Field(default_factory=list)
-    
+
     # Instance variables - not persisted
     machine: Optional[AsyncGraphMachine] = Field(exclude=True, default=None)
 
@@ -94,34 +94,47 @@ class Session(BaseModel):
         if not self.messages:
             return None
         return sorted(self.messages, key=lambda m: m.timestamp)[0] if self.messages else None
-    
+
     def get_current_step(self) -> Optional[Step]:
         """Get the current step from the template based on workflow data"""
         if not self.template or not self.workflow_data:
             return None
-            
+
         current_index = self.workflow_data.current_step_index
         enabled_steps = [step for step in self.template.steps if step.enabled]
-        
+
         if current_index < len(enabled_steps):
             return enabled_steps[current_index]
         return None
-    
+
+    def get_next_step_name(self) -> Optional[str]:
+        """Get the next step from the template based on workflow data"""
+        if not self.template or not self.workflow_data:
+            return None
+
+        current_index = self.workflow_data.current_step_index
+        enabled_steps = [step for step in self.template.steps if step.enabled]
+
+        if current_index + 1 < len(enabled_steps):
+            return f"step_{current_index + 1}"
+        return None
+
+
     def is_complete(self) -> bool:
         """Check if the workflow is complete"""
         if not self.template or not self.workflow_data:
             return False
-            
+
         current_index = self.workflow_data.current_step_index
         enabled_steps = [step for step in self.template.steps if step.enabled]
-        
+
         return current_index >= len(enabled_steps)
-    
+
     def get_step_result(self, step_name: str) -> Optional[Dict[str, Any]]:
         """Get the result of a specific step"""
         if not self.workflow_data:
             return None
-            
+
         return self.workflow_data.step_results.get(step_name)
 
 class Root(BaseModel):
@@ -149,7 +162,7 @@ class RootFile(BaseModel):
 
     # Relationships
     root: Optional[Root] = None
-    
+
     @model_validator(mode='after')
     def validate_unique_path(self) -> 'RootFile':
         # This would be handled at the database level in a real implementation

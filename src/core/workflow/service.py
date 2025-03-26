@@ -27,7 +27,7 @@ class WorkflowService:
                  broadcast_service: BroadcastService):
         """
         Initialize the WorkflowService with required dependencies.
-        
+
         Args:
             get_db: async generator for getting database connection
             registry: Registry instance
@@ -84,11 +84,11 @@ class WorkflowService:
     async def run_workflow(self, session: Session) -> None:
         """Run the workflow until completion or waiting for input"""
         while True:
-            await self.broadcast_service.broadcast("session_update", str(session.id))
+            await self.broadcast_service.broadcast("session.update", str(session.id))
 
             exec_result = await self.engine.execute_next_step(session)
 
-            await self.broadcast_service.broadcast("session_update", str(session.id))
+            await self.broadcast_service.broadcast("session.update", str(session.id))
 
             if not exec_result.success or session.status == SessionStatus.WAITING_FOR_INPUT:
                 break
@@ -126,7 +126,7 @@ class WorkflowService:
 
             # Update variables
             session.workflow_data.variables.update(user_input)
-            
+
             # Clear missing variables flag
             session.workflow_data.variables.pop('missing_variables')
         else:
@@ -143,27 +143,27 @@ class WorkflowService:
     async def create_workflow_graph(self, session: Session) -> Optional[str]:
         """Create a visualization of the workflow"""
         return await WorkflowVisualizer.create_graph(session)
-        
+
     async def visualize_workflow(self, session: Session) -> Optional[str]:
         """
         Generate a visual representation of the workflow
-        
+
         Args:
             session: The session to visualize
-            
+
         Returns:
             SVG representation of the workflow graph
         """
         # Make sure the session has a state machine
         if not hasattr(session, 'machine') or session.machine is None:
             await self.engine.initialize_session(session)
-            
+
         return await WorkflowVisualizer.create_graph(session)
-        
+
     async def analyze_workflow_dependencies(self, template: SessionTemplate) -> Dict[str, Any]:
         """
         Analyze a workflow template to identify input requirements and output provisions.
-        
+
         Returns a dictionary with:
         - required_inputs: Dict of input variables needed by steps
         - provided_outputs: Dict of output variables provided by steps
@@ -172,30 +172,30 @@ class WorkflowService:
         required_inputs = {}
         provided_outputs = {}
         missing_inputs = {}
-        
+
         # Analyze each step for inputs and outputs
         for i, step in enumerate(template.steps):
             step_id = step.name
-            
+
             # Analyze step for required inputs
             step_inputs = self._extract_step_inputs(step)
             if step_inputs:
                 required_inputs[step_id] = step_inputs
-                
+
                 # Check if these inputs are satisfied by previous steps
                 unsatisfied_inputs = {}
                 for input_name, input_info in step_inputs.items():
                     if not any(input_name in outputs for outputs in list(provided_outputs.values())):
                         unsatisfied_inputs[input_name] = input_info
-                
+
                 if unsatisfied_inputs:
                     missing_inputs[step_id] = unsatisfied_inputs
-            
+
             # Analyze step for provided outputs
             step_outputs = self._extract_step_outputs(step)
             if step_outputs:
                 provided_outputs[step_id] = step_outputs
-        
+
         return {
             "required_inputs": required_inputs,
             "provided_outputs": provided_outputs,
@@ -205,7 +205,7 @@ class WorkflowService:
     def _extract_step_inputs(self, step: Step) -> Dict[str, Dict[str, Any]]:
         """Extract input requirements from a step"""
         inputs = {}
-        
+
         # Extract based on step type
         if step.type == "prompt":
             if step.template:
@@ -221,7 +221,7 @@ class WorkflowService:
                     if arg_name in inputs:
                         inputs[arg_name]["description"] = inputs[arg_name]["description"] + ' (superseded by `template_args`)'
                         inputs[arg_name]["required"] = False
-        
+
         elif step.type == "invoke":
             if step.args:
                 for arg_name in step.args:
@@ -229,11 +229,11 @@ class WorkflowService:
                         "description": f"Input for function argument: {arg_name}",
                         "required": True
                     }
-        
+
         elif step.type == "user_input":
             # User input steps themselves don't require inputs, they provide them
             pass
-        
+
         elif step.type == "message":
             if step.template_args:
                 for arg_name in step.template_args:
@@ -241,13 +241,13 @@ class WorkflowService:
                         "description": f"Input for message template argument: {arg_name}",
                         "required": True
                     }
-        
+
         return inputs
 
     def _extract_step_outputs(self, step: Step) -> Dict[str, Dict[str, Any]]:
         """Extract outputs provided by a step"""
         outputs = {}
-        
+
         # Extract based on step type
         if step.type == "prompt":
             outputs["result"] = {
@@ -266,5 +266,5 @@ class WorkflowService:
                 "description": f"User provided input from step: {step.name}",
                 "source_step": step.name
             }
-        
+
         return outputs

@@ -22,15 +22,15 @@ class BroadcastStrategy(Protocol):
 
 class MessageBroadcastStrategy:
     """Strategy for broadcasting Message model updates"""
-    
+
     async def should_broadcast(self, model: Message) -> bool:
         """Broadcast for all message statuses except CREATED"""
         return model.status != MessageStatus.CREATED
-    
+
     async def get_events(self, model: Message) -> List[tuple[str, Any]]:
         """Get events based on message status"""
         events = []
-        
+
         # Basic message update event
         events.append(("message_update", {
             "id": str(model.id),
@@ -40,7 +40,7 @@ class MessageBroadcastStrategy:
             "text": model.text,
             "timestamp": model.timestamp.isoformat(),
         }))
-        
+
         # Additional events based on status
         if model.status == MessageStatus.DELIVERED and model.role == "assistant":
             events.append(("completion_finished", {
@@ -53,21 +53,21 @@ class MessageBroadcastStrategy:
                 "session_id": str(model.session_id),
                 "error": model.extra.get("error", "Unknown error") if model.extra else "Unknown error"
             }))
-            
+
         return events
 
 
 class SessionBroadcastStrategy:
     """Strategy for broadcasting Session model updates"""
-    
+
     async def should_broadcast(self, model: Session) -> bool:
         """Always broadcast session updates"""
         return True
-    
+
     async def get_events(self, model: Session) -> List[tuple[str, Any]]:
         """Get events based on session status"""
         events = []
-        
+
         # Basic session update event
         session_data = {
             "id": str(model.id),
@@ -76,9 +76,9 @@ class SessionBroadcastStrategy:
             "description": model.description,
             "created_at": model.created_at.isoformat(),
         }
-        
-        events.append(("session_update", session_data))
-        
+
+        events.append(("session.update", session_data))
+
         # Additional events based on status
         if model.status == SessionStatus.WAITING_FOR_INPUT:
             events.append(("user_input_required", {
@@ -94,6 +94,6 @@ class SessionBroadcastStrategy:
                 "session_id": str(model.id),
                 "error": model.error or "Unknown error"
             }))
-            
+
         return events
 

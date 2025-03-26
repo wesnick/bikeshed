@@ -54,8 +54,12 @@ async def create_session(summary: Optional[str] = None, goal: Optional[str] = No
 
 @router.get("/{session_id}")
 @jinja.hx('components/session/session.html.j2')
-async def get_session(session_id: UUID):
+async def get_session(response: Response,
+                      session_id: UUID):
     """Container for session mini-dash"""
+
+    response.headers['HX-Trigger-After-Swap'] = "drawer.updated"
+
     return {
         "session_id": session_id,
     }
@@ -71,6 +75,7 @@ async def get_session(session_id: UUID,
 
     return {
         "session": session,
+        "active_step": session.get_next_step_name(),
     }
 
 @router.get("/{session_id}/messages")
@@ -248,7 +253,7 @@ async def create_session_from_template_route(
 
     # @TODO this might better be HX-Location
     response.headers['HX-Replace-Url'] = f"/session/{session.id}"
-    response.headers['HX-Trigger'] = 'sse:session_updated'
+    response.headers['HX-Trigger'] = 'sse:session.updated'
 
     return {
         "session_id": session.id,

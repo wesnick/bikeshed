@@ -54,11 +54,11 @@ async def session_run_workflow_job(ctx: Dict[str, Any], session_id: uuid.UUID) -
 async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dict[str, Any]:
     """
     ARQ worker function to process a message asynchronously.
-    
+
     Args:
         ctx: ARQ context
         session_id: UUID of the session to process
-    
+
     Returns:
         Dict with job result information
     """
@@ -66,11 +66,11 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
     # Get the session from the database
     from src.repository.session import SessionRepository
     session_repo = SessionRepository()
-    
+
     async with ctx['db_pool'].connection() as db:
         # Fetch the session from the database
         session = await session_repo.get_with_messages(db, session_id)
-        
+
         if not session:
             return {"success": False, "error": f"Session {session_id} not found"}
 
@@ -91,25 +91,25 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
             await message_repository.upsert(db, result_message, ['id'])
 
         # Notify all clients to update the session component
-        await broadcast_service.broadcast("session_update", str(session.id))
-        
+        await broadcast_service.broadcast("session.update", str(session.id))
+
         return {
-            "success": True, 
+            "success": True,
             "message_id": str(result_message.id),
             "session_id": str(session_id)
         }
-    
+
     except Exception as e:
         # Log the error and return failure
         from src.service.logging import logger
         logger.error(f"Error processing message for session {session_id}: {str(e)}")
-        
+
         # Notify clients about the error
         await broadcast_service.broadcast("session_error", {
             "session_id": str(session_id),
             "error": str(e)
         })
-        
+
         return {"success": False, "error": str(e), "session_id": str(session_id)}
 
 class WorkerSettings:
@@ -122,18 +122,18 @@ class WorkerSettings:
     job_timeout = 300  # 5 minutes
     max_jobs = 10
     poll_delay = 0.5  # seconds
-    
+
     # Lifecycle hooks
     @staticmethod
     async def on_startup(ctx):
         """Open database pool on worker startup"""
         await db_pool.open()
         ctx['db_pool'] = db_pool
-        
+
         # Initialize broadcast service for the worker
         broadcast_service = await anext(get_remote_broadcast_service())
         ctx['broadcast_service'] = broadcast_service
-    
+
     @staticmethod
     async def on_shutdown(ctx):
         """Close database pool and broadcast service on worker shutdown"""
