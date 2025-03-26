@@ -71,18 +71,16 @@ class BaseRepository(Generic[T]):
             await cur.execute(query, (limit, offset))
             return await cur.fetchall()
 
-    async def create(self, conn: AsyncConnection, model: BaseModel) -> T:
+    async def create(self, conn: AsyncConnection, model_instance: T) -> T:
         """Create a new entity"""
-        # Filter out None values to allow default values to be used
-        data = model.model_dump()
-        filtered_data = await filter_data(data, model.__non_persisted_fields__)
+        prepared_data = await _prepare_data_for_db(model_instance)
 
-        if not filtered_data:
+        if not prepared_data:
             raise ValueError("No data provided for creation")
 
-        columns = SQL(", ").join([Identifier(k) for k in filtered_data.keys()])
-        placeholders = SQL(", ").join([SQL("%s") for _ in filtered_data])
-        values = tuple(filtered_data.values())
+        columns = SQL(", ").join([Identifier(k) for k in prepared_data.keys()])
+        placeholders = SQL(", ").join([SQL("%s") for _ in prepared_data])
+        values = tuple(prepared_data.values())
 
         query = SQL("INSERT INTO {} ({}) VALUES ({}) RETURNING *").format(
             Identifier(self.table_name),
