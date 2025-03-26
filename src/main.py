@@ -18,6 +18,7 @@ from src.service.shutdown_helper import shutdown_manager
 from src.http.middleware import HTMXRedirectMiddleware
 from src.dependencies import get_db, get_jinja, get_registry, get_broadcast_service
 from src.routes import api_router
+from src.routes.tag import router as tag_router # Import the tag router
 from src.repository import session_repository
 
 
@@ -68,6 +69,7 @@ jinja = get_jinja()
 
 # Include API routes
 app.include_router(api_router)
+app.include_router(tag_router) # Include the tag router
 
 
 @app.get("/")

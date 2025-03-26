@@ -18,6 +18,7 @@ from src.config import get_config
 from src.core.registry import Registry
 from src.core.registry_loader import RegistryBuilder
 from src.core.workflow.service import WorkflowService
+from src.repository.tag import TagRepository
 
 settings = get_config()
 
@@ -164,5 +165,13 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
             )
     
     yield _workflow_service
+
+
+# Create the singleton TagRepository instance
+from src.repository import tag_repository as _tag_repository_instance
+
+async def get_tag_repository() -> AsyncGenerator[TagRepository, None]:
+    """Dependency for getting the singleton TagRepository instance"""
+    yield _tag_repository_instance
 
 

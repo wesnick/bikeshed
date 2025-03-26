@@ -1,0 +1,36 @@
+{# Represents a single tag item in the tree #}
+<li>
+  <div class="tag-item is-flex is-align-items-center" id="tag-{{ tag.path | replace('.', '-') }}">
+    {# Expand/Collapse Icon - Show only if it might have children (heuristic or DB check needed) #}
+    {# For simplicity, always show toggle initially, load children on click #}
+    <span class="icon is-small tag-toggle mr-1"
+          style="cursor: pointer;"
+          hx-get="/tags/tree?parent_path={{ tag.path }}"
+          hx-target="#children-{{ tag.path | replace('.', '-') }}"
+          hx-swap="outerHTML"
+          data-path="{{ tag.path }}">
+      <i class="fas fa-chevron-right"></i> {# Changes to fa-chevron-down via JS/CSS potentially #}
+    </span>
+
+    {# Tag Name - Click to view/edit details #}
+    <a hx-get="/tags/{{ tag.id }}/edit" {# Assuming edit route exists later #}
+       hx-target="#tag-details"
+       title="{{ tag.description or 'No description' }}">
+      {{ tag.name }} ({{ tag.id }})
+    </a>
+
+    {# Action to add a child tag #}
+    <button class="button is-small is-ghost ml-2"
+            hx-get="/tags/create?parent_path={{ tag.path }}"
+            hx-target="#tag-details"
+            hx-swap="innerHTML"
+            title="Add sub-tag">
+        <span class="icon is-small"><i class="fas fa-plus"></i></span>
+    </button>
+
+  </div>
+  {# Container for children, initially empty or loaded via hx-get #}
+  <div id="children-{{ tag.path | replace('.', '-') }}" class="ml-4">
+      {# Children will be loaded here by the toggle span #}
+  </div>
+</li>

@@ -1,0 +1,23 @@
+{# Renders a list of tags, used recursively or for top level #}
+{% if parent_path %}
+  {# Target for children loading - ID based on parent path #}
+  <div id="children-{{ parent_path | replace('.', '-') }}">
+{% endif %}
+
+{% if tags %}
+  <ul class="menu-list tag-level-{{ tags[0].path.count('.') + 1 if tags else 0 }}">
+    {% for tag in tags %}
+      {% include 'components/tags/tag_item.html.j2' %}
+    {% endfor %}
+  </ul>
+{% elif parent_path %}
+  {# No children found for this parent #}
+  <p class="ml-4 is-size-7 has-text-grey">No sub-tags.</p>
+{% else %}
+  {# No top-level tags found #}
+  <p>No tags created yet.</p>
+{% endif %}
+
+{% if parent_path %}
+  </div>
+{% endif %}
