@@ -23,7 +23,8 @@ def _pydantic_serializer(obj):
 async def _prepare_data_for_db(model_instance: DBModelMixin) -> Dict[str, Any]:
     """
     Prepare model data for database insertion/update.
-    Excludes non-persisted fields and None values, and wraps JSON-like fields.
+    Excludes non-persisted fields and None values. Relies on global psycopg
+    JSON serializer for complex types.
     """
     data = model_instance.model_dump_db() # Use the mixin's method
     prepared_data = {}
@@ -38,11 +39,13 @@ async def _prepare_data_for_db(model_instance: DBModelMixin) -> Dict[str, Any]:
                 if origin in (dict, list) or isinstance(field_info.annotation, type) and issubclass(field_info.annotation, BaseModel):
                      is_json_like = True
 
-            if isinstance(v, (BaseModel, dict, list)) or is_json_like:
-                 # Pass the custom serializer to Jsonb
-                prepared_data[k] = Jsonb(v, dumps=_pydantic_serializer)
-            else:
-                prepared_data[k] = v
+            # Pass the raw Python object; psycopg will use the registered dumper
+            prepared_data[k] = v
+            # if isinstance(v, (BaseModel, dict, list)) or is_json_like:
+            #      # Pass the custom serializer to Jsonb -- REMOVED
+            #     prepared_data[k] = Jsonb(v, dumps=_pydantic_serializer)
+            # else:
+            #     prepared_data[k] = v
     return prepared_data
 
 
@@ -112,10 +115,12 @@ class BaseRepository(Generic[T]):
                      if origin in (dict, list) or isinstance(field_info.annotation, type) and issubclass(field_info.annotation, BaseModel):
                           is_json_like = True
 
-                 if isinstance(v, (BaseModel, dict, list)) or is_json_like:
-                     valid_update_data[k] = Jsonb(v, dumps=_pydantic_serializer)
-                 else:
-                     valid_update_data[k] = v
+                 # Pass the raw Python object; psycopg will use the registered dumper
+                 valid_update_data[k] = v
+                 # if isinstance(v, (BaseModel, dict, list)) or is_json_like:
+                 #     valid_update_data[k] = Jsonb(v, dumps=_pydantic_serializer) # REMOVED
+                 # else:
+                 #     valid_update_data[k] = v
 
         if not valid_update_data:
             # If no valid fields to update, just fetch and return the current entity
@@ -228,11 +233,13 @@ class BaseRepository(Generic[T]):
                         origin = getattr(field_info.annotation, '__origin__', None)
                         if origin in (dict, list) or isinstance(field_info.annotation, type) and issubclass(field_info.annotation, BaseModel):
                              is_json_like = True
-                    if isinstance(value, (BaseModel, dict, list)) or is_json_like:
-                         # Use the serializer for comparison consistency
-                         conflict_values_for_query.append(Jsonb(value, dumps=_pydantic_serializer))
-                    else:
-                         conflict_values_for_query.append(value)
+                    # Pass the raw Python object; psycopg should handle comparison correctly
+                    conflict_values_for_query.append(value)
+                    # if isinstance(value, (BaseModel, dict, list)) or is_json_like:
+                    #      # Use the serializer for comparison consistency -- REMOVED
+                    #      conflict_values_for_query.append(Jsonb(value, dumps=_pydantic_serializer))
+                    # else:
+                    #      conflict_values_for_query.append(value)
 
 
                 fetch_query = SQL("SELECT * FROM {} WHERE {}").format(

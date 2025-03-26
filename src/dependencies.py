@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
 from psycopg_pool import AsyncConnectionPool
 from psycopg import AsyncConnection
-# from psycopg.types.json import set_json_dumps # Removed
+from psycopg.types.json import set_json_dumps # Re-add
 from pydantic import BaseModel
 
 from src.service.cache import RedisService
@@ -29,7 +29,19 @@ db_pool = AsyncConnectionPool(
     open=False
 )
 
-# Removed pydantic_json_dumps function and set_json_dumps call
+# Re-add pydantic_json_dumps function and set_json_dumps call
+def pydantic_json_dumps(obj):
+    """Custom JSON serializer for Pydantic models and other types."""
+    if isinstance(obj, BaseModel):
+        # Use Pydantic's recommended way to serialize, handling complex types
+        return obj.model_dump_json()
+    # Let psycopg handle standard types or raise an error for unsupported ones
+    # We might need to add handlers for datetime etc. if psycopg doesn't cover them by default
+    # For now, rely on Pydantic's serialization within model_dump_json
+    return json.dumps(obj) # Fallback, might need refinement
+
+set_json_dumps(pydantic_json_dumps)
+
 
 async def get_db() -> AsyncGenerator[AsyncConnection, None]:
     """Dependency for getting async database connection"""
