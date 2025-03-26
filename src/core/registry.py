@@ -15,6 +15,8 @@ from src.service.logging import logger
 class TemplatePrompt(Prompt):
     """A prompt that can be rendered with arguments."""
     template: str = Field(description="Path to template, prefixed with alias")
+    template_content: str = Field(default="", description="Raw template content")
+    template_path: str = Field(default="", description="Full filesystem path to template")
 
 
 class Schema(BaseModel):

@@ -1,11 +1,10 @@
 import uuid
-from idlelib.window import registry
 from typing import Dict, Any
 
 from mcp.server.fastmcp.prompts.base import Message as MCPMessage
 
 from src.core.config_types import PromptStep, Step
-from src.core.registry import Registry
+from src.core.registry import Registry, TemplatePrompt
 from src.models import Message
 from src.models.models import Session, SessionStatus, MessageStatus
 from src.core.workflow.engine import StepHandler
@@ -146,7 +145,15 @@ class PromptStepHandler(StepHandler):
 
             # Get prompt from registry
             prompt = self.registry.get_prompt(step.template)
-
+            
+            if not prompt:
+                raise ValueError(f"Prompt template '{step.template}' not found")
+                
+            if isinstance(prompt, TemplatePrompt):
+                # Add template_content to args
+                args['template_raw'] = prompt.template_content
+                args['template_path'] = prompt.template_path
+            
             return await prompt.render(args)
 
         return ""

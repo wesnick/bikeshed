@@ -217,19 +217,16 @@ class TemplateLoader:
 
 
                 def render_fn(**kwargs):
-                    # extract template_content from kwargs
-                    if 'template_raw' in kwargs:
-                        template_raw = kwargs['template_raw']
-                    else:
-                        logger.error('You must provide a valid template path to the Template Loader')
-                        return ''
-
+                    # Use the stored template content directly
+                    template_raw = template_content
                     return self.jinja_env.from_string(template_raw).render(**kwargs)
 
                 # Create a prompt object
                 prompt = TemplatePrompt(
                     name=qualified_name,
                     template=qualified_name,
+                    template_content=template_content,
+                    template_path=template_path,
                     description=f"Template from {qualified_name}",
                     arguments=arguments,
                     fn=render_fn
