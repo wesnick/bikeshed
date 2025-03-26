@@ -1,29 +1,47 @@
-<div class="dropdown">
+<div class="dropdown" id="notifications-dropdown" hx-get="/components/navbar-notifications" hx-trigger="refresh from:body">
   <div class="dropdown-trigger">
     <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
-      <span>Processes <span class="tag is-rounded is-primary">{{ total_running }}</span></span>
+      <span>Sessions 
+        {% if total_running > 0 %}
+          <span class="tag is-rounded is-primary">{{ total_running }}</span>
+        {% endif %}
+        {% if total_waiting > 0 %}
+          <span class="tag is-rounded is-warning">{{ total_waiting }}</span>
+        {% endif %}
+      </span>
       <span class="icon ml-2"><i class="fas fa-bell"></i></span>
     </button>
   </div>
   <div class="dropdown-menu" id="dropdown-menu" role="menu">
     <div class="dropdown-content">
       {% if total_running == 0 and total_waiting == 0 %}
-        No notifications!
+        <div class="dropdown-item">No active sessions</div>
       {% else %}
         {% if total_running > 0 %}
-          {# Running #}
-          <a href="#" class="dropdown-item">Dropdown item</a>
-          <a class="dropdown-item">Other dropdown item</a>
-          <a href="#" class="dropdown-item is-active">Active dropdown item</a>
-          <a href="#" class="dropdown-item">Other dropdown item</a>
+          <div class="dropdown-item">
+            <p class="has-text-weight-bold">Running</p>
+          </div>
+          {% for session in running_sessions %}
+            <a href="/session/{{ session.id }}" class="dropdown-item">
+              {{ session.description or "Session " + session.id|string }}
+              <span class="tag is-primary is-light">{{ session.status }}</span>
+            </a>
+          {% endfor %}
         {% endif %}
+        
         {% if total_waiting > 0 %}
-          <hr class="dropdown-divider" />
-          {# Waiting #}
-          <a href="#" class="dropdown-item">Dropdown item</a>
-          <a class="dropdown-item">Other dropdown item</a>
-          <a href="#" class="dropdown-item is-active">Active dropdown item</a>
-          <a href="#" class="dropdown-item">Other dropdown item</a>
+          {% if total_running > 0 %}
+            <hr class="dropdown-divider" />
+          {% endif %}
+          <div class="dropdown-item">
+            <p class="has-text-weight-bold">Waiting for Input</p>
+          </div>
+          {% for session in waiting_sessions %}
+            <a href="/session/{{ session.id }}" class="dropdown-item">
+              {{ session.description or "Session " + session.id|string }}
+              <span class="tag is-warning is-light">{{ session.status }}</span>
+            </a>
+          {% endfor %}
         {% endif %}
       {% endif %}
     </div>

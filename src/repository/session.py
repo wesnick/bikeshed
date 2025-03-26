@@ -23,6 +23,18 @@ class SessionRepository(BaseRepository[Session]):
         async with conn.cursor(row_factory=class_row(Session)) as cur:
             await cur.execute(query, (limit,))
             return await cur.fetchall()
+            
+    async def get_active_sessions(self, conn: AsyncConnection) -> List[Session]:
+        """Get all active sessions (running or waiting for input)"""
+        query = SQL("""
+            SELECT * FROM {} 
+            WHERE status IN ('running', 'waiting_for_input')
+            ORDER BY created_at DESC
+        """).format(Identifier(self.table_name))
+        
+        async with conn.cursor(row_factory=class_row(Session)) as cur:
+            await cur.execute(query)
+            return await cur.fetchall()
 
     async def get_with_messages(self, conn: AsyncConnection, session_id: UUID) -> Optional[Session]:
         """Get a session with all its messages"""

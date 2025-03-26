@@ -9,6 +9,8 @@ from starlette.staticfiles import StaticFiles
 from starlette.responses import Response
 from sse_starlette.sse import EventSourceResponse
 
+from src.models.models import SessionStatus
+
 from src.core.registry import Registry
 from src.service.broadcast import BroadcastService
 from src.service.logging import logger, setup_logging
@@ -112,11 +114,21 @@ async def right_drawer_component(request: Request):
 
 @app.get("/components/navbar-notifications")
 @jinja.hx('components/navbar-notifications.html.j2')
-async def navbar_component():
+async def navbar_component(db: AsyncConnection = Depends(get_db)):
     """This route serves the navbar component for htmx requests."""
+    from src.repository.session import SessionRepository
+    
+    session_repo = SessionRepository()
+    active_sessions = await session_repo.get_active_sessions(db)
+    
+    running_sessions = [s for s in active_sessions if s.status == SessionStatus.RUNNING]
+    waiting_sessions = [s for s in active_sessions if s.status == SessionStatus.WAITING_FOR_INPUT]
+    
     return {
-        'total_running': 0,
-        'total_waiting': 0
+        'total_running': len(running_sessions),
+        'total_waiting': len(waiting_sessions),
+        'running_sessions': running_sessions,
+        'waiting_sessions': waiting_sessions
     }
 
 

@@ -84,11 +84,17 @@ class WorkflowService:
     async def run_workflow(self, session: Session) -> None:
         """Run the workflow until completion or waiting for input"""
         while True:
+            # Broadcast session update
             await self.broadcast_service.broadcast("session.update", str(session.id))
+            # Broadcast notification update
+            await self.broadcast_service.broadcast("notifications.update", "refresh")
 
             exec_result = await self.engine.execute_next_step(session)
 
+            # Broadcast session update
             await self.broadcast_service.broadcast("session.update", str(session.id))
+            # Broadcast notification update
+            await self.broadcast_service.broadcast("notifications.update", "refresh")
 
             if not exec_result.success or session.status == SessionStatus.WAITING_FOR_INPUT:
                 break
