@@ -79,7 +79,7 @@ create table tags (
     description text,            -- optional description
     created_at timestamp    not null default current_timestamp,
     updated_at timestamp    not null default current_timestamp,
-    constraint valid_path_format check (path ~ '^([a-z0-9_]+\.)*[a-z0-9_]+$')  -- ensure path follows ltree format
+    constraint valid_path_format check (path::text ~ '^([a-z0-9_]+\.)*[a-z0-9_]+$')  -- ensure path follows ltree format
 );
 
 create index tags_path_idx on tags using gist (path);
