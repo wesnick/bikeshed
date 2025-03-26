@@ -114,16 +114,35 @@ class BaseRepository(Generic[T]):
                  else:
                      valid_update_data[k] = v # Assume primitive or let psycopg handle it
 
-        if not valid_update_data:
-            # If only non-updatable fields were passed, just fetch and return the current entity
-            return await self.get_by_id(conn, id)
+            # Check if 'id' was the only thing passed, which isn't an update
+            if 'id' in update_data and len(update_data) == 1:
+                 return await self.get_by_id(conn, id)
+            # Otherwise, maybe only non-persisted fields were passed, raise or log?
+            # For now, let's proceed, maybe only updated_at needs changing.
+            pass # Or return await self.get_by_id(conn, id) if no update is truly intended
 
-        set_clause = SQL(", ").join([SQL("{} = %s").format(Identifier(k)) for k in valid_update_data.keys()])
-        values = tuple(valid_update_data.values()) + (id,)
+        # Always update the updated_at timestamp
+        valid_update_data['updated_at'] = SQL("NOW()") # Use SQL function
+
+        # Adjust values tuple creation for SQL("NOW()") and build SET clause
+        values_list = []
+        final_set_parts = []
+        for k, v in valid_update_data.items():
+            if isinstance(v, SQL):
+                 # If the value is already SQL (like NOW()), embed it directly
+                 final_set_parts.append(SQL("{} = {}").format(Identifier(k), v))
+            else:
+                 # Otherwise, use a placeholder and add the value to the list
+                 final_set_parts.append(SQL("{} = %s").format(Identifier(k)))
+                 values_list.append(v)
+
+        final_set_clause = SQL(", ").join(final_set_parts)
+        values = tuple(values_list) + (id,) # Add the ID for the WHERE clause
+
 
         query = SQL("UPDATE {} SET {} WHERE id = %s RETURNING *").format(
             Identifier(self.table_name),
-            set_clause
+            final_set_clause
         )
 
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
