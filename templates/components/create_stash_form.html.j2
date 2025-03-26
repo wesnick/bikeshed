@@ -1,0 +1,55 @@
+<div class="box mt-3">
+  <h4 class="title is-5">Create New Stash</h4>
+  <form hx-post="/api/stashes" hx-ext="form-json" hx-swap="none" hx-on::after-request="processStashCreation(event)">
+    <input type="hidden" name="entity_id" value="{{ entity_id }}">
+    <input type="hidden" name="entity_type" value="{{ entity_type }}">
+    
+    <div class="field">
+      <label class="label">Name</label>
+      <div class="control">
+        <input class="input" type="text" name="name" required>
+      </div>
+    </div>
+    
+    <div class="field">
+      <label class="label">Description</label>
+      <div class="control">
+        <textarea class="textarea" name="description"></textarea>
+      </div>
+    </div>
+    
+    <div class="field is-grouped">
+      <div class="control">
+        <button type="submit" class="button is-primary">Create</button>
+      </div>
+      <div class="control">
+        <button type="button" class="button" onclick="closeStashForm()">Cancel</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+  function closeStashForm() {
+    document.getElementById('stash-form-container').innerHTML = '';
+  }
+  
+  function processStashCreation(event) {
+    const response = JSON.parse(event.detail.xhr.responseText);
+    if (response && response.id) {
+      // Add the new stash to the entity
+      htmx.ajax('POST', '/api/stashes/entity', {
+        target: '#entity-stashes-container',
+        swap: 'innerHTML',
+        values: {
+          entity_id: '{{ entity_id }}',
+          entity_type: '{{ entity_type }}',
+          stash_id: response.id
+        }
+      });
+      
+      // Close the form
+      closeStashForm();
+    }
+  }
+</script>

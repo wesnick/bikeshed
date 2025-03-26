@@ -1,0 +1,15 @@
+{% if tags %}
+<div class="tags">
+  {% for tag in tags %}
+  <span class="tag is-primary">
+    {{ tag.name }}
+    <button class="delete is-small"
+      hx-delete="/api/tags/entity"
+      hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "tag_id": "{{ tag.id }}"}'
+      hx-target="#entity-tags-container"></button>
+  </span>
+  {% endfor %}
+</div>
+{% else %}
+<p class="help">No tags assigned</p>
+{% endif %}
