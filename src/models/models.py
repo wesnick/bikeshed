@@ -1,9 +1,10 @@
+import json
 import uuid
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, TypeVar, ClassVar, Set
 from enum import Enum
 
-from pydantic import BaseModel, Field, model_validator, ConfigDict
+from pydantic import BaseModel, Field, model_validator, ConfigDict, RootModel
 from transitions.extensions import AsyncGraphMachine
 
 from src.core.config_types import SessionTemplate, Step
@@ -34,8 +35,30 @@ class WorkflowData(BaseModel):
     user_input: Optional[str] = None
 
 
-class Message(BaseModel):
-    __non_persisted_fields__ = ['children', 'parent']
+# Define a TypeVar for the mixin
+T = TypeVar('T', bound='DBModelMixin')
+
+class DBModelMixin:
+    """
+    Mixin for Pydantic models that correspond to database tables.
+    Provides metadata about field persistence and relationships.
+    """
+    # Class variables to store metadata
+    __db_table__: ClassVar[str] = ""
+    __non_persisted_fields__: ClassVar[Set[str]] = set()
+    __unique_fields__: ClassVar[Set[str]] = {'id'} # Default unique field is 'id'
+
+    def model_dump_db(self, **kwargs) -> Dict[str, Any]:
+        """Dump model data excluding non-persisted fields."""
+        exclude = kwargs.pop('exclude', set())
+        exclude.update(self.__non_persisted_fields__)
+        return self.model_dump(exclude=exclude, **kwargs)
+
+
+class Message(BaseModel, DBModelMixin):
+    __db_table__ = "message"
+    __non_persisted_fields__ = {'children', 'parent'}
+    __unique_fields__ = {'id'}
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     parent_id: Optional[uuid.UUID] = None
@@ -61,8 +84,10 @@ class Message(BaseModel):
         return self
 
 
-class Session(BaseModel):
-    __non_persisted_fields__ = ['machine', 'messages']
+class Session(BaseModel, DBModelMixin):
+    __db_table__ = "session"
+    __non_persisted_fields__ = {'machine', 'messages'}
+    __unique_fields__ = {'id'}
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     description: Optional[str] = None
@@ -137,7 +162,11 @@ class Session(BaseModel):
 
         return self.workflow_data.step_results.get(step_name)
 
-class Root(BaseModel):
+class Root(BaseModel, DBModelMixin):
+    __db_table__ = "root"
+    __non_persisted_fields__ = {'files'}
+    __unique_fields__ = {'uri'} # Assuming URI should be unique
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     uri: str  # The root URI
     created_at: datetime = Field(default_factory=datetime.now)
@@ -147,7 +176,11 @@ class Root(BaseModel):
     # Relationships
     files: List["RootFile"] = Field(default_factory=list)
 
-class RootFile(BaseModel):
+class RootFile(BaseModel, DBModelMixin):
+    __db_table__ = "rootfile"
+    __non_persisted_fields__ = {'root'}
+    __unique_fields__ = {'root_id', 'path'} # Unique within a root
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     root_id: uuid.UUID
     name: str  # Filename
@@ -175,7 +208,10 @@ class Blob(BaseModel):
     A media object similar to schema.org MediaObject.
     Represents a file with metadata, with the actual bytes stored on disk.
     """
-    __non_persisted_fields__ = []
+    __db_table__ = "blob"
+    __non_persisted_fields__: ClassVar[Set[str]] = set() # No non-persisted fields currently
+    __unique_fields__ = {'id'} # Or perhaps sha256 if available and enforced?
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     name: str  # Name of the media object
     description: Optional[str] = None  # Description of the media object

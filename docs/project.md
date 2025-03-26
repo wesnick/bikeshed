@@ -43,10 +43,11 @@ The application uses Server-Sent Events (SSE) to provide real-time updates to th
 ## Backend
 
 - Prefer a modular structure.  The goal is for core functionality to be available via the CLI as well as the UI.
-- Create a pydantic class for request object when we have static input.  Dynamic forms should just use json.
+- Create a pydantic class for request object when we have static input. Dynamic forms should just use json.
 
 ### Python
 
+- **Database Models**: Pydantic models corresponding to database tables should inherit from `src.models.models.DBModelMixin`. This mixin provides class variables (`__db_table__`, `__non_persisted_fields__`, `__unique_fields__`) for database metadata used by the `BaseRepository`. Custom JSON serialization for Pydantic models within database operations is handled within the `BaseRepository`.
 - When creating requests and responses, use HTMX
 - When a request has the potential to last for longer than a second, return a queue id as the response response and update the UI with the SSE connection
 - When creating command line tools, create a click command in `src/cli.py` and add a shortcut in the `justfile`

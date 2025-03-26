@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
 from psycopg_pool import AsyncConnectionPool
 from psycopg import AsyncConnection
-from psycopg.types.json import set_json_dumps
+# from psycopg.types.json import set_json_dumps # Removed
 from pydantic import BaseModel
 
 from src.service.cache import RedisService
@@ -29,13 +29,7 @@ db_pool = AsyncConnectionPool(
     open=False
 )
 
-def pydantic_json_dumps(obj):
-    if isinstance(obj, BaseModel):
-        return obj.model_dump_json()
-    else:
-        return json.dumps(obj)
-
-set_json_dumps(pydantic_json_dumps)
+# Removed pydantic_json_dumps function and set_json_dumps call
 
 async def get_db() -> AsyncGenerator[AsyncConnection, None]:
     """Dependency for getting async database connection"""
