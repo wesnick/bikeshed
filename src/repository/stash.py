@@ -44,10 +44,9 @@ class StashRepository(BaseRepository[Stash]):
         
         # Add the new item to the items list
         stash.items.append(item)
-        
-        # Update the stash in the database
-        return await self.update(conn, stash_id, {"items": stash.items, "updated_at": stash.updated_at})
-    
+        # Update the stash in the database - BaseRepository.update handles updated_at
+        return await self.update(conn, stash_id, {"items": stash.items})
+
     async def remove_item(self, conn: AsyncConnection, stash_id: UUID, item_index: int) -> Stash:
         """Remove an item from a stash by its index"""
         # First get the stash
@@ -61,6 +60,6 @@ class StashRepository(BaseRepository[Stash]):
         
         # Remove the item
         stash.items.pop(item_index)
-        
-        # Update the stash in the database
-        return await self.update(conn, stash_id, {"items": stash.items, "updated_at": stash.updated_at})
+
+        # Update the stash in the database - BaseRepository.update handles updated_at
+        return await self.update(conn, stash_id, {"items": stash.items})
