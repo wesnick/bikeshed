@@ -228,3 +228,29 @@ class Blob(BaseModel, DBModelMixin):
         if '/' not in self.content_type:
             raise ValueError("content_type must be a valid MIME type (e.g., 'image/jpeg')")
         return self
+
+
+class Tag(BaseModel, DBModelMixin):
+    """
+    A tag entity that can be hierarchically organized using ltree paths.
+    Used for categorizing and organizing content.
+    """
+    __db_table__ = "tags"
+    __non_persisted_fields__: ClassVar[Set[str]] = set()  # No non-persisted fields currently
+    __unique_fields__ = {'id'}  # ID is the primary key
+
+    id: str  # Human-readable string ID
+    path: str  # Hierarchical path using ltree format
+    name: str  # Display name of the tag
+    description: Optional[str] = None  # Optional description
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+    @model_validator(mode='after')
+    def validate_path_format(self) -> 'Tag':
+        """Validate that the path follows the ltree format"""
+        import re
+        # Basic validation for ltree format: lowercase letters, numbers, and underscores separated by dots
+        if not re.match(r'^([a-z0-9_]+\.)*[a-z0-9_]+$', self.path):
+            raise ValueError("path must follow ltree format (e.g., 'category.subcategory')")
+        return self

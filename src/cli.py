@@ -463,6 +463,175 @@ def chat(message: str, model: str):
 
     asyncio.run(_chat())
 
+@click.group(name="tag")
+def tag_group():
+    """Commands for managing tags"""
+    pass
+
+@tag_group.command(name="create")
+@click.option('--id', required=True, help='Tag ID (human-readable string)')
+@click.option('--path', required=True, help='Tag path in ltree format (e.g., category.subcategory)')
+@click.option('--name', required=True, help='Display name for the tag')
+@click.option('--description', default=None, help='Optional description for the tag')
+def create_tag(id: str, path: str, name: str, description: Optional[str] = None):
+    """Create a new tag in the database"""
+    import asyncio
+    from datetime import datetime
+    from src.models.models import Tag
+    from src.repository.tag import TagRepository
+    from src.dependencies import get_db
+    
+    async def _create_tag():
+        tag = Tag(
+            id=id,
+            path=path,
+            name=name,
+            description=description,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        
+        tag_repo = TagRepository()
+        
+        async for conn in get_db():
+            try:
+                created_tag = await tag_repo.create(conn, tag)
+                console.print(f"[bold green]Created tag:[/bold green] {created_tag.id} ([italic]{created_tag.name}[/italic]) at path {created_tag.path}")
+                return created_tag
+            except Exception as e:
+                console.print(f"[bold red]Error creating tag:[/bold red] {str(e)}")
+                return None
+    
+    asyncio.run(_create_tag())
+
+@tag_group.command(name="list")
+@click.option('--parent', default=None, help='Parent path to list children of (optional)')
+@click.option('--limit', default=50, help='Maximum number of tags to list')
+def list_tags(parent: Optional[str], limit: int):
+    """List tags, optionally filtered by parent path"""
+    import asyncio
+    from src.repository.tag import TagRepository
+    from src.dependencies import get_db
+    
+    async def _list_tags():
+        tag_repo = TagRepository()
+        
+        async for conn in get_db():
+            try:
+                if parent:
+                    tags = await tag_repo.get_children(conn, parent)
+                    title = f"Tags under {parent}"
+                else:
+                    # Get all tags with limit
+                    tags = await tag_repo.get_all(conn, limit=limit)
+                    title = "All Tags"
+                
+                if not tags:
+                    console.print(f"[yellow]No tags found.[/yellow]")
+                    return
+                
+                # Create a table to display the tags
+                table = Table(title=title)
+                table.add_column("ID", style="cyan")
+                table.add_column("Path", style="green")
+                table.add_column("Name", style="yellow")
+                table.add_column("Description", style="white")
+                
+                for tag in tags:
+                    table.add_row(
+                        tag.id,
+                        tag.path,
+                        tag.name,
+                        tag.description or ""
+                    )
+                
+                console.print(table)
+            except Exception as e:
+                console.print(f"[bold red]Error listing tags:[/bold red] {str(e)}")
+    
+    asyncio.run(_list_tags())
+
+@tag_group.command(name="search")
+@click.argument("query", required=True)
+@click.option('--limit', default=20, help='Maximum number of results')
+def search_tags(query: str, limit: int):
+    """Search for tags by name"""
+    import asyncio
+    from src.repository.tag import TagRepository
+    from src.dependencies import get_db
+    
+    async def _search_tags():
+        tag_repo = TagRepository()
+        
+        async for conn in get_db():
+            try:
+                tags = await tag_repo.search_by_name(conn, query, limit)
+                
+                if not tags:
+                    console.print(f"[yellow]No tags found matching '{query}'[/yellow]")
+                    return
+                
+                # Create a table to display the search results
+                table = Table(title=f"Tags matching '{query}'")
+                table.add_column("ID", style="cyan")
+                table.add_column("Path", style="green")
+                table.add_column("Name", style="yellow")
+                table.add_column("Description", style="white")
+                
+                for tag in tags:
+                    table.add_row(
+                        tag.id,
+                        tag.path,
+                        tag.name,
+                        tag.description or ""
+                    )
+                
+                console.print(table)
+            except Exception as e:
+                console.print(f"[bold red]Error searching tags:[/bold red] {str(e)}")
+    
+    asyncio.run(_search_tags())
+
+@tag_group.command(name="delete")
+@click.argument("id", required=True)
+def delete_tag(id: str):
+    """Delete a tag by ID"""
+    import asyncio
+    from uuid import UUID
+    from src.repository.tag import TagRepository
+    from src.dependencies import get_db
+    
+    async def _delete_tag():
+        tag_repo = TagRepository()
+        
+        async for conn in get_db():
+            try:
+                # First get the tag to show what we're deleting
+                tag = await tag_repo.get_by_id(conn, id)
+                if not tag:
+                    console.print(f"[yellow]Tag with ID '{id}' not found.[/yellow]")
+                    return
+                
+                # Confirm deletion
+                if Prompt.ask(
+                    f"Are you sure you want to delete tag '{tag.name}' ({tag.id})?",
+                    choices=["y", "n"],
+                    default="n"
+                ) == "n":
+                    console.print("Deletion cancelled.")
+                    return
+                
+                # Delete the tag
+                success = await tag_repo.delete(conn, id)
+                if success:
+                    console.print(f"[bold green]Successfully deleted tag:[/bold green] {tag.id} ({tag.name})")
+                else:
+                    console.print(f"[yellow]Failed to delete tag.[/yellow]")
+            except Exception as e:
+                console.print(f"[bold red]Error deleting tag:[/bold red] {str(e)}")
+    
+    asyncio.run(_delete_tag())
+
 group.add_command(hello)
 group.add_command(search_mcp)
 group.add_command(load_schemas)
@@ -474,6 +643,7 @@ group.add_command(add_root)
 group.add_command(list_blobs)
 group.add_command(upload_blob)
 group.add_command(chat)
+group.add_command(tag_group)
 
 if __name__ == '__main__':
     group()
