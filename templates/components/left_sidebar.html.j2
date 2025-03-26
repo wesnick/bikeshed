@@ -6,14 +6,13 @@
       <details>
         <summary class="is-size-5">
           Sessions
-          [<a hx-get="/session" hx-target="#dashboard" hx-push-url="true">view all</a>]
-          [create]
+          [<a hx-get="/session" hx-target=".dashboard" hx-push-url="true">view all</a>]
         </summary>
         <ul class="menu-list">
           {% for session in sessions %}
             <li>
               <a hx-get="/session/{{ session.id }}"
-                 hx-target="#dashboard"
+                 hx-target=".dashboard"
                  hx-push-url="true">{{ session.summary }}</a>
             </li>
           {% endfor %}
@@ -27,7 +26,7 @@
           {% for template_name, template in session_templates.items() %}
             <li>
               <a hx-get="/session/template-creator/{{ template_name }}"
-                 hx-target="#dashboard"
+                 hx-target=".dashboard"
                  hx-push-url="true">{{ template.name }}</a>
             </li>
           {% endfor %}
@@ -38,17 +37,17 @@
     <details>
       <summary class="is-size-5">
         Files
-        [<a hx-get="/blobs" hx-target="#dashboard" hx-push-url="true">view all</a>]
+        [<a hx-get="/blobs" hx-target=".dashboard" hx-push-url="true">view all</a>]
       </summary>
       <ul class="menu-list">
         <li>
-          <a hx-get="/blobs" hx-target="#dashboard" hx-push-url="true">
+          <a hx-get="/blobs" hx-target=".dashboard" hx-push-url="true">
             <span class="icon"><i class="fas fa-file"></i></span>
             Manage Files
           </a>
         </li>
         <li>
-          <a hx-get="/blobs/upload" hx-target="#dashboard" hx-push-url="true">
+          <a hx-get="/blobs/upload" hx-target=".dashboard" hx-push-url="true">
             <span class="icon"><i class="fas fa-upload"></i></span>
             Upload Files
           </a>

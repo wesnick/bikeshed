@@ -10,6 +10,6 @@
        hx-get="/session/{{ session_id }}/messages"
        hx-trigger="load, sse:session_update"></div>
 </div>
-<div id="dashboard-dock"
+<div class="dashboard-dock has-background-grey-lighter"
      hx-get="/session/{{ session_id }}/session-form"
      hx-trigger="load, sse:form_update from:body"></div>

@@ -1,4 +1,5 @@
 import uuid
+from idlelib.window import registry
 from typing import Dict, Any
 
 from mcp.server.fastmcp.prompts.base import Message as MCPMessage
@@ -18,7 +19,7 @@ class PromptStepHandler(StepHandler):
                  completion_service: CompletionService):
         """
         Initialize the PromptStepHandler
-        
+
         Args:
             registry: Registry instance
             completion_service: Optional CompletionService instance
@@ -81,7 +82,7 @@ class PromptStepHandler(StepHandler):
                 text=prompt_content,
                 status=MessageStatus.PENDING
             )
-        
+
             # Add the user message to the session
             session.messages.append(user_message)
             step_messages.append(user_message)
@@ -113,7 +114,7 @@ class PromptStepHandler(StepHandler):
 
         # Add the assistant message to the session
         session.messages.append(assistant_message)
-        
+
         # Process with LLM service
         result_message = await self.completion_service.complete(
             session,
@@ -136,6 +137,9 @@ class PromptStepHandler(StepHandler):
             # Get variables and template args
             variables = session.workflow_data.variables
             template_args = step.template_args or {}
+
+            # @TODO: we need to pass in the template path
+            # template_args['template_path'] =
 
             # Combine variables and template args
             args = {**variables, **template_args}

@@ -16,10 +16,15 @@
     <script type="module" src="/build/js/app.js" defer></script>
     {% block head %}{% endblock %}
   </head>
-  <body hx-ext="sse" sse-connect="/sse" sse-close="server_shutdown">
+  <body
+      hx-ext="sse"
+      sse-connect="/sse"
+      sse-close="server_shutdown"
+      class="is-overflow-hidden">
     <div class="dashboard-container">
-      <!-- Navbar/Header -->
-      <nav class="navbar has-shadow"
+      <!-- Header Section -->
+      <header class="header">
+        <nav class="navbar has-shadow"
            role="navigation"
            aria-label="main navigation">
         <div class="navbar-brand">
@@ -27,7 +32,7 @@
             {% block branding %}BikeShed{% endblock %}
           </a>
         </div>
-        {# Notification Area #}
+        <!-- Notification Section -->
         <div id="notification-area" class="navbar-notification"></div>
         <div class="navbar-end">
           <div class="navbar-item"
@@ -43,44 +48,20 @@
           </div>
         </div>
       </nav>
-      <!-- Main Content Area -->
-      <div id="main-content" class="columns mt-2">
-        <!-- Sidebar -->
-        <aside id="sidebar"
-               class="menu column is-2 is-narrow-mobile section p-4 is-flex is-flex-direction-column">
-          <div id="sidebar-navigation"
-               class="is-flex-grow-1 overflow-y-auto"
+      </header>
+      <aside class="sidebar p-2 is-flex is-flex-direction-column">
+        <div class="sidebar-navigation"
+               class="overflow-y-auto"
                hx-get="/components/left-sidebar"
-               hx-trigger="load, sse:route_change from:body">{% include 'components/skeleton.html.j2' %}</div>
-          <div id="sidebar-settings"
-               hx-get="/registry"
-               hx-trigger="load, sse:registry_update from:body"></div>
-        </aside>
-        <!-- Main Dashboard Area -->
-        <div class="column is-7 section m-2 p-0">
-          <div id="dashboard" class="is-flex is-flex-direction-column"></div>
+               hx-trigger="load, sse:route.change from:body">
+          {% include 'components/skeleton.html.j2' %}
         </div>
-        <!-- Drawer Section -->
-        <div id="right-drawer"
-             class="column is-4 section p-5 drawer-closed has-background-primary"
-             hx-swap=""
-             hx-trigger="load, sse:drawer_update from:body"></div>
-      </div>
-      <!-- Drawer Test Controls -->
-      <div class="drawer-controls is-align-content-center">
-        <button id="drawer-side-by-side" class="button is-primary">
-          <span class="icon"><i class="fas fa-columns"></i></span>
-          <span>Side-by-Side</span>
-        </button>
-        <button id="drawer-overlay" class="button is-info">
-          <span class="icon"><i class="fas fa-layer-group"></i></span>
-          <span>Overlay</span>
-        </button>
-        <button id="drawer-close" class="button is-danger is-hidden">
-          <span class="icon"><i class="fas fa-2x fa-times"></i></span>
-          <span>Close</span>
-        </button>
-      </div>
+          <div class="sidebar-settings mt-auto"
+               hx-get="/registry"
+               hx-trigger="load, sse:registry.updated from:body"></div>
+      </aside>
+      <main class="dashboard pt-2 px-2 is-flex is-flex-direction-column is-overflow-y-scroll is-overflow-x-clip"></main>
+      <aside class="drawer p-2"><p>I am a drawer</p></aside>
     </div>
   </body>
 </html>

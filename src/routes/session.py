@@ -247,12 +247,11 @@ async def create_session_from_template_route(
     await enqueue_session_run_workflow(session.id)
 
     # @TODO this might better be HX-Location
-    response.headers['HX-Location'] = f"/session/{session.id}"
+    response.headers['HX-Replace-Url'] = f"/session/{session.id}"
     response.headers['HX-Trigger'] = 'sse:session_updated'
 
     return {
-        "session": session,
-        "messages": session.messages,
+        "session_id": session.id,
     }
 
 async def enqueue_session_run_workflow(session_id: uuid.UUID) -> str:

@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Create a temporary element with HTMX attributes
             const tempEl = document.createElement('div');
             tempEl.setAttribute('hx-get', targetPath);
-            tempEl.setAttribute('hx-target', '#dashboard');
+            tempEl.setAttribute('hx-target', '.dashboard');
             tempEl.setAttribute('hx-push-url', 'true');
             tempEl.setAttribute('hx-trigger', 'load');
 

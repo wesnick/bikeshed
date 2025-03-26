@@ -136,7 +136,7 @@ class SchemaLoader:
 
             # Use docstring
             description = inspect.getdoc(model_class) or ""
-                
+
             # remove pydantic class description, if exists
             if 'A base class for creating Pydantic models.' in description:
                 description = ""
@@ -217,9 +217,14 @@ class TemplateLoader:
 
 
                 def render_fn(**kwargs):
-                    # Create a template environment
-                    # Render the template with the provided arguments
-                    return self.jinja_env.from_string(template_content).render(**kwargs)
+                    # extract template_content from kwargs
+                    if 'template_raw' in kwargs:
+                        template_raw = kwargs['template_raw']
+                    else:
+                        logger.error('You must provide a valid template path to the Template Loader')
+                        return ''
+
+                    return self.jinja_env.from_string(template_raw).render(**kwargs)
 
                 # Create a prompt object
                 prompt = TemplatePrompt(

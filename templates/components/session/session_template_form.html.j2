@@ -1,4 +1,4 @@
-<div class="box">
+<div>
   <h2 class="title is-4">Launch Session from Template: {{ template.name }}</h2>
   {% if template.description %}<p class="subtitle">{{ template.description }}</p>{% endif %}
   {% if template.goal %}
@@ -6,9 +6,9 @@
       <strong>Goal:</strong> {{ template.goal }}
     </div>
   {% endif %}
-      {% with session_template=template %}
-        {% include 'components/session/workflow.html.j2' %}
-      {% endwith %}
+  {% with session_template=template %}
+    {% include 'components/session/workflow.html.j2' %}
+  {% endwith %}
   {% if workflow_analysis %}
     <div class="block">
       <div class="columns">
@@ -55,8 +55,7 @@
     </div>
   {% endif %}
   <form hx-post="/session/template-creator/{{ template_name }}/create"
-        hx-target="#dashboard"
-        hx-push-url="true"
+        hx-target=".dashboard"
         hx-ext="form-json">
     <div class="field">
       <label class="label">Description (optional)</label>

@@ -7,19 +7,11 @@ import hljs from 'highlight.js';
 import Dropdown from "@vizuaalog/bulmajs/src/plugins/dropdown";
 
 import {initializeEditor} from './prosemirror';
-import {initializeDrawer, openDrawer, closeDrawer} from './drawer';
 
 import Dropzone from "dropzone";
 
 // Import custom handlers
 import './shutdown-handler';
-
-// Export drawer functions for global access
-window.bikeshed = window.bikeshed || {};
-window.bikeshed.drawer = {
-  open: openDrawer,
-  close: closeDrawer
-};
 
 
 // Initialize application
@@ -42,9 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize theme from localStorage
   initializeTheme();
   setupThemeToggle();
-  
-  // Initialize drawer functionality
-  initializeDrawer();
+
 });
 
 // Function to initialize theme
@@ -58,10 +48,9 @@ function initializeTheme() {
 // Setup theme toggle when navbar is loaded and highlight code blocks
 document.body.addEventListener('htmx:afterSettle', function(event) {
 
-  if (event.detail.elt.querySelector && event.detail.elt.querySelector('#editor')) {
-    initializeEditor();
-  }
-
+  // if (event.detail.elt.querySelector && event.detail.elt.querySelector('#editor')) {
+  //   initializeEditor();
+  // }
   // Apply syntax highlighting to any new code blocks
   // if (event.detail.elt.querySelector && event.detail.elt.querySelector('pre code')) {
   //   for (const elem of event.detail.elt.querySelectorAll('pre code')) {
