@@ -137,23 +137,20 @@ class PromptStepHandler(StepHandler):
             variables = session.workflow_data.variables
             template_args = step.template_args or {}
 
-            # @TODO: we need to pass in the template path
-            # template_args['template_path'] =
-
             # Combine variables and template args
             args = {**variables, **template_args}
 
             # Get prompt from registry
             prompt = self.registry.get_prompt(step.template)
-            
+
             if not prompt:
                 raise ValueError(f"Prompt template '{step.template}' not found")
-                
+
             if isinstance(prompt, TemplatePrompt):
                 # Add template_content to args
                 args['template_raw'] = prompt.template_content
                 args['template_path'] = prompt.template_path
-            
+
             return await prompt.render(args)
 
         return ""

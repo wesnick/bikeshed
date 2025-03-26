@@ -59,7 +59,6 @@
 .sidebar { grid-area: sidebar; }
 .dashboard {
   grid-area: main;
-  height: 100%;
   border-left: 1px var(--bulma-primary-on-scheme) solid;
   border-right: 1px var(--bulma-primary-on-scheme) solid;
 }
