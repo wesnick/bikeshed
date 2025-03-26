@@ -632,6 +632,290 @@ def delete_tag(id: str):
     
     asyncio.run(_delete_tag())
 
+@click.group(name="stash")
+def stash_group():
+    """Commands for managing stashes"""
+    pass
+
+@stash_group.command(name="list")
+@click.option('--limit', default=20, help='Maximum number of stashes to list')
+def list_stashes(limit: int):
+    """List all stashes"""
+    import asyncio
+    from src.repository.stash import StashRepository
+    from src.dependencies import get_db
+    
+    async def _list_stashes():
+        stash_repo = StashRepository()
+        
+        async for conn in get_db():
+            try:
+                stashes = await stash_repo.get_recent_stashes(conn, limit)
+                
+                if not stashes:
+                    console.print("[yellow]No stashes found.[/yellow]")
+                    return
+                
+                # Create a table to display the stashes
+                table = Table(title="Stashes")
+                table.add_column("ID", style="cyan")
+                table.add_column("Name", style="green")
+                table.add_column("Description", style="yellow")
+                table.add_column("Items", style="white", justify="right")
+                table.add_column("Created", style="blue")
+                
+                for stash in stashes:
+                    table.add_row(
+                        str(stash.id),
+                        stash.name,
+                        stash.description or "",
+                        str(len(stash.items)),
+                        stash.created_at.strftime("%Y-%m-%d %H:%M")
+                    )
+                
+                console.print(table)
+            except Exception as e:
+                console.print(f"[bold red]Error listing stashes:[/bold red] {str(e)}")
+    
+    asyncio.run(_list_stashes())
+
+@stash_group.command(name="create")
+@click.option('--name', required=True, help='Name for the stash')
+@click.option('--description', default=None, help='Optional description for the stash')
+def create_stash(name: str, description: Optional[str] = None):
+    """Create a new stash"""
+    import asyncio
+    from datetime import datetime
+    from src.models.models import Stash
+    from src.repository.stash import StashRepository
+    from src.dependencies import get_db
+    
+    async def _create_stash():
+        stash = Stash(
+            name=name,
+            description=description,
+            items=[],
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+        
+        stash_repo = StashRepository()
+        
+        async for conn in get_db():
+            try:
+                created_stash = await stash_repo.create(conn, stash)
+                console.print(f"[bold green]Created stash:[/bold green] {created_stash.name} (ID: {created_stash.id})")
+                return created_stash
+            except Exception as e:
+                console.print(f"[bold red]Error creating stash:[/bold red] {str(e)}")
+                return None
+    
+    asyncio.run(_create_stash())
+
+@stash_group.command(name="get")
+@click.argument("id", required=True)
+def get_stash(id: str):
+    """Get details of a stash by ID"""
+    import asyncio
+    from uuid import UUID
+    from src.repository.stash import StashRepository
+    from src.dependencies import get_db
+    
+    async def _get_stash():
+        stash_repo = StashRepository()
+        
+        async for conn in get_db():
+            try:
+                # Try to parse as UUID
+                try:
+                    stash_id = UUID(id)
+                    stash = await stash_repo.get_by_id(conn, stash_id)
+                except ValueError:
+                    # If not a UUID, try as a name
+                    stash = await stash_repo.get_by_name(conn, id)
+                
+                if not stash:
+                    console.print(f"[yellow]Stash with ID/name '{id}' not found.[/yellow]")
+                    return
+                
+                # Display stash details
+                console.print(Panel(
+                    f"[bold]Name:[/bold] {stash.name}\n"
+                    f"[bold]ID:[/bold] {stash.id}\n"
+                    f"[bold]Description:[/bold] {stash.description or 'N/A'}\n"
+                    f"[bold]Created:[/bold] {stash.created_at.strftime('%Y-%m-%d %H:%M')}\n"
+                    f"[bold]Updated:[/bold] {stash.updated_at.strftime('%Y-%m-%d %H:%M')}\n"
+                    f"[bold]Items:[/bold] {len(stash.items)}",
+                    title=f"[bold green]Stash Details[/bold green]",
+                    expand=False
+                ))
+                
+                # Display items if any
+                if stash.items:
+                    items_table = Table(title=f"Items in {stash.name}")
+                    items_table.add_column("#", style="cyan")
+                    items_table.add_column("Type", style="green")
+                    items_table.add_column("Content", style="yellow")
+                    
+                    for i, item in enumerate(stash.items):
+                        # Truncate content if too long
+                        content = item.content
+                        if len(content) > 50:
+                            content = content[:47] + "..."
+                        
+                        items_table.add_row(
+                            str(i),
+                            item.type,
+                            content
+                        )
+                    
+                    console.print(items_table)
+            except Exception as e:
+                console.print(f"[bold red]Error getting stash:[/bold red] {str(e)}")
+    
+    asyncio.run(_get_stash())
+
+@stash_group.command(name="add-item")
+@click.argument("stash_id", required=True)
+@click.option("--type", "-t", required=True, type=click.Choice(["text", "blob", "registry"]), help="Type of item")
+@click.option("--content", "-c", required=True, help="Content or reference ID")
+def add_stash_item(stash_id: str, type: str, content: str):
+    """Add an item to a stash"""
+    import asyncio
+    from uuid import UUID
+    from src.models.models import StashItem
+    from src.repository.stash import StashRepository
+    from src.dependencies import get_db
+    
+    async def _add_stash_item():
+        stash_repo = StashRepository()
+        
+        # Create the item
+        item = StashItem(
+            type=type,
+            content=content
+        )
+        
+        async for conn in get_db():
+            try:
+                # Try to parse as UUID
+                try:
+                    uuid_id = UUID(stash_id)
+                    stash = await stash_repo.get_by_id(conn, uuid_id)
+                except ValueError:
+                    # If not a UUID, try as a name
+                    stash = await stash_repo.get_by_name(conn, stash_id)
+                
+                if not stash:
+                    console.print(f"[yellow]Stash with ID/name '{stash_id}' not found.[/yellow]")
+                    return
+                
+                # Add the item
+                updated_stash = await stash_repo.add_item(conn, stash.id, item)
+                console.print(f"[bold green]Added {type} item to stash:[/bold green] {updated_stash.name}")
+                console.print(f"Item count: {len(updated_stash.items)}")
+            except Exception as e:
+                console.print(f"[bold red]Error adding item to stash:[/bold red] {str(e)}")
+    
+    asyncio.run(_add_stash_item())
+
+@stash_group.command(name="remove-item")
+@click.argument("stash_id", required=True)
+@click.argument("item_index", type=int, required=True)
+def remove_stash_item(stash_id: str, item_index: int):
+    """Remove an item from a stash by its index"""
+    import asyncio
+    from uuid import UUID
+    from src.repository.stash import StashRepository
+    from src.dependencies import get_db
+    
+    async def _remove_stash_item():
+        stash_repo = StashRepository()
+        
+        async for conn in get_db():
+            try:
+                # Try to parse as UUID
+                try:
+                    uuid_id = UUID(stash_id)
+                    stash = await stash_repo.get_by_id(conn, uuid_id)
+                except ValueError:
+                    # If not a UUID, try as a name
+                    stash = await stash_repo.get_by_name(conn, stash_id)
+                
+                if not stash:
+                    console.print(f"[yellow]Stash with ID/name '{stash_id}' not found.[/yellow]")
+                    return
+                
+                # Check if the index is valid
+                if item_index < 0 or item_index >= len(stash.items):
+                    console.print(f"[yellow]Invalid item index: {item_index}. Stash has {len(stash.items)} items.[/yellow]")
+                    return
+                
+                # Confirm deletion
+                item = stash.items[item_index]
+                if Prompt.ask(
+                    f"Are you sure you want to remove item {item_index} ({item.type}: {item.content[:30]}...) from stash '{stash.name}'?",
+                    choices=["y", "n"],
+                    default="n"
+                ) == "n":
+                    console.print("Removal cancelled.")
+                    return
+                
+                # Remove the item
+                updated_stash = await stash_repo.remove_item(conn, stash.id, item_index)
+                console.print(f"[bold green]Removed item from stash:[/bold green] {updated_stash.name}")
+                console.print(f"Item count: {len(updated_stash.items)}")
+            except Exception as e:
+                console.print(f"[bold red]Error removing item from stash:[/bold red] {str(e)}")
+    
+    asyncio.run(_remove_stash_item())
+
+@stash_group.command(name="delete")
+@click.argument("id", required=True)
+def delete_stash(id: str):
+    """Delete a stash by ID"""
+    import asyncio
+    from uuid import UUID
+    from src.repository.stash import StashRepository
+    from src.dependencies import get_db
+    
+    async def _delete_stash():
+        stash_repo = StashRepository()
+        
+        async for conn in get_db():
+            try:
+                # Try to parse as UUID
+                try:
+                    uuid_id = UUID(id)
+                    stash = await stash_repo.get_by_id(conn, uuid_id)
+                except ValueError:
+                    # If not a UUID, try as a name
+                    stash = await stash_repo.get_by_name(conn, id)
+                
+                if not stash:
+                    console.print(f"[yellow]Stash with ID/name '{id}' not found.[/yellow]")
+                    return
+                
+                # Confirm deletion
+                if Prompt.ask(
+                    f"Are you sure you want to delete stash '{stash.name}' (ID: {stash.id}) with {len(stash.items)} items?",
+                    choices=["y", "n"],
+                    default="n"
+                ) == "n":
+                    console.print("Deletion cancelled.")
+                    return
+                
+                # Delete the stash
+                success = await stash_repo.delete(conn, stash.id)
+                if success:
+                    console.print(f"[bold green]Successfully deleted stash:[/bold green] {stash.name} (ID: {stash.id})")
+                else:
+                    console.print(f"[yellow]Failed to delete stash.[/yellow]")
+            except Exception as e:
+                console.print(f"[bold red]Error deleting stash:[/bold red] {str(e)}")
+    
+    asyncio.run(_delete_stash())
+
 group.add_command(hello)
 group.add_command(search_mcp)
 group.add_command(load_schemas)
@@ -644,6 +928,7 @@ group.add_command(list_blobs)
 group.add_command(upload_blob)
 group.add_command(chat)
 group.add_command(tag_group)
+group.add_command(stash_group)
 
 if __name__ == '__main__':
     group()
