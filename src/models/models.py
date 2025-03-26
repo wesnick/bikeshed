@@ -50,13 +50,11 @@ class DBModelMixin:
 
     def model_dump_db(self, **kwargs) -> Dict[str, Any]:
         """Dump model data excluding non-persisted fields."""
-        exclude = kwargs.pop('exclude', set())
-        exclude.update(self.__non_persisted_fields__)
-        return self.model_dump(exclude=exclude, **kwargs)
+        return {k: v for k, v in self.model_dump().items() if v is not None and (self.__non_persisted_fields__ is None or k not in self.__non_persisted_fields__)}
 
 
 class Message(BaseModel, DBModelMixin):
-    __db_table__ = "message"
+    __db_table__ = "messages"
     __non_persisted_fields__ = {'children', 'parent'}
     __unique_fields__ = {'id'}
 
@@ -85,7 +83,7 @@ class Message(BaseModel, DBModelMixin):
 
 
 class Session(BaseModel, DBModelMixin):
-    __db_table__ = "session"
+    __db_table__ = "sessions"
     __non_persisted_fields__ = {'machine', 'messages'}
     __unique_fields__ = {'id'}
 
@@ -163,7 +161,7 @@ class Session(BaseModel, DBModelMixin):
         return self.workflow_data.step_results.get(step_name)
 
 class Root(BaseModel, DBModelMixin):
-    __db_table__ = "root"
+    __db_table__ = "roots"
     __non_persisted_fields__ = {'files'}
     __unique_fields__ = {'uri'} # Assuming URI should be unique
 
@@ -177,7 +175,7 @@ class Root(BaseModel, DBModelMixin):
     files: List["RootFile"] = Field(default_factory=list)
 
 class RootFile(BaseModel, DBModelMixin):
-    __db_table__ = "rootfile"
+    __db_table__ = "root_files"
     __non_persisted_fields__ = {'root'}
     __unique_fields__ = {'root_id', 'path'} # Unique within a root
 
@@ -203,12 +201,12 @@ class RootFile(BaseModel, DBModelMixin):
         return self
 
 
-class Blob(BaseModel):
+class Blob(BaseModel, DBModelMixin):
     """
     A media object similar to schema.org MediaObject.
     Represents a file with metadata, with the actual bytes stored on disk.
     """
-    __db_table__ = "blob"
+    __db_table__ = "blobs"
     __non_persisted_fields__: ClassVar[Set[str]] = set() # No non-persisted fields currently
     __unique_fields__ = {'id'} # Or perhaps sha256 if available and enforced?
 

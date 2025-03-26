@@ -28,6 +28,9 @@ build:
 aider *args:
     aider --file docs/project.md --file justfile {{args}}
 
+aider-gemini *args:
+    just aider '--model gemini-2.5-pro-exp-03-25' {{args}}
+
 # Start Docker containers in detached mode
 docup:
     docker compose up -d
@@ -63,7 +66,7 @@ py-lint:
 
 kill-fapi:
     ps uax |grep -v 'just'| grep python |grep spawn | awk '{print $2}' |xargs kill -5
-   
+
 commit:
     #!/usr/bin/env bash
     git diff --staged > /tmp/git_diff_tmp

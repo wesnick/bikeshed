@@ -1,4 +1,5 @@
 create extension vector;
+create extension ltree;
 
 create table sessions
 (
@@ -70,3 +71,16 @@ create table blobs
     metadata     jsonb
 );
 
+
+create table tags (
+    id varchar(50) primary key,  -- human-readable string id
+    path ltree not null,         -- hierarchical path using ltree
+    name varchar(100) not null,  -- display name of the tag
+    description text,            -- optional description
+    created_at timestamp    not null default current_timestamp,
+    updated_at timestamp    not null default current_timestamp,
+    constraint valid_path_format check (path ~ '^([a-z0-9_]+\.)*[a-z0-9_]+$')  -- ensure path follows ltree format
+);
+
+create index tags_path_idx on tags using gist (path);
+create index tags_path_idx_btree on tags using btree (path);

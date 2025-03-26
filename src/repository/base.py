@@ -26,26 +26,15 @@ async def _prepare_data_for_db(model_instance: DBModelMixin) -> Dict[str, Any]:
     Excludes non-persisted fields and None values. Relies on global psycopg
     JSON serializer for complex types.
     """
-    data = model_instance.model_dump_db() # Use the mixin's method
+    data = model_instance.model_dump_db()
     prepared_data = {}
-    for k, v in data.items():
-        if v is not None:
-            # Check if the field type annotation suggests JSON/dict/list or if it's a Pydantic model/dict
-            field_info = model_instance.model_fields.get(k)
-            is_json_like = False
-            if field_info:
-                # Check if the type hint is Dict, List, or a Pydantic model
-                origin = getattr(field_info.annotation, '__origin__', None)
-                if origin in (dict, list) or isinstance(field_info.annotation, type) and issubclass(field_info.annotation, BaseModel):
-                     is_json_like = True
 
-            # Pass the raw Python object; psycopg will use the registered dumper
+    for k, v in data.items():
+        if isinstance(v, BaseModel) or isinstance(v, dict):
+            prepared_data[k] = Jsonb(v)
+        else:
             prepared_data[k] = v
-            # if isinstance(v, (BaseModel, dict, list)) or is_json_like:
-            #      # Pass the custom serializer to Jsonb -- REMOVED
-            #     prepared_data[k] = Jsonb(v, dumps=_pydantic_serializer)
-            # else:
-            #     prepared_data[k] = v
+
     return prepared_data
 
 
@@ -91,6 +80,9 @@ class BaseRepository(Generic[T]):
             placeholders
         )
 
+        from src.service.logging import logger
+        logger.warning(f"Values: {values}")
+
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, values)
             entity = await cur.fetchone()
@@ -117,10 +109,6 @@ class BaseRepository(Generic[T]):
 
                  # Pass the raw Python object; psycopg will use the registered dumper
                  valid_update_data[k] = v
-                 # if isinstance(v, (BaseModel, dict, list)) or is_json_like:
-                 #     valid_update_data[k] = Jsonb(v, dumps=_pydantic_serializer) # REMOVED
-                 # else:
-                 #     valid_update_data[k] = v
 
         if not valid_update_data:
             # If no valid fields to update, just fetch and return the current entity
@@ -179,7 +167,7 @@ class BaseRepository(Generic[T]):
 
         # Prepare conflict target
         conflict_target = SQL(", ").join([Identifier(field) for field in conflict_fields])
-        
+
         # Determine which fields to update on conflict
         if update_fields is None:
             # Default to all prepared fields except conflict fields and non-persisted ones (already excluded)
@@ -207,12 +195,12 @@ class BaseRepository(Generic[T]):
                 placeholders,
                 conflict_target
             )
-        
+
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, values)
             entity = await cur.fetchone()
             await conn.commit()
-            
+
             # If DO NOTHING was used and no row was returned, fetch the existing record
             if entity is None and not update_fields:
                 # Build a query to fetch by conflict fields using prepared data
@@ -220,34 +208,15 @@ class BaseRepository(Generic[T]):
                     SQL("{} = %s").format(Identifier(field))
                     for field in conflict_fields
                 ])
-                # Get original values for conflict fields before Jsonb wrapping
-                conflict_values_orig = {f: getattr(model_instance, f) for f in conflict_fields}
 
-                # Need to handle potential Jsonb wrapping for comparison if conflict field is json
-                conflict_values_for_query = []
-                for field in conflict_fields:
-                    value = conflict_values_orig[field]
-                    field_info = self.model.model_fields.get(field)
-                    is_json_like = False
-                    if field_info:
-                        origin = getattr(field_info.annotation, '__origin__', None)
-                        if origin in (dict, list) or isinstance(field_info.annotation, type) and issubclass(field_info.annotation, BaseModel):
-                             is_json_like = True
-                    # Pass the raw Python object; psycopg should handle comparison correctly
-                    conflict_values_for_query.append(value)
-                    # if isinstance(value, (BaseModel, dict, list)) or is_json_like:
-                    #      # Use the serializer for comparison consistency -- REMOVED
-                    #      conflict_values_for_query.append(Jsonb(value, dumps=_pydantic_serializer))
-                    # else:
-                    #      conflict_values_for_query.append(value)
-
+                conflict_values = tuple(prepared_data[field] for field in conflict_fields)
 
                 fetch_query = SQL("SELECT * FROM {} WHERE {}").format(
                     Identifier(self.table_name),
                     where_clauses
                 )
 
-                await cur.execute(fetch_query, tuple(conflict_values_for_query))
+                await cur.execute(fetch_query, conflict_values)
                 entity = await cur.fetchone()
 
             return entity
@@ -257,15 +226,15 @@ class BaseRepository(Generic[T]):
         """Filter entities by attributes"""
         if not filters:
             return await self.get_all(conn, limit, offset)
-        
+
         where_clauses = SQL(" AND ").join([SQL("{} = %s").format(Identifier(k)) for k in filters.keys()])
         values = tuple(filters.values()) + (limit, offset)
-        
+
         query = SQL("SELECT * FROM {} WHERE {} LIMIT %s OFFSET %s").format(
             Identifier(self.table_name),
             where_clauses
         )
-        
+
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, values)
             return await cur.fetchall()
