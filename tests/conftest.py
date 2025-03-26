@@ -7,7 +7,7 @@ from httpx import ASGITransport, AsyncClient
 from psycopg import AsyncConnection
 
 from src.main import app
-from src.dependencies import get_settings
+from src.dependencies import settings
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
     Create an async test client for FastAPI app
     """
     host, port = "127.0.0.1", 9000
-    
+
     # Use the ASGI app with AsyncClient
     async with AsyncClient(transport=ASGITransport(app=app, client=(host, port)), base_url="http://test") as client:
         yield client
@@ -28,7 +28,7 @@ async def db_conn() -> AsyncGenerator[AsyncConnection, None]:
     Provides a database connection for a test function.
     Ensures the connection is closed afterwards.
     """
-    settings = get_settings()
+
     conn_str = f"postgres://{settings.postgres_user}:{settings.postgres_password}@{settings.postgres_host}:{settings.postgres_port}/{settings.postgres_db_test}"
     conn = None
     try:
