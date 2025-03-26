@@ -254,3 +254,30 @@ class Tag(BaseModel, DBModelMixin):
         if not re.match(r'^([a-z0-9_]+\.)*[a-z0-9_]+$', self.path):
             raise ValueError("path must follow ltree format (e.g., 'category.subcategory')")
         return self
+
+
+class StashItem(BaseModel):
+    """
+    An item in a stash collection. Can be text, a blob reference, or a registry item reference.
+    """
+    type: str  # "text", "blob", "registry"
+    content: str  # Text content or reference ID
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class Stash(BaseModel, DBModelMixin):
+    """
+    A collection of text entries, blobs, and registry item references.
+    Acts as a container for various types of content.
+    """
+    __db_table__ = "stashes"
+    __non_persisted_fields__: ClassVar[Set[str]] = set()  # No non-persisted fields currently
+    __unique_fields__ = {'id'}  # ID is the primary key
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    name: str  # Name of the stash
+    description: Optional[str] = None  # Description of the stash
+    items: List[StashItem] = Field(default_factory=list)  # Items in the stash
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    metadata: Optional[Dict[str, Any]] = None  # Additional metadata

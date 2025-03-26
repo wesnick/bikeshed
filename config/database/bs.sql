@@ -84,3 +84,15 @@ create table tags (
 
 create index tags_path_idx on tags using gist (path);
 create index tags_path_idx_btree on tags using btree (path);
+
+create table stashes (
+    id uuid not null primary key,
+    name varchar(255) not null,
+    description text,
+    items jsonb not null default '[]'::jsonb,  -- Array of StashItem objects
+    created_at timestamp not null default current_timestamp,
+    updated_at timestamp not null default current_timestamp,
+    metadata jsonb
+);
+
+create index stashes_name_idx on stashes (name);
