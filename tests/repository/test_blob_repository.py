@@ -27,6 +27,13 @@ def sample_blob_data() -> dict:
     }
 
 
+def _create_blob_data(base_data: dict, **kwargs) -> dict:
+    """Helper to create unique blob data for tests."""
+    data = base_data.copy()
+    data.update(kwargs)
+    return data
+
+
 async def test_create_blob(db_conn_clean: AsyncConnection, blob_repo: BlobRepository, sample_blob_data: dict):
     blob = Blob(**sample_blob_data)
     created_blob = await blob_repo.create(db_conn_clean, blob)
@@ -61,8 +68,10 @@ async def test_get_blob_by_id_not_found(db_conn_clean: AsyncConnection, blob_rep
 
 
 async def test_get_all_blobs(db_conn_clean: AsyncConnection, blob_repo: BlobRepository, sample_blob_data: dict):
-    blob1 = Blob(**sample_blob_data, name="blob1")
-    blob2 = Blob(**sample_blob_data, name="blob2")
+    blob1_data = _create_blob_data(sample_blob_data, name="blob1")
+    blob2_data = _create_blob_data(sample_blob_data, name="blob2")
+    blob1 = Blob(**blob1_data)
+    blob2 = Blob(**blob2_data)
     await blob_repo.create(db_conn_clean, blob1)
     await blob_repo.create(db_conn_clean, blob2)
 
@@ -115,8 +124,10 @@ async def test_delete_blob_not_found(db_conn_clean: AsyncConnection, blob_repo: 
 
 
 async def test_filter_blobs(db_conn_clean: AsyncConnection, blob_repo: BlobRepository, sample_blob_data: dict):
-    blob1 = Blob(**sample_blob_data, name="filter_test_1", content_type="image/jpeg")
-    blob2 = Blob(**sample_blob_data, name="filter_test_2", content_type="image/png")
+    blob1_data = _create_blob_data(sample_blob_data, name="filter_test_1", content_type="image/jpeg")
+    blob2_data = _create_blob_data(sample_blob_data, name="filter_test_2", content_type="image/png")
+    blob1 = Blob(**blob1_data)
+    blob2 = Blob(**blob2_data)
     await blob_repo.create(db_conn_clean, blob1)
     await blob_repo.create(db_conn_clean, blob2)
 
@@ -128,7 +139,8 @@ async def test_filter_blobs(db_conn_clean: AsyncConnection, blob_repo: BlobRepos
 
 
 async def test_filter_blobs_no_match(db_conn_clean: AsyncConnection, blob_repo: BlobRepository, sample_blob_data: dict):
-    blob1 = Blob(**sample_blob_data, name="filter_test_1", content_type="image/jpeg")
+    blob1_data = _create_blob_data(sample_blob_data, name="filter_test_1", content_type="image/jpeg")
+    blob1 = Blob(**blob1_data)
     await blob_repo.create(db_conn_clean, blob1)
 
     filtered_blobs = await blob_repo.filter(db_conn_clean, {"content_type": "application/pdf"})
@@ -137,8 +149,10 @@ async def test_filter_blobs_no_match(db_conn_clean: AsyncConnection, blob_repo: 
 
 
 async def test_filter_blobs_empty_filter(db_conn_clean: AsyncConnection, blob_repo: BlobRepository, sample_blob_data: dict):
-    blob1 = Blob(**sample_blob_data, name="filter_test_1")
-    blob2 = Blob(**sample_blob_data, name="filter_test_2")
+    blob1_data = _create_blob_data(sample_blob_data, name="filter_test_1")
+    blob2_data = _create_blob_data(sample_blob_data, name="filter_test_2")
+    blob1 = Blob(**blob1_data)
+    blob2 = Blob(**blob2_data)
     await blob_repo.create(db_conn_clean, blob1)
     await blob_repo.create(db_conn_clean, blob2)
 

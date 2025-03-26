@@ -30,10 +30,16 @@ async def _prepare_data_for_db(model_instance: DBModelMixin) -> Dict[str, Any]:
     prepared_data = {}
 
     for k, v in data.items():
-        if isinstance(v, BaseModel) or isinstance(v, dict):
-            prepared_data[k] = Jsonb(v)
+        if isinstance(v, list):
+            # Check if list items are models or dicts, requiring Jsonb wrapping for the whole list
+            if v and (isinstance(v[0], BaseModel) or isinstance(v[0], dict)):
+                 prepared_data[k] = Jsonb(v) # Wrap the entire list
+            else:
+                 prepared_data[k] = v # Assume list of primitives
+        elif isinstance(v, BaseModel) or isinstance(v, dict):
+            prepared_data[k] = Jsonb(v) # Wrap individual model/dict
         else:
-            prepared_data[k] = v
+            prepared_data[k] = v # Handle other types
 
     return prepared_data
 
@@ -86,7 +92,7 @@ class BaseRepository(Generic[T]):
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, values)
             entity = await cur.fetchone()
-            await conn.commit()
+            # await conn.commit() # Removed: Handled by db_conn_clean fixture transaction
             return entity
 
     async def update(self, conn: AsyncConnection, id: UUID, update_data: Dict[str, Any]) -> Optional[T]:
@@ -125,8 +131,8 @@ class BaseRepository(Generic[T]):
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, values)
             entity = await cur.fetchone()
-            if entity:
-                await conn.commit()
+            # if entity: # Commit is handled by the fixture transaction
+            #     await conn.commit()
             return entity
 
     async def delete(self, conn: AsyncConnection, id: UUID) -> bool:
@@ -137,8 +143,8 @@ class BaseRepository(Generic[T]):
             await cur.execute(query, (id,))
             result = await cur.fetchone()
             success = result is not None
-            if success:
-                await conn.commit()
+            # if success: # Commit is handled by the fixture transaction
+            #     await conn.commit()
             return success
 
     async def upsert(self, conn: AsyncConnection, model_instance: T,
@@ -199,7 +205,7 @@ class BaseRepository(Generic[T]):
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, values)
             entity = await cur.fetchone()
-            await conn.commit()
+            # await conn.commit() # Commit is handled by the fixture transaction
 
             # If DO NOTHING was used and no row was returned, fetch the existing record
             if entity is None and not update_fields:

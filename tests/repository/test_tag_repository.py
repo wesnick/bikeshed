@@ -15,11 +15,17 @@ def tag_repo() -> TagRepository:
     return TagRepository()
 
 
+def _unique_id(prefix: str) -> str:
+    """Generates a unique ID string for tests."""
+    return f"{prefix}_{uuid4().hex[:8]}"
+
+
 @pytest.fixture
 def sample_tag_data() -> dict:
     # Use a unique ID for each test run potentially
+    tag_id = _unique_id("test_tag")
     return {
-        "id": f"test_tag_{uuid4().hex[:8]}",
+        "id": tag_id,
         "path": "test.tag",
         "name": "Test Tag",
         "description": "A tag for testing",
@@ -145,11 +151,23 @@ async def test_get_tag_by_path_not_found(db_conn_clean: AsyncConnection, tag_rep
 
 
 async def test_get_tag_children(db_conn_clean: AsyncConnection, tag_repo: TagRepository):
-    parent = Tag(id="parent", path="parent", name="Parent")
-    child1 = Tag(id="child1", path="parent.child1", name="Child 1")
-    child2 = Tag(id="child2", path="parent.child2", name="Child 2")
-    grandchild = Tag(id="grandchild", path="parent.child1.grandchild", name="Grandchild")
-    other = Tag(id="other", path="other", name="Other")
+    p_id = _unique_id("parent")
+    c1_id = _unique_id("child1")
+    c2_id = _unique_id("child2")
+    gc_id = _unique_id("grandchild")
+    o_id = _unique_id("other")
+
+    p_path = p_id
+    c1_path = f"{p_path}.{c1_id}"
+    c2_path = f"{p_path}.{c2_id}"
+    gc_path = f"{c1_path}.{gc_id}"
+    o_path = o_id
+
+    parent = Tag(id=p_id, path=p_path, name="Parent")
+    child1 = Tag(id=c1_id, path=c1_path, name="Child 1")
+    child2 = Tag(id=c2_id, path=c2_path, name="Child 2")
+    grandchild = Tag(id=gc_id, path=gc_path, name="Grandchild")
+    other = Tag(id=o_id, path=o_path, name="Other")
 
     await tag_repo.create(db_conn_clean, parent)
     await tag_repo.create(db_conn_clean, child1)
@@ -157,53 +175,71 @@ async def test_get_tag_children(db_conn_clean: AsyncConnection, tag_repo: TagRep
     await tag_repo.create(db_conn_clean, grandchild)
     await tag_repo.create(db_conn_clean, other)
 
-    children = await tag_repo.get_children(db_conn_clean, "parent")
+    children = await tag_repo.get_children(db_conn_clean, p_path)
 
     assert len(children) == 2
     child_ids = {c.id for c in children}
-    assert "child1" in child_ids
-    assert "child2" in child_ids
+    assert c1_id in child_ids
+    assert c2_id in child_ids
 
 
 async def test_get_tag_children_no_children(db_conn_clean: AsyncConnection, tag_repo: TagRepository):
-    parent = Tag(id="parent", path="parent", name="Parent")
+    p_id = _unique_id("parent_nochild")
+    p_path = p_id
+    parent = Tag(id=p_id, path=p_path, name="Parent No Children")
     await tag_repo.create(db_conn_clean, parent)
 
-    children = await tag_repo.get_children(db_conn_clean, "parent")
+    children = await tag_repo.get_children(db_conn_clean, p_path)
     assert len(children) == 0
 
 
 async def test_get_tag_ancestors(db_conn_clean: AsyncConnection, tag_repo: TagRepository):
-    root = Tag(id="root", path="root", name="Root")
-    level1 = Tag(id="level1", path="root.level1", name="Level 1")
-    level2 = Tag(id="level2", path="root.level1.level2", name="Level 2")
-    other = Tag(id="other", path="other", name="Other")
+    r_id = _unique_id("root")
+    l1_id = _unique_id("level1")
+    l2_id = _unique_id("level2")
+    o_id = _unique_id("other_anc")
+
+    r_path = r_id
+    l1_path = f"{r_path}.{l1_id}"
+    l2_path = f"{l1_path}.{l2_id}"
+    o_path = o_id
+
+    root = Tag(id=r_id, path=r_path, name="Root")
+    level1 = Tag(id=l1_id, path=l1_path, name="Level 1")
+    level2 = Tag(id=l2_id, path=l2_path, name="Level 2")
+    other = Tag(id=o_id, path=o_path, name="Other Anc")
 
     await tag_repo.create(db_conn_clean, root)
     await tag_repo.create(db_conn_clean, level1)
     await tag_repo.create(db_conn_clean, level2)
     await tag_repo.create(db_conn_clean, other)
 
-    ancestors = await tag_repo.get_ancestors(db_conn_clean, "root.level1.level2")
+    ancestors = await tag_repo.get_ancestors(db_conn_clean, l2_path)
 
     assert len(ancestors) == 2
     ancestor_ids = {a.id for a in ancestors}
-    assert "root" in ancestor_ids
-    assert "level1" in ancestor_ids
+    assert r_id in ancestor_ids
+    assert l1_id in ancestor_ids
 
 
 async def test_get_tag_ancestors_no_ancestors(db_conn_clean: AsyncConnection, tag_repo: TagRepository):
-    root = Tag(id="root", path="root", name="Root")
+    r_id = _unique_id("root_noanc")
+    r_path = r_id
+    root = Tag(id=r_id, path=r_path, name="Root No Ancestors")
     await tag_repo.create(db_conn_clean, root)
 
-    ancestors = await tag_repo.get_ancestors(db_conn_clean, "root")
+    ancestors = await tag_repo.get_ancestors(db_conn_clean, r_path)
     assert len(ancestors) == 0
 
 
 async def test_search_tag_by_name(db_conn_clean: AsyncConnection, tag_repo: TagRepository):
-    tag1 = Tag(id="search1", path="search.one", name="Searchable Tag One")
-    tag2 = Tag(id="search2", path="search.two", name="Another Searchable Tag")
-    tag3 = Tag(id="search3", path="search.three", name="Completely Different")
+    s1_id = _unique_id("search1")
+    s2_id = _unique_id("search2")
+    s3_id = _unique_id("search3")
+
+    tag1 = Tag(id=s1_id, path=f"search.{s1_id}", name="Searchable Tag One")
+    tag2 = Tag(id=s2_id, path=f"search.{s2_id}", name="Another Searchable Tag")
+    tag3 = Tag(id=s3_id, path=f"search.{s3_id}", name="Completely Different")
 
     await tag_repo.create(db_conn_clean, tag1)
     await tag_repo.create(db_conn_clean, tag2)
@@ -213,8 +249,8 @@ async def test_search_tag_by_name(db_conn_clean: AsyncConnection, tag_repo: TagR
 
     assert len(results) == 2
     result_ids = {r.id for r in results}
-    assert "search1" in result_ids
-    assert "search2" in result_ids
+    assert s1_id in result_ids
+    assert s2_id in result_ids
 
     results_case_insensitive = await tag_repo.search_by_name(db_conn_clean, "searchable tag")
     assert len(results_case_insensitive) == 2
@@ -224,11 +260,12 @@ async def test_search_tag_by_name(db_conn_clean: AsyncConnection, tag_repo: TagR
 
     results_specific = await tag_repo.search_by_name(db_conn_clean, "Completely Different")
     assert len(results_specific) == 1
-    assert results_specific[0].id == "search3"
+    assert results_specific[0].id == s3_id
 
 
 async def test_search_tag_by_name_no_match(db_conn_clean: AsyncConnection, tag_repo: TagRepository):
-    tag1 = Tag(id="search1", path="search.one", name="Searchable Tag One")
+    s1_id = _unique_id("search_nomatch")
+    tag1 = Tag(id=s1_id, path=f"search.{s1_id}", name="Searchable Tag No Match")
     await tag_repo.create(db_conn_clean, tag1)
 
     results = await tag_repo.search_by_name(db_conn_clean, "NonExistent")
