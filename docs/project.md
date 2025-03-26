@@ -35,6 +35,7 @@ The application uses the Transitions library to implement a state machine for se
 The application uses Server-Sent Events (SSE) to provide real-time updates to the UI:
 
 - The `BroadcastService` manages SSE connections and broadcasts events to clients
+    - event names should be dot notated, ie `session.updated`, or `session.123.updated` 
 - The `ModelUpdates` system uses a strategy pattern to broadcast model changes
 - Different broadcast strategies are implemented for different model types (Session, Message, etc.)
 - Updates are automatically broadcast when models change state or status
