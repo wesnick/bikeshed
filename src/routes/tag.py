@@ -1,8 +1,9 @@
 from typing import List, Optional
-import uuid
+import json
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from psycopg import AsyncConnection
+from psycopg.rows import class_row
 from starlette.responses import Response
 
 from src.dependencies import get_db, get_jinja, get_tag_repository
@@ -37,7 +38,7 @@ async def get_tag_tree(parent_path: Optional[str] = None,
             # Let's assume get_children with a non-existent root path or similar logic fetches top level
             # For now, let's fetch tags with level 1 as top-level
             query = "SELECT * FROM tags WHERE nlevel(path) = 1 ORDER BY path"
-            async with db.cursor(row_factory=jinja.row_factory(Tag)) as cur:
+            async with db.cursor(row_factory=class_row(Tag)) as cur:
                 await cur.execute(query)
                 tags = await cur.fetchall()
             parent_tag = None # No parent for top level

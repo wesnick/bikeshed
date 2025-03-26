@@ -233,7 +233,7 @@ class Blob(BaseModel, DBModelMixin):
 class Tag(BaseModel, DBModelMixin):
     """
     A tag entity that can be hierarchically organized using ltree paths.
-    Used for categorizing and organizing content.
+    Used for categorizing, filtering, and organizing content.  And triggering workflow.
     """
     __db_table__ = "tags"
     __non_persisted_fields__: ClassVar[Set[str]] = set()  # No non-persisted fields currently
