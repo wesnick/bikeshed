@@ -108,16 +108,14 @@ class BaseRepository(Generic[T]):
                  # Check if the field type annotation suggests JSON/dict/list or if it's a Pydantic model/dict
                  field_info = self.model.model_fields.get(k)
                  is_json_like = False
-                 if field_info:
-                     origin = getattr(field_info.annotation, '__origin__', None)
-                     if origin in (dict, list) or isinstance(field_info.annotation, type) and issubclass(field_info.annotation, BaseModel):
-                          is_json_like = True
-
-                 # Pass the raw Python object; psycopg will use the registered dumper
-                 valid_update_data[k] = v
+                 # Check if the value itself requires Jsonb wrapping
+                 if isinstance(v, dict) or (isinstance(v, list) and v and (isinstance(v[0], BaseModel) or isinstance(v[0], dict))):
+                     valid_update_data[k] = Jsonb(v)
+                 else:
+                     valid_update_data[k] = v # Assume primitive or let psycopg handle it
 
         if not valid_update_data:
-            # If no valid fields to update, just fetch and return the current entity
+            # If only non-updatable fields were passed, just fetch and return the current entity
             return await self.get_by_id(conn, id)
 
         set_clause = SQL(", ").join([SQL("{} = %s").format(Identifier(k)) for k in valid_update_data.keys()])

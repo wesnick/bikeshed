@@ -24,9 +24,11 @@ def _unique_id(prefix: str) -> str:
 def sample_tag_data() -> dict:
     # Use a unique ID for each test run potentially
     tag_id = _unique_id("test_tag")
+    # Make path unique as well to avoid collisions in tests like get_by_path
+    tag_path = f"test.tag.{tag_id}"
     return {
         "id": tag_id,
-        "path": "test.tag",
+        "path": tag_path,
         "name": "Test Tag",
         "description": "A tag for testing",
     }

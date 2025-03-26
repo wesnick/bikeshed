@@ -43,9 +43,16 @@ async def db_conn() -> AsyncGenerator[AsyncConnection, None]:
 async def db_conn_clean(db_conn: AsyncConnection) -> AsyncGenerator[AsyncConnection, None]:
     """
     Provides a database connection wrapped in a transaction that rolls back.
-    Ensures test isolation.
+    Ensures test isolation by truncating tables within a transaction.
     """
+    # List of tables managed by the repositories being tested
+    tables_to_truncate = ["messages", "sessions", "blobs", "tags", "stashes", "roots", "root_files", "entity_tags", "entity_stashes"] # Add other tables as needed
+
     async with db_conn.transaction():
+        async with db_conn.cursor() as cur:
+            for table in tables_to_truncate:
+                # Use CASCADE if there are foreign key relationships
+                await cur.execute(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE")
         yield db_conn
         # Transaction automatically rolls back on exit unless committed
-        # We don't commit, so it rolls back.
+        # We don't commit, so it rolls back, ensuring cleanup even if truncate fails somehow.
