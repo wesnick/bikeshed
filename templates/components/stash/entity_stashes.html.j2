@@ -5,7 +5,7 @@
     <div class="is-flex is-justify-content-space-between is-align-items-center">
       <span class="has-text-weight-bold">{{ stash.name }}</span>
       <button class="delete"
-        hx-delete="/api/stashes/entity"
+        hx-delete="/stashes/entity"
         hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "stash_id": "{{ stash.id }}"}'
         hx-target="#entity-stashes-container"></button>
     </div>

@@ -19,7 +19,7 @@ class StashService:
     
     async def get_stash_by_name(self, conn: AsyncConnection, name: str) -> Optional[Stash]:
         """Get a stash by name."""
-        return await self.stash_repo.get_by_name(conn, name)
+        return await self.stash_repo.get_by_field(conn, 'name', name)
     
     async def create_stash(self, conn: AsyncConnection, stash: Stash) -> Stash:
         """Create a new stash."""
@@ -35,7 +35,7 @@ class StashService:
     
     async def get_recent_stashes(self, conn: AsyncConnection, limit: int = 40) -> List[Stash]:
         """Get the most recent stashes."""
-        return await self.stash_repo.get_recent_stashes(conn, limit)
+        return await self.stash_repo.get_recent(conn, limit)
     
     async def add_item_to_stash(self, conn: AsyncConnection, stash_id: UUID, item: StashItem) -> Stash:
         """Add an item to a stash."""

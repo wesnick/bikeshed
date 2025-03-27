@@ -1,6 +1,6 @@
 <div class="box">
   <h3 class="title is-5">Add Item to Stash</h3>
-  <form hx-post="/api/stashes/{{ stash.id }}/items" 
+  <form hx-post="/stashes/{{ stash.id }}/items"
         hx-ext="form-json" 
         hx-target="#stash-items">
     
@@ -24,15 +24,7 @@
         <textarea class="textarea" name="content" required></textarea>
       </div>
     </div>
-    
-    <div class="field">
-      <label class="label">Metadata (Optional JSON)</label>
-      <div class="control">
-        <textarea class="textarea" name="metadata" placeholder="{}">{}</textarea>
-      </div>
-      <p class="help">Enter valid JSON or leave as empty object {}</p>
-    </div>
-    
+
     <div class="field is-grouped">
       <div class="control">
         <button type="submit" class="button is-primary">Add Item</button>

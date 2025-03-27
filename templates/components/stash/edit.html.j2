@@ -10,7 +10,7 @@
   <h1 class="title">Edit Stash</h1>
 
   <div class="box">
-    <form hx-put="/api/stashes/{{ stash.id }}" 
+    <form hx-put="/stashes/{{ stash.id }}"
           hx-ext="form-json" 
           hx-target=".dashboard" 
           hx-push-url="/stashes/{{ stash.id }}">
@@ -28,15 +28,7 @@
           <textarea class="textarea" name="description">{{ stash.description or '' }}</textarea>
         </div>
       </div>
-      
-      <div class="field">
-        <label class="label">Metadata (JSON)</label>
-        <div class="control">
-          <textarea class="textarea" name="metadata">{{ stash.metadata | tojson }}</textarea>
-        </div>
-        <p class="help">Enter valid JSON</p>
-      </div>
-      
+
       <div class="field is-grouped">
         <div class="control">
           <button type="submit" class="button is-primary">Save Changes</button>

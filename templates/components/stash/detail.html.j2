@@ -22,7 +22,7 @@
         <span>Edit Stash</span>
       </button>
       <button class="button is-danger" 
-              hx-delete="/api/stashes/{{ stash.id }}" 
+              hx-delete="/stashes/{{ stash.id }}"
               hx-confirm="Are you sure you want to delete this stash?" 
               hx-target=".dashboard" 
               hx-push-url="/stashes">

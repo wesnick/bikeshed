@@ -650,7 +650,7 @@ def list_stashes(limit: int):
         
         async for conn in get_db():
             try:
-                stashes = await stash_repo.get_recent_stashes(conn, limit)
+                stashes = await stash_repo.get_recent(conn, limit)
                 
                 if not stashes:
                     console.print("[yellow]No stashes found.[/yellow]")

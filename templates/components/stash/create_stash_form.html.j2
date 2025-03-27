@@ -1,6 +1,6 @@
 <div class="box mt-3">
   <h4 class="title is-5">Create New Stash</h4>
-  <form hx-post="/api/stashes" hx-ext="form-json" hx-swap="none" hx-on::after-request="processStashCreation(event)">
+  <form hx-post="/stashes" hx-ext="form-json" hx-swap="none" hx-on::after-request="processStashCreation(event)">
     <input type="hidden" name="entity_id" value="{{ entity_id }}">
     <input type="hidden" name="entity_type" value="{{ entity_type }}">
     
@@ -38,7 +38,7 @@
     const response = JSON.parse(event.detail.xhr.responseText);
     if (response && response.id) {
       // Add the new stash to the entity
-      htmx.ajax('POST', '/api/stashes/entity', {
+      htmx.ajax('POST', '/stashes/entity', {
         target: '#entity-stashes-container',
         swap: 'innerHTML',
         values: {

@@ -1,6 +1,8 @@
+import json
 from typing import List, Optional, Dict, Any
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import Response
 from psycopg import AsyncConnection
 from datetime import datetime
 
@@ -45,24 +47,63 @@ class StashResponse(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 # Stash CRUD endpoints
-@router.get("", response_model=List[StashResponse])
+@router.get("")
+@jinja.hx('components/stash/list.html.j2')
 async def get_stashes(
     limit: int = Query(50, ge=1, le=100),
     db: AsyncConnection = Depends(get_db)
 ):
     """Get recent stashes."""
     stashes = await stash_service.get_recent_stashes(db, limit)
-    return stashes
+    return {"stashes": stashes}
 
-@router.get("/{stash_id}", response_model=StashResponse)
-async def get_stash(stash_id: UUID, db: AsyncConnection = Depends(get_db)):
+@router.get("/create")
+@jinja.hx('components/stash/create.html.j2')
+async def create_stash_form():
+    """Render the create stash form."""
+    return {}
+
+
+@router.get("/{stash_id}")
+@jinja.hx('components/stash/detail.html.j2')
+async def get_stash_detail(stash_id: UUID, db: AsyncConnection = Depends(get_db)):
     """Get a stash by ID."""
     stash = await stash_service.get_stash(db, stash_id)
     if not stash:
         raise HTTPException(status_code=404, detail="Stash not found")
-    return stash
+    return {"stash": stash}
 
-@router.post("", response_model=StashResponse)
+
+@router.get("/{stash_id}/edit")
+@jinja.hx('components/stash/edit.html.j2')
+async def edit_stash_form(stash_id: UUID, db: AsyncConnection = Depends(get_db)):
+    """Render the edit stash form."""
+    stash = await stash_service.get_stash(db, stash_id)
+    if not stash:
+        raise HTTPException(status_code=404, detail="Stash not found")
+    return {"stash": stash}
+
+@router.get("/{stash_id}/items")
+@jinja.hx('components/stash/items.html.j2')
+async def get_stash_items(stash_id: UUID, db: AsyncConnection = Depends(get_db)):
+    """Get items for a stash."""
+    stash = await stash_service.get_stash(db, stash_id)
+    if not stash:
+        raise HTTPException(status_code=404, detail="Stash not found")
+    return {"stash": stash}
+
+@router.get("/{stash_id}/add-item")
+@jinja.hx('components/stash/add_item.html.j2')
+async def add_item_form(stash_id: UUID, db: AsyncConnection = Depends(get_db)):
+    """Render the add item form."""
+    stash = await stash_service.get_stash(db, stash_id)
+    if not stash:
+        raise HTTPException(status_code=404, detail="Stash not found")
+    return {"stash": stash}
+
+
+@router.post("")
+@jinja.hx('components/stash/detail.html.j2')
 async def create_stash(stash_data: StashCreate, request: Request, db: AsyncConnection = Depends(get_db)):
     """Create a new stash."""
     # Check if stash with this name already exists
@@ -81,17 +122,13 @@ async def create_stash(stash_data: StashCreate, request: Request, db: AsyncConne
     )
     
     created_stash = await stash_service.create_stash(db, stash)
-    
-    # If this is an HTMX request, redirect to the stash list
-    if "HX-Request" in request.headers:
-        return jinja.TemplateResponse("components/stash/list.html.j2", {
-            "request": request,
-            "stashes": await stash_service.get_recent_stashes(db)
-        })
-    
-    return created_stash
 
-@router.put("/{stash_id}", response_model=StashResponse)
+    return {
+        'stash': created_stash
+    }
+
+@router.put("/{stash_id}")
+@jinja.hx('components/stash/detail.html.j2')
 async def update_stash(stash_id: UUID, stash_data: StashUpdate, request: Request, db: AsyncConnection = Depends(get_db)):
     """Update an existing stash."""
     # Check if stash exists
@@ -106,38 +143,31 @@ async def update_stash(stash_id: UUID, stash_data: StashUpdate, request: Request
     
     # Update the stash
     updated_stash = await stash_service.update_stash(db, stash_id, update_data)
-    
-    # If this is an HTMX request, return the stash detail view
-    if "HX-Request" in request.headers:
-        return jinja.TemplateResponse("components/stash/detail.html.j2", {
-            "request": request,
-            "stash": updated_stash
-        })
-    
-    return updated_stash
 
-@router.delete("/{stash_id}", response_model=bool)
-async def delete_stash(stash_id: UUID, request: Request, db: AsyncConnection = Depends(get_db)):
+    return {
+        "stash": updated_stash
+    }
+
+@router.delete("/{stash_id}")
+@jinja.hx('components/stash/list.html.j2')
+async def delete_stash(stash_id: UUID, response: Response, db: AsyncConnection = Depends(get_db)):
     """Delete a stash."""
     # Check if stash exists
     existing_stash = await stash_service.get_stash(db, stash_id)
     if not existing_stash:
         raise HTTPException(status_code=404, detail="Stash not found")
-    
-    # Delete the stash
-    success = await stash_service.delete_stash(db, stash_id)
-    
-    # If this is an HTMX request, return the stash list view
-    if "HX-Request" in request.headers:
-        return jinja.TemplateResponse("components/stash/list.html.j2", {
-            "request": request,
-            "stashes": await stash_service.get_recent_stashes(db)
-        })
-    
-    return success
+
+    deleted = await stash_service.delete_stash(db, stash_id)
+
+    response.headers['HX-Trigger'] = json.dumps({'ui.notify': 'Stash deleted successfully.' if deleted else 'Error deleting stash.'})
+
+    return {
+        "stashes": await stash_service.get_recent_stashes(db)
+    }
 
 # Stash item endpoints
-@router.post("/{stash_id}/items", response_model=StashResponse)
+@router.post("/{stash_id}/items")
+@jinja.hx('components/stash/items.html.j2')
 async def add_item_to_stash(stash_id: UUID, item_data: StashItemCreate, request: Request, db: AsyncConnection = Depends(get_db)):
     """Add an item to a stash."""
     # Check if stash exists
@@ -154,17 +184,13 @@ async def add_item_to_stash(stash_id: UUID, item_data: StashItemCreate, request:
     
     # Add the item to the stash
     updated_stash = await stash_service.add_item_to_stash(db, stash_id, item)
-    
-    # If this is an HTMX request, return just the items component
-    if "HX-Request" in request.headers:
-        return jinja.TemplateResponse("components/stash/items.html.j2", {
-            "request": request,
-            "stash": updated_stash
-        })
-    
-    return updated_stash
 
-@router.delete("/{stash_id}/items/{item_index}", response_model=StashResponse)
+    return {
+        "stash": updated_stash
+    }
+
+@router.delete("/{stash_id}/items/{item_index}")
+@jinja.hx('components/stash/items.html.j2')
 async def remove_item_from_stash(stash_id: UUID, item_index: int, request: Request, db: AsyncConnection = Depends(get_db)):
     """Remove an item from a stash by its index."""
     # Check if stash exists
@@ -178,18 +204,14 @@ async def remove_item_from_stash(stash_id: UUID, item_index: int, request: Reque
     
     # Remove the item from the stash
     updated_stash = await stash_service.remove_item_from_stash(db, stash_id, item_index)
-    
-    # If this is an HTMX request, return just the items component
-    if "HX-Request" in request.headers:
-        return jinja.TemplateResponse("components/stash/items.html.j2", {
-            "request": request,
-            "stash": updated_stash
-        })
-    
-    return updated_stash
+
+    return {
+        "stash": updated_stash
+    }
 
 # Entity-stash relationship endpoints
-@router.post("/entity", response_model=bool)
+@router.post("/entity")
+@jinja.hx('')
 async def add_stash_to_entity(request: EntityStashRequest, db: AsyncConnection = Depends(get_db)):
     """Add a stash to an entity."""
     success = await stash_service.add_stash_to_entity(db, request.entity_id, request.entity_type, request.stash_id)
@@ -197,7 +219,8 @@ async def add_stash_to_entity(request: EntityStashRequest, db: AsyncConnection =
         raise HTTPException(status_code=404, detail="Stash not found or relationship already exists")
     return success
 
-@router.delete("/entity", response_model=bool)
+@router.delete("/entity")
+@jinja.hx('')
 async def remove_stash_from_entity(request: EntityStashRequest, db: AsyncConnection = Depends(get_db)):
     """Remove a stash from an entity."""
     success = await stash_service.remove_stash_from_entity(db, request.entity_id, request.entity_type, request.stash_id)
@@ -205,7 +228,8 @@ async def remove_stash_from_entity(request: EntityStashRequest, db: AsyncConnect
         raise HTTPException(status_code=404, detail="Relationship not found")
     return success
 
-@router.get("/entity/{entity_type}/{entity_id}", response_model=List[StashResponse])
+@router.get("/entity/{entity_type}/{entity_id}")
+@jinja.hx('')
 async def get_entity_stashes(entity_type: str, entity_id: UUID, db: AsyncConnection = Depends(get_db)):
     """Get all stashes for an entity."""
     stashes = await stash_service.get_entity_stashes(db, entity_id, entity_type)
