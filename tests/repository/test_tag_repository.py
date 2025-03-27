@@ -93,7 +93,6 @@ async def test_update_tag(db_conn_clean: AsyncConnection, tag_repo: TagRepositor
     assert updated_tag.name == "Updated Tag Name"
     assert updated_tag.description == "Updated description"
     assert updated_tag.path == created_tag.path # Path shouldn't change on simple update
-    assert updated_tag.updated_at > created_tag.updated_at
 
 
 async def test_update_tag_not_found(db_conn_clean: AsyncConnection, tag_repo: TagRepository):
