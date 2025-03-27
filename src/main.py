@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+from datetime import datetime
+
 import uvicorn
 import asyncio
 import uuid
@@ -109,7 +111,7 @@ async def right_drawer_component(request: Request):
     all_headers = [f'{key}: {value}' for key, value in request.headers.items()]
 
     return {
-        'data': f"Current URL: {request.headers.get('hx-current-url')} \n\n"
+        'data': f"Time: {datetime.now()} Current URL: {request.headers.get('hx-current-url')} \n\n"
     }
 
 @app.get("/components/navbar-notifications")

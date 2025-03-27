@@ -1,7 +1,9 @@
 from typing import List, Optional
+from uuid import UUID
 import json
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Form
+from fastapi import APIRouter, Depends, HTTPException, Query, Form
 from psycopg import AsyncConnection
 from psycopg.rows import class_row
 from starlette.responses import Response
@@ -9,16 +11,44 @@ from starlette.responses import Response
 from src.dependencies import get_db, get_jinja, get_tag_repository
 from src.models.models import Tag
 from src.repository.tag import TagRepository
+from src.service import tag_service
 from src.service.logging import logger
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 jinja = get_jinja()
 
+
+from pydantic import BaseModel
+
+class TagCreate(BaseModel):
+    id: str
+    path: str
+    name: str
+    description: Optional[str] = None
+
+class TagUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+class EntityTagRequest(BaseModel):
+    entity_id: UUID
+    entity_type: str
+    tag_id: str
+
+class TagResponse(BaseModel):
+    id: str
+    path: str
+    name: str
+    description: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
 @router.get("/")
 @jinja.hx('components/tags/tag_management.html.j2', no_data=True)
 async def tag_management_page():
     """Serves the main tag management page."""
-    pass # The template will trigger loading the initial tree
+
 
 @router.get("/tree")
 @jinja.hx('components/tags/tag_tree.html.j2')
@@ -133,51 +163,9 @@ async def create_tag(
         raise HTTPException(status_code=500, detail=f"Failed to create tag: {e}")
 
 
-# Add routes for edit/update/delete later
-# @router.get("/{tag_id}/edit") ...
-# @router.put("/{tag_id}") ...
-# @router.delete("/{tag_id}") ...
-from typing import List, Optional
-from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Query
-from psycopg import AsyncConnection
-from datetime import datetime
-
-from src.models.models import Tag
-from src.dependencies import get_db, get_jinja
-from src.service.tag_service import TagService
-
-router = APIRouter(prefix="/tags", tags=["tags"])
-tag_service = TagService()
-
-# Pydantic models for request/response
-from pydantic import BaseModel
-
-class TagCreate(BaseModel):
-    id: str
-    path: str
-    name: str
-    description: Optional[str] = None
-
-class TagUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-
-class EntityTagRequest(BaseModel):
-    entity_id: UUID
-    entity_type: str
-    tag_id: str
-
-class TagResponse(BaseModel):
-    id: str
-    path: str
-    name: str
-    description: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
 
 # Tag CRUD endpoints
-@router.get("", response_model=List[TagResponse])
+@router.get("/api", response_model=List[TagResponse])
 async def get_tags(
     path_prefix: Optional[str] = None,
     search: Optional[str] = None,
@@ -197,7 +185,7 @@ async def get_tags(
     
     return tags
 
-@router.get("/{tag_id}", response_model=TagResponse)
+@router.get("/api/{tag_id}", response_model=TagResponse)
 async def get_tag(tag_id: str, db: AsyncConnection = Depends(get_db)):
     """Get a tag by ID."""
     tag = await tag_service.get_tag(db, tag_id)
@@ -205,7 +193,7 @@ async def get_tag(tag_id: str, db: AsyncConnection = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Tag not found")
     return tag
 
-@router.post("", response_model=TagResponse)
+@router.post("/api", response_model=TagResponse)
 async def create_tag(tag_data: TagCreate, db: AsyncConnection = Depends(get_db)):
     """Create a new tag."""
     # Check if tag with this ID already exists
@@ -231,7 +219,7 @@ async def create_tag(tag_data: TagCreate, db: AsyncConnection = Depends(get_db))
     created_tag = await tag_service.create_tag(db, tag)
     return created_tag
 
-@router.put("/{tag_id}", response_model=TagResponse)
+@router.put("/api/{tag_id}", response_model=TagResponse)
 async def update_tag(tag_id: str, tag_data: TagUpdate, db: AsyncConnection = Depends(get_db)):
     """Update an existing tag."""
     # Check if tag exists
@@ -248,7 +236,7 @@ async def update_tag(tag_id: str, tag_data: TagUpdate, db: AsyncConnection = Dep
     updated_tag = await tag_service.update_tag(db, tag_id, update_data)
     return updated_tag
 
-@router.delete("/{tag_id}", response_model=bool)
+@router.delete("/api/{tag_id}", response_model=bool)
 async def delete_tag(tag_id: str, db: AsyncConnection = Depends(get_db)):
     """Delete a tag."""
     # Check if tag exists
@@ -261,7 +249,7 @@ async def delete_tag(tag_id: str, db: AsyncConnection = Depends(get_db)):
     return success
 
 # Entity-tag relationship endpoints
-@router.post("/entity", response_model=bool)
+@router.post("/api/entity", response_model=bool)
 async def add_tag_to_entity(request: EntityTagRequest, db: AsyncConnection = Depends(get_db)):
     """Add a tag to an entity."""
     success = await tag_service.add_tag_to_entity(db, request.entity_id, request.entity_type, request.tag_id)
@@ -269,7 +257,7 @@ async def add_tag_to_entity(request: EntityTagRequest, db: AsyncConnection = Dep
         raise HTTPException(status_code=404, detail="Tag not found or relationship already exists")
     return success
 
-@router.delete("/entity", response_model=bool)
+@router.delete("/api/entity", response_model=bool)
 async def remove_tag_from_entity(request: EntityTagRequest, db: AsyncConnection = Depends(get_db)):
     """Remove a tag from an entity."""
     success = await tag_service.remove_tag_from_entity(db, request.entity_id, request.entity_type, request.tag_id)
@@ -277,7 +265,7 @@ async def remove_tag_from_entity(request: EntityTagRequest, db: AsyncConnection 
         raise HTTPException(status_code=404, detail="Relationship not found")
     return success
 
-@router.get("/entity/{entity_type}/{entity_id}", response_model=List[TagResponse])
+@router.get("/api/entity/{entity_type}/{entity_id}", response_model=List[TagResponse])
 async def get_entity_tags(entity_type: str, entity_id: UUID, db: AsyncConnection = Depends(get_db)):
     """Get all tags for an entity."""
     tags = await tag_service.get_entity_tags(db, entity_id, entity_type)

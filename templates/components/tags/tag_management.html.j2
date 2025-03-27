@@ -7,8 +7,7 @@
         <h2 class="subtitle">Tag Hierarchy</h2>
         <div id="tag-tree-root"
              hx-get="/tags/tree"
-             hx-trigger="load, sse:tag.created"
-             hx-swap="innerHTML">
+             hx-trigger="load, sse:tag.created">
           <p>Loading tags...</p>
         </div>
       </div>
@@ -19,8 +18,7 @@
           <p>Select a tag to see details or click "Add Top-Level Tag".</p>
           <button class="button is-primary"
                   hx-get="/tags/create"
-                  hx-target="#tag-details"
-                  hx-swap="innerHTML">
+                  hx-target="#tag-details">
               <span class="icon"><i class="fas fa-plus"></i></span>
               <span>Add Top-Level Tag</span>
           </button>

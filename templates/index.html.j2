@@ -67,7 +67,7 @@
       <aside class="drawer-container p-2">
         <div class="drawer"
                hx-get="/components/drawer"
-               hx-trigger="load, drawer.updated from:body">
+               hx-trigger="load, route.updated from:body">
           {% include 'components/skeleton.html.j2' %}
         </div>
       </aside>
