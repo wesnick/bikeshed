@@ -84,13 +84,14 @@ class Message(BaseModel, DBModelMixin):
 
 class Session(BaseModel, DBModelMixin):
     __db_table__ = "sessions"
-    __non_persisted_fields__ = {'machine', 'messages'}
+    __non_persisted_fields__ = {'machine', 'messages', 'created_at', 'updated_at'}
     __unique_fields__ = {'id'}
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     description: Optional[str] = None
     goal: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     template: Optional[SessionTemplate] = None
 
     # Workflow state fields
@@ -162,13 +163,13 @@ class Session(BaseModel, DBModelMixin):
 
 class Root(BaseModel, DBModelMixin):
     __db_table__ = "roots"
-    __non_persisted_fields__ = {'files'}
+    __non_persisted_fields__ = {'files', 'created_at', 'last_accessed_at'}
     __unique_fields__ = {'uri'} # Assuming URI should be unique
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     uri: str  # The root URI
-    created_at: datetime = Field(default_factory=datetime.now)
-    last_accessed_at: datetime = Field(default_factory=datetime.now)
+    created_at: Optional[datetime] = None
+    last_accessed_at: Optional[datetime] = None
     extra: Optional[Dict[str, Any]] = None  # For additional metadata
 
     # Relationships
@@ -207,7 +208,7 @@ class Blob(BaseModel, DBModelMixin):
     Represents a file with metadata, with the actual bytes stored on disk.
     """
     __db_table__ = "blobs"
-    __non_persisted_fields__: ClassVar[Set[str]] = set() # No non-persisted fields currently
+    __non_persisted_fields__: ClassVar[Set[str]] = {'created_at', 'updated_at'} # Add timestamp fields
     __unique_fields__ = {'id'} # Or perhaps sha256 if available and enforced?
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
@@ -217,8 +218,8 @@ class Blob(BaseModel, DBModelMixin):
     content_url: str  # URL or file path where the actual bytes are stored
     byte_size: Optional[int] = None  # Size of the media object in bytes
     sha256: Optional[str] = None  # SHA-256 hash of the media object for integrity verification
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     metadata: Optional[Dict[str, Any]] = None  # Additional metadata about the media object
 
     @model_validator(mode='after')
@@ -236,15 +237,15 @@ class Tag(BaseModel, DBModelMixin):
     Used for categorizing, filtering, and organizing content.  And triggering workflow.
     """
     __db_table__ = "tags"
-    __non_persisted_fields__: ClassVar[Set[str]] = set()  # No non-persisted fields currently
+    __non_persisted_fields__: ClassVar[Set[str]] = {'created_at', 'updated_at'}  # Add timestamp fields
     __unique_fields__ = {'id'}  # ID is the primary key
 
     id: str  # Human-readable string ID
     path: str  # Hierarchical path using ltree format
     name: str  # Display name of the tag
     description: Optional[str] = None  # Optional description
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     @model_validator(mode='after')
     def validate_path_format(self) -> 'Tag':
@@ -278,6 +279,6 @@ class Stash(BaseModel, DBModelMixin):
     name: str  # Name of the stash
     description: Optional[str] = None  # Description of the stash
     items: List[StashItem] = Field(default_factory=list)  # Items in the stash
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     metadata: Optional[Dict[str, Any]] = None  # Additional metadata

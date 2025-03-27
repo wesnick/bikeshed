@@ -147,19 +147,14 @@ class BaseRepository(Generic[T]):
         Update an existing entity.
         Expects a dictionary of fields to update.
         Non-persisted fields in update_data will be ignored.
-        The 'updated_at' field is automatically set to NOW().
+        The 'updated_at' field is managed by database triggers.
         """
         # Prepare data, excluding non-persisted fields and None values
         prepared_update_data = await prepare_data_for_db(update_data)
 
         if not prepared_update_data:
-             # If only 'updated_at' was provided or all fields were filtered out,
-             # still proceed to update 'updated_at'
-             if 'updated_at' in update_data:
-                 pass # We will update updated_at anyway
-             else:
-                 # No valid fields to update, return existing record
-                 return await self.get_by_id(conn, id)
+             # No valid fields to update, return existing record
+             return await self.get_by_id(conn, id)
 
         # Build SET clause and values tuple
         set_parts = []

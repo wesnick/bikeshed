@@ -1,6 +1,15 @@
 create extension vector;
 create extension ltree;
 
+-- Create a function for updating timestamps
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 create table sessions
 (
     id            uuid      not null primary key,
@@ -14,6 +23,11 @@ create table sessions
     workflow_data jsonb,
     error         text
 );
+
+-- Apply timestamp trigger to sessions table
+CREATE TRIGGER update_timestamp_sessions
+BEFORE UPDATE ON sessions
+FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
 create table messages
 (
@@ -71,6 +85,11 @@ create table blobs
     metadata     jsonb
 );
 
+-- Apply timestamp trigger to blobs table
+CREATE TRIGGER update_timestamp_blobs
+BEFORE UPDATE ON blobs
+FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
 
 create table tags (
     id varchar(50) primary key,  -- human-readable string id
@@ -81,6 +100,11 @@ create table tags (
     updated_at timestamp    not null default current_timestamp,
     constraint valid_path_format check (path::text ~ '^([a-z0-9_]+\.)*[a-z0-9_]+$')  -- ensure path follows ltree format
 );
+
+-- Apply timestamp trigger to tags table
+CREATE TRIGGER update_timestamp_tags
+BEFORE UPDATE ON tags
+FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
 create index tags_path_idx on tags using gist (path);
 create index tags_path_idx_btree on tags using btree (path);
@@ -94,6 +118,11 @@ create table stashes (
     updated_at timestamp not null default current_timestamp,
     metadata jsonb
 );
+
+-- Apply timestamp trigger to stashes table
+CREATE TRIGGER update_timestamp_stashes
+BEFORE UPDATE ON stashes
+FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
 create index stashes_name_idx on stashes (name);
 
