@@ -33,8 +33,10 @@ class RootRepository(BaseRepository[Root]):
                 ORDER BY path
             """)
             
-            await cur.execute(files_query, (root_id,))
-            files = await cur.fetchall()
+            # Create a new cursor with the RootFile row factory for fetching files
+            async with conn.cursor(row_factory=class_row(RootFile)) as files_cur:
+                await files_cur.execute(files_query, (root_id,))
+                files = await files_cur.fetchall()
             
             # Manually set the files relationship
             root.files = files
