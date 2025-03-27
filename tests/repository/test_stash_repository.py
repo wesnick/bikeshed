@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from uuid import uuid4, UUID
 from datetime import datetime
@@ -186,6 +188,7 @@ async def test_get_stash_by_name(db_conn_clean: AsyncConnection, stash_repo: Sta
     stash_data = _create_stash_data(sample_stash_data, name=stash_name)
     stash = Stash(**stash_data)
     created_stash = await stash_repo.create(db_conn_clean, stash) # Use created_stash for ID comparison
+    fetched_stash = await stash_repo.get_by_name(db_conn_clean, stash_name)
 
     assert fetched_stash is not None
     assert fetched_stash.id == created_stash.id # Compare against the ID returned from DB

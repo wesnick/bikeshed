@@ -271,7 +271,7 @@ class Stash(BaseModel, DBModelMixin):
     Acts as a container for various types of content.
     """
     __db_table__ = "stashes"
-    __non_persisted_fields__: ClassVar[Set[str]] = set()  # No non-persisted fields currently
+    __non_persisted_fields__: ClassVar[Set[str]] = {'created_at', 'updated_at'}
     __unique_fields__ = {'id'}  # ID is the primary key
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)

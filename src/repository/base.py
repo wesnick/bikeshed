@@ -27,7 +27,7 @@ async def _prepare_data_for_db(model_instance: DBModelMixin) -> Dict[str, Any]:
     JSON serializer for complex types.
     """
     data = model_instance.model_dump_db()
-    return await _do_prepare_data(data, model_instance.__class__.__non_persisted_fields__)
+    return await _do_prepare_data(data)
 
 
 def _serialize_pydantic_deep(obj: Any) -> Any:
@@ -38,6 +38,8 @@ def _serialize_pydantic_deep(obj: Any) -> Any:
         return {k: _serialize_pydantic_deep(v) for k, v in obj.items()}
     elif isinstance(obj, BaseModel):
         # Use model_dump for Pydantic models
+        from src.service.logging import logger
+        logger.warning(f"Serializing Pydantic model: {obj}")
         return obj.model_dump(mode='json')
     # Add other type handlers if needed (e.g., datetime, UUID)
     # Let psycopg handle standard types like str, int, float, bool, None
@@ -138,11 +140,8 @@ class BaseRepository(Generic[T]):
         Non-persisted fields in update_data will be ignored.
         The 'updated_at' field is automatically set to NOW().
         """
-        # Exclude 'updated_at' from the input data as we'll set it manually
-        update_data_filtered = {k: v for k, v in update_data.items() if k != 'updated_at'}
-
         # Prepare data, excluding non-persisted fields and None values
-        prepared_update_data = await _do_prepare_data(update_data_filtered, self.model.__non_persisted_fields__)
+        prepared_update_data = await _do_prepare_data(update_data)
 
         if not prepared_update_data:
              # If only 'updated_at' was provided or all fields were filtered out,
@@ -155,8 +154,6 @@ class BaseRepository(Generic[T]):
                  return await self.get_by_id(conn, id)
                  # raise ValueError("No valid fields provided for update") # Alternative
 
-        # Always add/overwrite the updated_at timestamp using SQL NOW()
-        prepared_update_data['updated_at'] = SQL("NOW()")
 
         # Build SET clause and values tuple
         set_parts = []
@@ -177,7 +174,7 @@ class BaseRepository(Generic[T]):
 
         query = SQL("UPDATE {} SET {} WHERE id = %s RETURNING *").format(
             Identifier(self.table_name),
-            final_set_clause
+            set_clause
         )
 
         async with conn.cursor(row_factory=class_row(self.model)) as cur:

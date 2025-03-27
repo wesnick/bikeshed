@@ -96,3 +96,38 @@ create table stashes (
 );
 
 create index stashes_name_idx on stashes (name);
+
+
+-- create entity_tags junction table
+create table if not exists entity_tags (
+    entity_id uuid not null,
+    entity_type varchar(50) not null,
+    tag_id varchar(255) not null,
+    created_at timestamp with time zone default now(),
+    primary key (entity_id, entity_type, tag_id),
+    foreign key (tag_id) references tags(id) on delete cascade
+);
+
+-- create index on entity_id and entity_type for faster lookups
+create index if not exists idx_entity_tags_entity on entity_tags(entity_id, entity_type);
+-- create index on tag_id for faster lookups
+create index if not exists idx_entity_tags_tag on entity_tags(tag_id);
+
+-- create entity_stashes junction table
+create table if not exists entity_stashes (
+    entity_id uuid not null,
+    entity_type varchar(50) not null,
+    stash_id uuid not null,
+    created_at timestamp with time zone default now(),
+    primary key (entity_id, entity_type, stash_id),
+    foreign key (stash_id) references stashes(id) on delete cascade
+);
+
+-- create index on entity_id and entity_type for faster lookups
+create index if not exists idx_entity_stashes_entity on entity_stashes(entity_id, entity_type);
+-- create index on stash_id for faster lookups
+create index if not exists idx_entity_stashes_stash on entity_stashes(stash_id);
+
+-- add comment to explain the tables
+comment on table entity_tags is 'junction table for associating tags with various entity types';
+comment on table entity_stashes is 'junction table for associating stashes with various entity types';

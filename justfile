@@ -29,7 +29,7 @@ aider *args:
     aider --file docs/project.md --file justfile {{args}}
 
 aider-gemini *args:
-    just aider '--model gemini-2.5-pro-exp-03-25' {{args}}
+    just aider '--model gemini-2.5-pro' {{args}}
 
 # Start Docker containers in detached mode
 docup:
@@ -42,6 +42,11 @@ docdown:
 # Run database migrations to the latest version
 migrate *args:
     pg-schema-diff apply --dsn "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB" --schema-dir config/database --allow-hazards ACQUIRES_ACCESS_EXCLUSIVE_LOCK,INDEX_BUILD,INDEX_DROPPED {{args}}
+
+migrate-test *args:
+    pg-schema-diff apply --dsn "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/app_test" --schema-dir config/database --allow-hazards ACQUIRES_ACCESS_EXCLUSIVE_LOCK,INDEX_BUILD,INDEX_DROPPED {{args}}
+
+
 
 # Search MCP with an optional query
 search-mcp query="":

@@ -18,11 +18,14 @@ class Config(BaseSettings):
     redis_host: str
     redis_port: int
     redis_db: int
-    
+
     # Application settings
     log_level: str = "INFO"
     log_file: str | None = None
 
+    @computed_field
+    def postgres_db_test(self) -> str:
+        return self.postgres_db + '_test'
 
     @computed_field
     def database_url(self) -> PostgresDsn:
