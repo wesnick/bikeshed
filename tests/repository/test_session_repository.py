@@ -186,7 +186,6 @@ async def test_get_recent_sessions(db_conn_clean: AsyncConnection, session_repo:
 
     # Simulate time passing
     await db_conn_clean.execute(SQL("UPDATE sessions SET created_at = NOW() - INTERVAL '1 second' WHERE id = %s"), (str(created1.id),))
-    await db_conn_clean.commit() # Commit the time change
 
     session2_data = _create_session_data(sample_session_data, description="session_new")
     session2 = Session(**session2_data)
@@ -235,7 +234,6 @@ async def test_get_with_messages(db_conn_clean: AsyncConnection, session_repo: S
     msg1 = await message_repo.create(db_conn_clean, Message(**msg1_data))
     # Simulate time passing for ordering
     await db_conn_clean.execute(SQL("UPDATE messages SET timestamp = NOW() - INTERVAL '1 second' WHERE id = %s"), (str(msg1.id),))
-    await db_conn_clean.commit()
     msg2 = await message_repo.create(db_conn_clean, Message(**msg2_data))
 
     # Fetch session with messages

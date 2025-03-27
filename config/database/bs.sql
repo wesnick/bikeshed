@@ -47,8 +47,7 @@ create table roots
 (
     id               uuid       not null primary key,
     uri              text       not null unique,
-    created_at       timestamp,
-    last_accessed_at timestamp,
+    created_at       timestamp  not null default current_timestamp,
     extra            jsonb
 );
 

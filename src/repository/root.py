@@ -52,29 +52,13 @@ class RootRepository(BaseRepository[Root]):
     
     @db_operation
     async def get_recent_roots(self, conn: AsyncConnection, limit: int = 10) -> List[Root]:
-        """Get the most recently accessed roots"""
+        """Get the most recently created roots"""
         query = SQL("""
             SELECT * FROM {} 
-            ORDER BY last_accessed_at DESC 
+            ORDER BY created_at DESC 
             LIMIT %s
         """).format(Identifier(self.table_name))
         
         async with conn.cursor(row_factory=class_row(Root)) as cur:
             await cur.execute(query, (limit,))
             return await cur.fetchall()
-    
-    @db_operation
-    async def update_last_accessed(self, conn: AsyncConnection, root_id: UUID) -> Optional[Root]:
-        """Update the last_accessed_at timestamp for a root"""
-        query = SQL("""
-            UPDATE {} 
-            SET last_accessed_at = NOW() 
-            WHERE id = %s 
-            RETURNING *
-        """).format(Identifier(self.table_name))
-        
-        async with conn.cursor(row_factory=class_row(Root)) as cur:
-            await cur.execute(query, (root_id,))
-            root = await cur.fetchone()
-            # Remove the explicit commit as it's handled by the db_operation decorator
-            return root

@@ -163,13 +163,12 @@ class Session(BaseModel, DBModelMixin):
 
 class Root(BaseModel, DBModelMixin):
     __db_table__ = "roots"
-    __non_persisted_fields__ = {'files', 'created_at', 'last_accessed_at'}
+    __non_persisted_fields__ = {'files', 'created_at'}
     __unique_fields__ = {'uri'} # Assuming URI should be unique
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     uri: str  # The root URI
     created_at: Optional[datetime] = None
-    last_accessed_at: Optional[datetime] = None
     extra: Optional[Dict[str, Any]] = None  # For additional metadata
 
     # Relationships

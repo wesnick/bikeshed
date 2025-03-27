@@ -59,7 +59,6 @@ async def test_create_root(db_conn_clean: AsyncConnection, root_repo: RootReposi
     assert created_root.uri == sample_root_data["uri"]
     assert created_root.extra == sample_root_data["extra"]
     assert isinstance(created_root.created_at, datetime)
-    assert isinstance(created_root.last_accessed_at, datetime)
 
 
 async def test_get_root_by_id(db_conn_clean: AsyncConnection, root_repo: RootRepository, sample_root_data: dict):
@@ -158,7 +157,7 @@ async def test_get_recent_roots(db_conn_clean: AsyncConnection, root_repo: RootR
 
     # Simulate time passing
     await db_conn_clean.execute(
-        SQL("UPDATE roots SET last_accessed_at = NOW() - INTERVAL '1 second' WHERE id = %s"), 
+        SQL("UPDATE roots SET created_at = NOW() - INTERVAL '1 second' WHERE id = %s"), 
         (str(created1.id),)
     )
 
@@ -196,33 +195,6 @@ async def test_get_root_by_uri_not_found(db_conn_clean: AsyncConnection, root_re
     assert fetched_root is None
 
 
-async def test_update_last_accessed(db_conn_clean: AsyncConnection, root_repo: RootRepository, sample_root_data: dict):
-    root = Root(**sample_root_data)
-    created_root = await root_repo.create(db_conn_clean, root)
-    
-    # Get the initial last_accessed_at time
-    initial_root = await root_repo.get_by_id(db_conn_clean, created_root.id)
-    initial_accessed_at = initial_root.last_accessed_at
-    
-    # Simulate time passing
-    await db_conn_clean.execute(
-        SQL("UPDATE roots SET last_accessed_at = NOW() - INTERVAL '1 hour' WHERE id = %s"), 
-        (str(created_root.id),)
-    )
-    
-    # Update last_accessed_at
-    updated_root = await root_repo.update_last_accessed(db_conn_clean, created_root.id)
-    
-    assert updated_root is not None
-    assert updated_root.id == created_root.id
-    # The timestamp should be updated to now
-    assert updated_root.last_accessed_at > initial_accessed_at
-
-
-async def test_update_last_accessed_not_found(db_conn_clean: AsyncConnection, root_repo: RootRepository):
-    non_existent_id = uuid4()
-    updated_root = await root_repo.update_last_accessed(db_conn_clean, non_existent_id)
-    assert updated_root is None
 
 
 async def test_get_with_files(db_conn_clean: AsyncConnection, root_repo: RootRepository, sample_root_data: dict, sample_root_file: RootFile):
@@ -232,11 +204,13 @@ async def test_get_with_files(db_conn_clean: AsyncConnection, root_repo: RootRep
     
     # Create files for this root
     file1 = sample_root_file.model_copy()
+    file1.id = uuid4()
     file1.root_id = created_root.id
     file1.path = "/test/path/file1.txt"
     file1.name = "file1.txt"
     
     file2 = sample_root_file.model_copy()
+    file2.id = uuid4()
     file2.root_id = created_root.id
     file2.path = "/test/path/file2.txt"
     file2.name = "file2.txt"
