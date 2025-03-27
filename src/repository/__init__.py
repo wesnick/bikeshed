@@ -1,12 +1,11 @@
-from src.repository.session import SessionRepository
-from src.repository.message import MessageRepository
-from src.repository.tag import TagRepository
-from src.repository.blob import BlobRepository
-from src.repository.stash import StashRepository
+from src.models.models import Session, Message, Tag, Blob, Stash, Root, RootFile
+from src.repository.factory import RepositoryFactory
 
 # Create instances for dependency injection
-session_repository = SessionRepository()
-message_repository = MessageRepository()
-tag_repository = TagRepository()
-blob_repository = BlobRepository()
-stash_repository = StashRepository()
+session_repository = RepositoryFactory.get_repository(Session)
+message_repository = RepositoryFactory.get_repository(Message)
+tag_repository = RepositoryFactory.get_repository(Tag)
+blob_repository = RepositoryFactory.get_repository(Blob)
+stash_repository = RepositoryFactory.get_repository(Stash)
+root_repository = RepositoryFactory.get_repository(Root)
+root_file_repository = RepositoryFactory.get_repository(RootFile)

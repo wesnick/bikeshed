@@ -5,36 +5,13 @@ from psycopg.rows import class_row
 from psycopg.sql import SQL, Identifier
 
 from src.models.models import Stash, StashItem
-from src.repository.base import BaseRepository
+from src.repository.base import BaseRepository, db_operation
 
 class StashRepository(BaseRepository[Stash]):
     def __init__(self):
         super().__init__(Stash)
-        self.table_name = "stashes"  # Ensure correct table name
-
-    async def get_recent_stashes(self, conn: AsyncConnection, limit: int = 40) -> List[Stash]:
-        """Get the most recent stashes"""
-        query = SQL("""
-            SELECT * FROM {} 
-            ORDER BY created_at DESC 
-            LIMIT %s
-        """).format(Identifier(self.table_name))
-        
-        async with conn.cursor(row_factory=class_row(Stash)) as cur:
-            await cur.execute(query, (limit,))
-            return await cur.fetchall()
     
-    async def get_by_name(self, conn: AsyncConnection, name: str) -> Optional[Stash]:
-        """Get a stash by its name"""
-        query = SQL("""
-            SELECT * FROM {} 
-            WHERE name = %s
-        """).format(Identifier(self.table_name))
-        
-        async with conn.cursor(row_factory=class_row(Stash)) as cur:
-            await cur.execute(query, (name,))
-            return await cur.fetchone()
-    
+    @db_operation
     async def add_item(self, conn: AsyncConnection, stash_id: UUID, item: StashItem) -> Stash:
         """Add an item to a stash"""
         # First get the stash
@@ -47,6 +24,7 @@ class StashRepository(BaseRepository[Stash]):
         # Update the stash in the database - BaseRepository.update handles updated_at
         return await self.update(conn, stash_id, {"items": stash.items})
 
+    @db_operation
     async def remove_item(self, conn: AsyncConnection, stash_id: UUID, item_index: int) -> Stash:
         """Remove an item from a stash by its index"""
         # First get the stash
