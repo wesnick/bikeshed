@@ -8,10 +8,12 @@ from datetime import datetime
 
 from src.models.models import Stash, StashItem
 from src.dependencies import get_db, get_jinja
-from src.service.stash_service import StashService
+from src.repository.stash import StashRepository
+from src.repository.entity_stash import EntityStashRepository
 
 router = APIRouter(prefix="/stashes", tags=["stashes"])
-stash_service = StashService()
+stash_repo = StashRepository()
+entity_stash_repo = EntityStashRepository()
 jinja = get_jinja()
 
 # Pydantic models for request/response
@@ -54,7 +56,7 @@ async def get_stashes(
     db: AsyncConnection = Depends(get_db)
 ):
     """Get recent stashes."""
-    stashes = await stash_service.get_recent_stashes(db, limit)
+    stashes = await stash_repo.get_recent(db, limit)
     return {"stashes": stashes}
 
 @router.get("/create")
@@ -68,7 +70,7 @@ async def create_stash_form():
 @jinja.hx('components/stash/detail.html.j2')
 async def get_stash_detail(stash_id: UUID, db: AsyncConnection = Depends(get_db)):
     """Get a stash by ID."""
-    stash = await stash_service.get_stash(db, stash_id)
+    stash = await stash_repo.get_by_id(db, stash_id)
     if not stash:
         raise HTTPException(status_code=404, detail="Stash not found")
     return {"stash": stash}
@@ -78,7 +80,7 @@ async def get_stash_detail(stash_id: UUID, db: AsyncConnection = Depends(get_db)
 @jinja.hx('components/stash/edit.html.j2')
 async def edit_stash_form(stash_id: UUID, db: AsyncConnection = Depends(get_db)):
     """Render the edit stash form."""
-    stash = await stash_service.get_stash(db, stash_id)
+    stash = await stash_repo.get_by_id(db, stash_id)
     if not stash:
         raise HTTPException(status_code=404, detail="Stash not found")
     return {"stash": stash}
@@ -87,7 +89,7 @@ async def edit_stash_form(stash_id: UUID, db: AsyncConnection = Depends(get_db))
 @jinja.hx('components/stash/items.html.j2')
 async def get_stash_items(stash_id: UUID, db: AsyncConnection = Depends(get_db)):
     """Get items for a stash."""
-    stash = await stash_service.get_stash(db, stash_id)
+    stash = await stash_repo.get_by_id(db, stash_id)
     if not stash:
         raise HTTPException(status_code=404, detail="Stash not found")
     return {"stash": stash}
@@ -96,7 +98,7 @@ async def get_stash_items(stash_id: UUID, db: AsyncConnection = Depends(get_db))
 @jinja.hx('components/stash/add_item.html.j2')
 async def add_item_form(stash_id: UUID, db: AsyncConnection = Depends(get_db)):
     """Render the add item form."""
-    stash = await stash_service.get_stash(db, stash_id)
+    stash = await stash_repo.get_by_id(db, stash_id)
     if not stash:
         raise HTTPException(status_code=404, detail="Stash not found")
     return {"stash": stash}
@@ -107,7 +109,7 @@ async def add_item_form(stash_id: UUID, db: AsyncConnection = Depends(get_db)):
 async def create_stash(stash_data: StashCreate, request: Request, db: AsyncConnection = Depends(get_db)):
     """Create a new stash."""
     # Check if stash with this name already exists
-    existing_stash = await stash_service.get_stash_by_name(db, stash_data.name)
+    existing_stash = await stash_repo.get_by_field(db, 'name', stash_data.name)
     if existing_stash:
         raise HTTPException(status_code=400, detail="Stash with this name already exists")
     
@@ -121,7 +123,7 @@ async def create_stash(stash_data: StashCreate, request: Request, db: AsyncConne
         metadata=stash_data.metadata
     )
     
-    created_stash = await stash_service.create_stash(db, stash)
+    created_stash = await stash_repo.create(db, stash)
 
     return {
         'stash': created_stash
@@ -132,7 +134,7 @@ async def create_stash(stash_data: StashCreate, request: Request, db: AsyncConne
 async def update_stash(stash_id: UUID, stash_data: StashUpdate, request: Request, db: AsyncConnection = Depends(get_db)):
     """Update an existing stash."""
     # Check if stash exists
-    existing_stash = await stash_service.get_stash(db, stash_id)
+    existing_stash = await stash_repo.get_by_id(db, stash_id)
     if not existing_stash:
         raise HTTPException(status_code=404, detail="Stash not found")
     
@@ -142,7 +144,7 @@ async def update_stash(stash_id: UUID, stash_data: StashUpdate, request: Request
         update_data["updated_at"] = datetime.now()
     
     # Update the stash
-    updated_stash = await stash_service.update_stash(db, stash_id, update_data)
+    updated_stash = await stash_repo.update(db, stash_id, update_data)
 
     return {
         "stash": updated_stash
@@ -153,16 +155,16 @@ async def update_stash(stash_id: UUID, stash_data: StashUpdate, request: Request
 async def delete_stash(stash_id: UUID, response: Response, db: AsyncConnection = Depends(get_db)):
     """Delete a stash."""
     # Check if stash exists
-    existing_stash = await stash_service.get_stash(db, stash_id)
+    existing_stash = await stash_repo.get_by_id(db, stash_id)
     if not existing_stash:
         raise HTTPException(status_code=404, detail="Stash not found")
 
-    deleted = await stash_service.delete_stash(db, stash_id)
+    deleted = await stash_repo.delete(db, stash_id)
 
     response.headers['HX-Trigger'] = json.dumps({'ui.notify': 'Stash deleted successfully.' if deleted else 'Error deleting stash.'})
 
     return {
-        "stashes": await stash_service.get_recent_stashes(db)
+        "stashes": await stash_repo.get_recent(db)
     }
 
 # Stash item endpoints
@@ -171,7 +173,7 @@ async def delete_stash(stash_id: UUID, response: Response, db: AsyncConnection =
 async def add_item_to_stash(stash_id: UUID, item_data: StashItemCreate, request: Request, db: AsyncConnection = Depends(get_db)):
     """Add an item to a stash."""
     # Check if stash exists
-    existing_stash = await stash_service.get_stash(db, stash_id)
+    existing_stash = await stash_repo.get_by_id(db, stash_id)
     if not existing_stash:
         raise HTTPException(status_code=404, detail="Stash not found")
     
@@ -183,7 +185,7 @@ async def add_item_to_stash(stash_id: UUID, item_data: StashItemCreate, request:
     )
     
     # Add the item to the stash
-    updated_stash = await stash_service.add_item_to_stash(db, stash_id, item)
+    updated_stash = await stash_repo.add_item(db, stash_id, item)
 
     return {
         "stash": updated_stash
@@ -194,7 +196,7 @@ async def add_item_to_stash(stash_id: UUID, item_data: StashItemCreate, request:
 async def remove_item_from_stash(stash_id: UUID, item_index: int, request: Request, db: AsyncConnection = Depends(get_db)):
     """Remove an item from a stash by its index."""
     # Check if stash exists
-    existing_stash = await stash_service.get_stash(db, stash_id)
+    existing_stash = await stash_repo.get_by_id(db, stash_id)
     if not existing_stash:
         raise HTTPException(status_code=404, detail="Stash not found")
     
@@ -203,7 +205,7 @@ async def remove_item_from_stash(stash_id: UUID, item_index: int, request: Reque
         raise HTTPException(status_code=400, detail="Invalid item index")
     
     # Remove the item from the stash
-    updated_stash = await stash_service.remove_item_from_stash(db, stash_id, item_index)
+    updated_stash = await stash_repo.remove_item(db, stash_id, item_index)
 
     return {
         "stash": updated_stash
@@ -214,16 +216,22 @@ async def remove_item_from_stash(stash_id: UUID, item_index: int, request: Reque
 @jinja.hx('')
 async def add_stash_to_entity(request: EntityStashRequest, db: AsyncConnection = Depends(get_db)):
     """Add a stash to an entity."""
-    success = await stash_service.add_stash_to_entity(db, request.entity_id, request.entity_type, request.stash_id)
+    # Verify the stash exists
+    stash = await stash_repo.get_by_id(db, request.stash_id)
+    if not stash:
+        raise HTTPException(status_code=404, detail="Stash not found")
+    
+    success = await entity_stash_repo.add_stash_to_entity(db, request.entity_id, request.entity_type, request.stash_id)
     if not success:
-        raise HTTPException(status_code=404, detail="Stash not found or relationship already exists")
+        # This might happen if the relationship already exists, depending on DB constraints
+        raise HTTPException(status_code=409, detail="Relationship already exists or other database error")
     return success
 
 @router.delete("/entity")
 @jinja.hx('')
 async def remove_stash_from_entity(request: EntityStashRequest, db: AsyncConnection = Depends(get_db)):
     """Remove a stash from an entity."""
-    success = await stash_service.remove_stash_from_entity(db, request.entity_id, request.entity_type, request.stash_id)
+    success = await entity_stash_repo.remove_stash_from_entity(db, request.entity_id, request.entity_type, request.stash_id)
     if not success:
         raise HTTPException(status_code=404, detail="Relationship not found")
     return success
@@ -232,7 +240,7 @@ async def remove_stash_from_entity(request: EntityStashRequest, db: AsyncConnect
 @jinja.hx('')
 async def get_entity_stashes(entity_type: str, entity_id: UUID, db: AsyncConnection = Depends(get_db)):
     """Get all stashes for an entity."""
-    stashes = await stash_service.get_entity_stashes(db, entity_id, entity_type)
+    stashes = await entity_stash_repo.get_entity_stashes(db, entity_id, entity_type)
     return stashes
 
 # HTML component endpoints
@@ -245,12 +253,12 @@ async def stash_selector_component(
 ):
     """Render a stash selector component."""
     # Get recent stashes
-    stashes = await stash_service.get_recent_stashes(db, limit=20)
+    stashes = await stash_repo.get_recent(db, limit=20)
     
     # If entity ID and type are provided, get the entity's stashes
     entity_stashes = []
     if entity_id and entity_type:
-        entity_stashes = await stash_service.get_entity_stashes(db, entity_id, entity_type)
+        entity_stashes = await entity_stash_repo.get_entity_stashes(db, entity_id, entity_type)
     
     return {
         "stashes": stashes,
@@ -267,7 +275,7 @@ async def entity_stashes_component(
     db: AsyncConnection = Depends(get_db)
 ):
     """Render the stashes for an entity."""
-    stashes = await stash_service.get_entity_stashes(db, entity_id, entity_type)
+    stashes = await entity_stash_repo.get_entity_stashes(db, entity_id, entity_type)
     
     return {
         "stashes": stashes,
