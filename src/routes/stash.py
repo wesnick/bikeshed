@@ -10,6 +10,7 @@ from src.service.stash_service import StashService
 
 router = APIRouter(prefix="/stashes", tags=["stashes"])
 stash_service = StashService()
+jinja = get_jinja()
 
 # Pydantic models for request/response
 from pydantic import BaseModel
@@ -172,7 +173,7 @@ async def get_entity_stashes(entity_type: str, entity_id: UUID, db: AsyncConnect
 
 # HTML component endpoints
 @router.get("/components/stash-selector")
-@get_jinja().hx('components/stash_selector.html.j2')
+@jinja.hx('components/stash/stash_selector.html.j2')
 async def stash_selector_component(
     entity_id: Optional[UUID] = None,
     entity_type: Optional[str] = None,
@@ -195,7 +196,7 @@ async def stash_selector_component(
     }
 
 @router.get("/components/entity-stashes")
-@get_jinja().hx('components/entity_stashes.html.j2')
+@jinja.hx('components/stash/entity_stashes.html.j2')
 async def entity_stashes_component(
     entity_id: UUID,
     entity_type: str,
