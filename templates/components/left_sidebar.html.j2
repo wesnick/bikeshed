@@ -54,6 +54,28 @@
         </li>
       </ul>
     </details>
+    <!-- Stashes Section -->
+    <details>
+      <summary class="is-size-5">
+        Stashes
+        [<a hx-get="/stashes" hx-target=".dashboard" hx-push-url="true">manage</a>]
+      </summary>
+      <ul class="menu-list">
+        <li>
+          <a hx-get="/stashes" hx-target=".dashboard" hx-push-url="true">
+            <span class="icon"><i class="fas fa-bookmark"></i></span>
+            Manage Stashes
+          </a>
+        </li>
+        <li>
+          <a hx-get="/stashes/create" hx-target=".dashboard" hx-push-url="true">
+            <span class="icon"><i class="fas fa-plus"></i></span>
+            Create Stash
+          </a>
+        </li>
+      </ul>
+    </details>
+    
     <!-- Tags Section -->
     <details>
       <summary class="is-size-5">
