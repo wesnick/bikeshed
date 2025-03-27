@@ -27,6 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('SSE Connected');
     });
 
+    // Listen for history changes and dispatch route.changed event
+    document.body.addEventListener('htmx:pushedIntoHistory', function(event) {
+      console.log('Route changed:', window.location.pathname);
+      htmx.trigger(document.body, 'route.changed', {
+        path: window.location.pathname
+      });
+    });
+
   } else {
     console.error('HTMX not loaded properly');
   }
