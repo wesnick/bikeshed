@@ -241,7 +241,9 @@ async def test_get_with_files(db_conn_clean: AsyncConnection, root_repo: RootRep
     file2.path = "/test/path/file2.txt"
     file2.name = "file2.txt"
     
-    # Insert files directly into the database
+    # Insert files directly into the database - use Jsonb for the extra field
+    from psycopg.types.json import Jsonb
+    
     await db_conn_clean.execute(
         """
         INSERT INTO root_files (id, root_id, name, path, extension, mime_type, size, atime, mtime, ctime, extra)
@@ -250,7 +252,7 @@ async def test_get_with_files(db_conn_clean: AsyncConnection, root_repo: RootRep
         (
             str(file1.id), str(file1.root_id), file1.name, file1.path, file1.extension,
             file1.mime_type, file1.size, file1.atime, file1.mtime, file1.ctime, 
-            file1.extra
+            Jsonb(file1.extra) if file1.extra else None
         )
     )
     
@@ -262,7 +264,7 @@ async def test_get_with_files(db_conn_clean: AsyncConnection, root_repo: RootRep
         (
             str(file2.id), str(file2.root_id), file2.name, file2.path, file2.extension,
             file2.mime_type, file2.size, file2.atime, file2.mtime, file2.ctime, 
-            file2.extra
+            Jsonb(file2.extra) if file2.extra else None
         )
     )
     
