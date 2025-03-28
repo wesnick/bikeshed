@@ -72,3 +72,10 @@ async def registry_mcp_servers(request: Request, mcp_client: MCPClient = Depends
         "mcp_servers": registry.mcp_servers,
         "server_status": server_status
     }
+
+@router.get("/models")
+@jinja.hx('components/registry/models_list.html.j2')
+async def registry_models(request: Request) -> dict:
+    """This route serves the LLM models listing page."""
+    registry = request.app.state.registry
+    return {"models": registry.models}
