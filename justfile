@@ -46,8 +46,6 @@ migrate *args:
 migrate-test *args:
     pg-schema-diff apply --dsn "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/app_test" --schema-dir config/database --allow-hazards ACQUIRES_ACCESS_EXCLUSIVE_LOCK,INDEX_BUILD,INDEX_DROPPED,HAS_UNTRACKABLE_DEPENDENCIES {{args}}
 
-
-
 # Search MCP with an optional query
 search-mcp query="":
     python -m src.cli search-mcp {{query}}
@@ -58,8 +56,7 @@ test:
 
 # Set up test database
 setup-test-db:
-    PGPASSWORD=$POSTGRES_PASSWORD createdb -U $POSTGRES_USER $POSTGRES_DB_test || echo "Test database already exists"
-    PGPASSWORD=$POSTGRES_PASSWORD psql -U $POSTGRES_USER -d $POSTGRES_DB_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
+    PGPASSWORD=$POSTGRES_PASSWORD createdb -h 127.0.0.1 -U $POSTGRES_USER app_test || echo "Test database already exists"
 
 # Fix formatting on html templates
 html-lint:

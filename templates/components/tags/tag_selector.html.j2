@@ -4,9 +4,11 @@
     <div class="control">
       <div class="dropdown" id="tag-dropdown">
         <div class="dropdown-trigger">
-          <button class="button" aria-haspopup="true" aria-controls="dropdown-menu"
-            hx-get="/api/tags/components/entity-tags?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
-            hx-target="#entity-tags-container">
+          <button class="button"
+                  aria-haspopup="true"
+                  aria-controls="dropdown-menu"
+                  hx-get="/api/tags/components/entity-tags?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
+                  hx-target="#entity-tags-container">
             <span>Add Tags</span>
             <span class="icon is-small">
               <i class="fas fa-angle-down" aria-hidden="true"></i>
@@ -16,21 +18,21 @@
         <div class="dropdown-menu" id="dropdown-menu" role="menu">
           <div class="dropdown-content">
             <div class="dropdown-item">
-              <input class="input" type="text" placeholder="Search tags..." 
-                hx-get="/api/tags?search="
-                hx-trigger="keyup changed delay:500ms"
-                hx-target="#tag-search-results">
+              <input class="input"
+                     type="text"
+                     placeholder="Search tags..."
+                     hx-get="/api/tags?search="
+                     hx-trigger="keyup changed delay:500ms"
+                     hx-target="#tag-search-results">
             </div>
             <hr class="dropdown-divider">
             <div id="tag-search-results">
               {% for tag in top_level_tags %}
-              <a class="dropdown-item" 
-                hx-post="/api/tags/entity"
-                hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "tag_id": "{{ tag.id }}"}'
-                hx-target="#entity-tags-container"
-                hx-swap="innerHTML">
-                {{ tag.name }}
-              </a>
+                <a class="dropdown-item"
+                   hx-post="/api/tags/entity"
+                   hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "tag_id": "{{ tag.id }}"}'
+                   hx-target="#entity-tags-container"
+                   hx-swap="innerHTML">{{ tag.name }}</a>
               {% endfor %}
             </div>
           </div>
@@ -38,26 +40,24 @@
       </div>
     </div>
   </div>
-  
   <div id="entity-tags-container">
     {% if entity_tags %}
-    <div class="tags">
-      {% for tag in entity_tags %}
-      <span class="tag is-primary">
-        {{ tag.name }}
-        <button class="delete is-small"
-          hx-delete="/api/tags/entity"
-          hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "tag_id": "{{ tag.id }}"}'
-          hx-target="#entity-tags-container"></button>
-      </span>
-      {% endfor %}
-    </div>
+      <div class="tags">
+        {% for tag in entity_tags %}
+          <span class="tag is-primary">
+            {{ tag.name }}
+            <button class="delete is-small"
+                    hx-delete="/api/tags/entity"
+                    hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "tag_id": "{{ tag.id }}"}'
+                    hx-target="#entity-tags-container"></button>
+          </span>
+        {% endfor %}
+      </div>
     {% else %}
-    <p class="help">No tags assigned</p>
+      <p class="help">No tags assigned</p>
     {% endif %}
   </div>
 </div>
-
 <script>
   // Toggle dropdown when button is clicked
   document.querySelector('#tag-dropdown .dropdown-trigger button').addEventListener('click', function(e) {

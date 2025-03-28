@@ -1,18 +1,18 @@
 {% if stashes %}
-<div class="stashes">
-  {% for stash in stashes %}
-  <div class="box p-3 mb-2">
-    <div class="is-flex is-justify-content-space-between is-align-items-center">
-      <span class="has-text-weight-bold">{{ stash.name }}</span>
-      <button class="delete"
-        hx-delete="/stashes/entity"
-        hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "stash_id": "{{ stash.id }}"}'
-        hx-target="#entity-stashes-container"></button>
-    </div>
-    <p class="is-size-7">{{ stash.items|length }} items</p>
+  <div class="stashes">
+    {% for stash in stashes %}
+      <div class="box p-3 mb-2">
+        <div class="is-flex is-justify-content-space-between is-align-items-center">
+          <span class="has-text-weight-bold">{{ stash.name }}</span>
+          <button class="delete"
+                  hx-delete="/stashes/entity"
+                  hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "stash_id": "{{ stash.id }}"}'
+                  hx-target="#entity-stashes-container"></button>
+        </div>
+        <p class="is-size-7">{{ stash.items|length }} items</p>
+      </div>
+    {% endfor %}
   </div>
-  {% endfor %}
-</div>
 {% else %}
-<p class="help">No stashes assigned</p>
+  <p class="help">No stashes assigned</p>
 {% endif %}

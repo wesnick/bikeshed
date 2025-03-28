@@ -2,24 +2,21 @@
   <div class="is-flex is-justify-content-space-between mb-4">
     <h1 class="title">Stashes</h1>
     <div>
-      <button class="button is-primary" 
-              hx-get="/stashes/create" 
+      <button class="button is-primary"
+              hx-get="/stashes/create"
               hx-target=".dashboard">
         <span class="icon"><i class="fas fa-plus"></i></span>
         <span>Create Stash</span>
       </button>
     </div>
   </div>
-
   {% if stashes %}
     <div class="columns is-multiline">
       {% for stash in stashes %}
         <div class="column is-one-third">
           <div class="card">
             <header class="card-header">
-              <p class="card-header-title">
-                {{ stash.name }}
-              </p>
+              <p class="card-header-title">{{ stash.name }}</p>
             </header>
             <div class="card-content">
               <div class="content">
@@ -32,28 +29,28 @@
                   <span class="has-text-weight-bold">Items:</span> {{ stash.items|length }}
                 </p>
                 <p class="is-size-7">
-                  <span class="has-text-weight-bold">Created:</span> {{ stash.created_at.strftime('%Y-%m-%d %H:%M') }}
+                  <span class="has-text-weight-bold">Created:</span> {{ stash.created_at.strftime("%Y-%m-%d %H:%M") }}
                 </p>
               </div>
             </div>
             <footer class="card-footer">
-              <a class="card-footer-item" 
-                 hx-get="/stashes/{{ stash.id }}" 
-                 hx-target=".dashboard" 
+              <a class="card-footer-item"
+                 hx-get="/stashes/{{ stash.id }}"
+                 hx-target=".dashboard"
                  hx-push-url="true">
                 <span class="icon"><i class="fas fa-eye"></i></span>
                 <span>View</span>
               </a>
-              <a class="card-footer-item" 
-                 hx-get="/stashes/{{ stash.id }}/edit" 
+              <a class="card-footer-item"
+                 hx-get="/stashes/{{ stash.id }}/edit"
                  hx-target=".dashboard">
                 <span class="icon"><i class="fas fa-edit"></i></span>
                 <span>Edit</span>
               </a>
-              <a class="card-footer-item has-text-danger" 
+              <a class="card-footer-item has-text-danger"
                  hx-delete="/stashes/{{ stash.id }}"
-                 hx-confirm="Are you sure you want to delete this stash?" 
-                 hx-target="closest .column" 
+                 hx-confirm="Are you sure you want to delete this stash?"
+                 hx-target="closest .column"
                  hx-swap="outerHTML">
                 <span class="icon"><i class="fas fa-trash"></i></span>
                 <span>Delete</span>

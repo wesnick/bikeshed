@@ -3,7 +3,6 @@ import uuid
 import hashlib
 import shutil
 import magic
-from pathlib import Path
 from typing import Optional, List, Dict, Any, BinaryIO
 from uuid import UUID
 

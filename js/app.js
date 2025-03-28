@@ -55,47 +55,6 @@ function initializeTheme() {
 // Setup theme toggle when navbar is loaded and highlight code blocks
 document.body.addEventListener('htmx:afterSettle', function (event) {
 
-  // Tags input
-  if (event.detail.elt.querySelector && event.detail.elt.querySelector('.tags-input')) {
-
-    const tagsInput = event.detail.elt.querySelector('.tags-input');
-
-    new BulmaTagsInput(tagsInput, {
-      source: async function (value) {
-        // Value equal input value
-        // We can then use it to request data from external API
-        return await fetch("/tags/autocomplete/" + value)
-          .then(function (response) {
-            return response.json();
-          });
-      },
-
-    });
-
-    tagsInput.BulmaTagsInput().on('after.add', function (data) {
-      console.log(data, 'after.add');
-      // Set the tag ID and action in the form
-      const tagId = data.item.value;
-      document.getElementById('tag-id').value = tagId;
-      document.getElementById('tag-action').value = 'add';
-      
-      // Trigger custom event to submit the form
-      document.body.dispatchEvent(new CustomEvent('tagAdded'));
-    })
-    
-    tagsInput.BulmaTagsInput().on('after.remove', function (data) {
-      console.log(data, 'after.remove');
-      // Set the tag ID and action in the form
-      const tagId = data.item.value;
-      document.getElementById('tag-id').value = tagId;
-      document.getElementById('tag-action').value = 'remove';
-      
-      // Trigger custom event to submit the form
-      document.body.dispatchEvent(new CustomEvent('tagRemoved'));
-    })
-
-  }
-
   // if (event.detail.elt.querySelector && event.detail.elt.querySelector('#editor')) {
   //   initializeEditor();
   // }

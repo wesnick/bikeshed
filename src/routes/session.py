@@ -2,19 +2,18 @@ from typing import Optional
 import uuid
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Request
 from psycopg import AsyncConnection
 from starlette.responses import Response
 
 from src.core.registry import Registry
 from src.core.workflow.service import WorkflowService
 from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry, get_broadcast_service, \
-    get_completion_service, get_arq_redis
+    get_arq_redis
 from src.models.models import MessageStatus
 from src.repository import session_repository, message_repository
 from src.models import Session, Message
 from src.service.broadcast import BroadcastService
-from src.service.llm import CompletionService
 from src.types import SessionTemplateCreationRequest, MessageCreate
 from src.service.logging import logger
 

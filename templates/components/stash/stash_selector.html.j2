@@ -4,9 +4,11 @@
     <div class="control">
       <div class="dropdown" id="stash-dropdown">
         <div class="dropdown-trigger">
-          <button class="button" aria-haspopup="true" aria-controls="dropdown-menu"
-            hx-get="/stashes/components/entity-stashes?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
-            hx-target="#entity-stashes-container">
+          <button class="button"
+                  aria-haspopup="true"
+                  aria-controls="dropdown-menu"
+                  hx-get="/stashes/components/entity-stashes?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
+                  hx-target="#entity-stashes-container">
             <span>Add Stashes</span>
             <span class="icon is-small">
               <i class="fas fa-angle-down" aria-hidden="true"></i>
@@ -16,52 +18,45 @@
         <div class="dropdown-menu" id="dropdown-menu" role="menu">
           <div class="dropdown-content">
             {% for stash in stashes %}
-            <a class="dropdown-item" 
-              hx-post="/stashes/entity"
-              hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "stash_id": "{{ stash.id }}"}'
-              hx-target="#entity-stashes-container"
-              hx-swap="innerHTML">
-              {{ stash.name }}
-            </a>
+              <a class="dropdown-item"
+                 hx-post="/stashes/entity"
+                 hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "stash_id": "{{ stash.id }}"}'
+                 hx-target="#entity-stashes-container"
+                 hx-swap="innerHTML">{{ stash.name }}</a>
             {% endfor %}
             <hr class="dropdown-divider">
             <div class="dropdown-item">
               <button class="button is-small is-fullwidth"
-                hx-get="/stashes/components/create-stash-form?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
-                hx-target="#stash-form-container">
-                Create New Stash
-              </button>
+                      hx-get="/stashes/components/create-stash-form?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
+                      hx-target="#stash-form-container">Create New Stash</button>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-  
   <div id="entity-stashes-container">
     {% if entity_stashes %}
-    <div class="stashes">
-      {% for stash in entity_stashes %}
-      <div class="box p-3 mb-2">
-        <div class="is-flex is-justify-content-space-between is-align-items-center">
-          <span class="has-text-weight-bold">{{ stash.name }}</span>
-          <button class="delete"
-            hx-delete="/stashes/entity"
-            hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "stash_id": "{{ stash.id }}"}'
-            hx-target="#entity-stashes-container"></button>
-        </div>
-        <p class="is-size-7">{{ stash.items|length }} items</p>
+      <div class="stashes">
+        {% for stash in entity_stashes %}
+          <div class="box p-3 mb-2">
+            <div class="is-flex is-justify-content-space-between is-align-items-center">
+              <span class="has-text-weight-bold">{{ stash.name }}</span>
+              <button class="delete"
+                      hx-delete="/stashes/entity"
+                      hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "stash_id": "{{ stash.id }}"}'
+                      hx-target="#entity-stashes-container"></button>
+            </div>
+            <p class="is-size-7">{{ stash.items|length }} items</p>
+          </div>
+        {% endfor %}
       </div>
-      {% endfor %}
-    </div>
     {% else %}
-    <p class="help">No stashes assigned</p>
+      <p class="help">No stashes assigned</p>
     {% endif %}
   </div>
-  
   <div id="stash-form-container"></div>
 </div>
-
 <script>
   // Toggle dropdown when button is clicked
   document.querySelector('#stash-dropdown .dropdown-trigger button').addEventListener('click', function(e) {

@@ -1,6 +1,6 @@
 from typing import Type, Dict, Optional
 
-from src.models.models import Session, Message, Tag, Blob, Stash, Root, RootFile
+from src.models.models import Session, Message, Tag, Blob, Stash
 from src.repository.base import BaseRepository
 from src.repository.session import SessionRepository
 from src.repository.message import MessageRepository

@@ -5,7 +5,7 @@ import asyncio
 from psycopg import AsyncConnection
 
 from src.core.workflow.engine import PersistenceProvider
-from src.models.models import Session, SessionStatus, WorkflowData
+from src.models.models import Session, WorkflowData
 from src.repository.session import SessionRepository
 from src.repository.message import MessageRepository
 from src.service.logging import logger

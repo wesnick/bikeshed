@@ -1,66 +1,62 @@
 {# Form for creating or editing a tag #}
 {% set is_edit = tag is not none %}
 <h2 class="subtitle">{{ "Edit Tag" if is_edit else "Create New Tag" }}</h2>
-
 {% if parent_tag %}
-<p>Creating under: <strong>{{ parent_tag.name }}</strong> (<code>{{ parent_tag.path }}</code>)</p>
+  <p>
+    Creating under: <strong>{{ parent_tag.name }}</strong> (<code>{{ parent_tag.path }}</code>)
+  </p>
 {% elif not is_edit %}
-<p>Creating a top-level tag.</p>
+  <p>Creating a top-level tag.</p>
 {% endif %}
-
 <form hx-post="{{ '/tags/' + tag.id if is_edit else '/tags/' }}" {# Adjust target for PUT later #}
-      hx-target="#tag-details" {# Or maybe trigger tree refresh #}
-      hx-swap="innerHTML" {# Swap content of the details box on success/error #}
-      class="mt-4">
-
-    {# Hidden field for parent path when creating a child #}
-    {% if not is_edit and parent_tag %}
-    <input type="hidden" name="parent_path" value="{{ parent_tag.path }}">
-    {% endif %}
-
-    <div class="field">
-        <label class="label" for="tag-name">Name</label>
-        <div class="control">
-            <input class="input" type="text" id="tag-name" name="name"
-                   value="{{ tag.name if is_edit else '' }}" required>
-        </div>
-        <p class="help">User-friendly display name for the tag.</p>
+  hx-target="#tag-details" {# Or maybe trigger tree refresh #}
+  hx-swap="innerHTML" {# Swap content of the details box on success/error #}
+  class="mt-4">
+  {# Hidden field for parent path when creating a child #}
+  {% if not is_edit and parent_tag %}<input type="hidden" name="parent_path" value="{{ parent_tag.path }}">{% endif %}
+  <div class="field">
+    <label class="label" for="tag-name">Name</label>
+    <div class="control">
+      <input class="input"
+             type="text"
+             id="tag-name"
+             name="name"
+             value="{{ tag.name if is_edit else '' }}"
+             required>
     </div>
-
-    <div class="field">
-        <label class="label" for="tag-id">ID (Path Segment)</label>
-        <div class="control">
-            <input class="input" type="text" id="tag-id" name="tag_id"
-                   value="{{ tag.id if is_edit else '' }}"
-                   {{ "readonly" if is_edit else "required" }}
-                   pattern="^[a-z0-9_]+$"
-                   title="Lowercase letters, numbers, and underscores only.">
-        </div>
-        <p class="help">Unique identifier used in the tag's path (e.g., 'my_tag'). Cannot be changed after creation.</p>
+    <p class="help">User-friendly display name for the tag.</p>
+  </div>
+  <div class="field">
+    <label class="label" for="tag-id">ID (Path Segment)</label>
+    <div class="control">
+      <input class="input"
+             type="text"
+             id="tag-id"
+             name="tag_id"
+             value="{{ tag.id if is_edit else '' }}"
+             {{ "readonly" if is_edit else "required" }}
+             pattern="^[a-z0-9_]+$"
+             title="Lowercase letters, numbers, and underscores only.">
     </div>
-
-    <div class="field">
-        <label class="label" for="tag-description">Description</label>
-        <div class="control">
-            <textarea class="textarea" id="tag-description" name="description">{{ tag.description if is_edit and tag.description else '' }}</textarea>
-        </div>
-        <p class="help">Optional description for the tag.</p>
+    <p class="help">Unique identifier used in the tag's path (e.g., 'my_tag'). Cannot be changed after creation.</p>
+  </div>
+  <div class="field">
+    <label class="label" for="tag-description">Description</label>
+    <div class="control">
+      <textarea class="textarea" id="tag-description" name="description">{{ tag.description if is_edit and tag.description else '' }}</textarea>
     </div>
-
-    <div class="field is-grouped">
-        <div class="control">
-            <button class="button is-link" type="submit">
-                {{ "Save Changes" if is_edit else "Create Tag" }}
-            </button>
-        </div>
-        <div class="control">
-            {# Button to cancel and maybe reload the initial state of the details pane #}
-            <button class="button is-light" type="button"
-                    hx-get="/tags" {# Reloads the main management view, clearing the form #}
-                    hx-target=".dashboard"
-                    hx-push-url="true">
-                Cancel
-            </button>
-        </div>
+    <p class="help">Optional description for the tag.</p>
+  </div>
+  <div class="field is-grouped">
+    <div class="control">
+      <button class="button is-link" type="submit">{{ "Save Changes" if is_edit else "Create Tag" }}</button>
     </div>
+    <div class="control">
+      {# Button to cancel and maybe reload the initial state of the details pane #}
+      <button class="button is-light" type="button"
+        hx-get="/tags" {# Reloads the main management view, clearing the form #}
+        hx-target=".dashboard"
+        hx-push-url="true">Cancel</button>
+    </div>
+  </div>
 </form>

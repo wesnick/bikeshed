@@ -1,41 +1,38 @@
 <div class="container">
   <nav class="breadcrumb" aria-label="breadcrumbs">
     <ul>
-      <li><a hx-get="/stashes" hx-target=".dashboard" hx-push-url="true">Stashes</a></li>
-      <li class="is-active"><a href="#" aria-current="page">Create New Stash</a></li>
+      <li>
+        <a hx-get="/stashes" hx-target=".dashboard" hx-push-url="true">Stashes</a>
+      </li>
+      <li class="is-active">
+        <a href="#" aria-current="page">Create New Stash</a>
+      </li>
     </ul>
   </nav>
-
   <h1 class="title">Create New Stash</h1>
-
   <div class="box">
-    <form hx-post="/stashes"
-          hx-ext="form-json" 
-          hx-target=".dashboard">
-      
+    <form hx-post="/stashes" hx-ext="form-json" hx-target=".dashboard">
       <div class="field">
         <label class="label">Name</label>
         <div class="control">
           <input class="input" type="text" name="name" required>
         </div>
       </div>
-      
       <div class="field">
         <label class="label">Description</label>
         <div class="control">
           <textarea class="textarea" name="description"></textarea>
         </div>
       </div>
-
-      
       <div class="field is-grouped">
         <div class="control">
           <button type="submit" class="button is-primary">Create</button>
         </div>
         <div class="control">
-          <button type="button" class="button" 
-                  hx-get="/stashes" 
-                  hx-target=".dashboard" 
+          <button type="button"
+                  class="button"
+                  hx-get="/stashes"
+                  hx-target=".dashboard"
                   hx-push-url="true">Cancel</button>
         </div>
       </div>

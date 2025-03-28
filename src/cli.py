@@ -397,7 +397,7 @@ def upload_blob(file_path: str, name: str = None, description: str = None):
                 )
                 
                 size = f"{blob.byte_size / 1024:.1f} KB" if blob.byte_size else "Unknown size"
-                click.echo(f"Uploaded successfully!")
+                click.echo("Uploaded successfully!")
                 click.echo(f"- ID: {blob.id}")
                 click.echo(f"- Size: {size}")
                 click.echo(f"- SHA256: {blob.sha256}")
@@ -414,7 +414,6 @@ def chat(message: str, model: str):
     from src.service.llm.litellm_service import LiteLLMCompletionService
     from src.models.models import Session, Message, MessageStatus
     import uuid
-    import os
 
     async def _chat():
         service = LiteLLMCompletionService()
@@ -527,7 +526,7 @@ def list_tags(parent: Optional[str], limit: int):
                     title = "All Tags"
                 
                 if not tags:
-                    console.print(f"[yellow]No tags found.[/yellow]")
+                    console.print("[yellow]No tags found.[/yellow]")
                     return
                 
                 # Create a table to display the tags
@@ -597,7 +596,6 @@ def search_tags(query: str, limit: int):
 def delete_tag(id: str):
     """Delete a tag by ID"""
     import asyncio
-    from uuid import UUID
     from src.repository.tag import TagRepository
     from src.dependencies import get_db
     
@@ -626,7 +624,7 @@ def delete_tag(id: str):
                 if success:
                     console.print(f"[bold green]Successfully deleted tag:[/bold green] {tag.id} ({tag.name})")
                 else:
-                    console.print(f"[yellow]Failed to delete tag.[/yellow]")
+                    console.print("[yellow]Failed to delete tag.[/yellow]")
             except Exception as e:
                 console.print(f"[bold red]Error deleting tag:[/bold red] {str(e)}")
     
@@ -746,7 +744,7 @@ def get_stash(id: str):
                     f"[bold]Created:[/bold] {stash.created_at.strftime('%Y-%m-%d %H:%M')}\n"
                     f"[bold]Updated:[/bold] {stash.updated_at.strftime('%Y-%m-%d %H:%M')}\n"
                     f"[bold]Items:[/bold] {len(stash.items)}",
-                    title=f"[bold green]Stash Details[/bold green]",
+                    title="[bold green]Stash Details[/bold green]",
                     expand=False
                 ))
                 
@@ -910,7 +908,7 @@ def delete_stash(id: str):
                 if success:
                     console.print(f"[bold green]Successfully deleted stash:[/bold green] {stash.name} (ID: {stash.id})")
                 else:
-                    console.print(f"[yellow]Failed to delete stash.[/yellow]")
+                    console.print("[yellow]Failed to delete stash.[/yellow]")
             except Exception as e:
                 console.print(f"[bold red]Error deleting stash:[/bold red] {str(e)}")
     

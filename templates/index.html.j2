@@ -16,60 +16,56 @@
     <script type="module" src="/build/js/app.js" defer></script>
     {% block head %}{% endblock %}
   </head>
-  <body
-      hx-ext="sse"
-      sse-connect="/sse"
-      sse-close="server_shutdown"
-      class="is-overflow-hidden">
+  <body hx-ext="sse"
+        sse-connect="/sse"
+        sse-close="server_shutdown"
+        class="is-overflow-hidden">
     <div class="dashboard-container">
       <!-- Header Section -->
       <header class="header">
         <nav class="navbar has-shadow"
-           role="navigation"
-           aria-label="main navigation">
-        <div class="navbar-brand">
-          <a class="navbar-item text-weight-bold is-size-4" href="/">
-            {% block branding %}BikeShed{% endblock %}
-          </a>
-        </div>
-        <!-- Notification Section -->
-        <div id="notification-area" class="navbar-notification"></div>
-        <div class="navbar-end">
-          <div class="navbar-item"
-               hx-get="/components/navbar-notifications"
-               hx-trigger="load, sse:session_update, sse:notifications.update">
-            {% include 'components/skeleton.html.j2' %}
-          </div>
-          <div class="navbar-item">
-            <a class="theme-toggle" href="#">
-              <span class="icon"><i class="fas fa-moon"></i></span>
-              <span class="theme-text">Light Mode</span>
+             role="navigation"
+             aria-label="main navigation">
+          <div class="navbar-brand">
+            <a class="navbar-item text-weight-bold is-size-4" href="/">
+              {% block branding %}BikeShed{% endblock %}
             </a>
           </div>
-        </div>
-      </nav>
+          <!-- Notification Section -->
+          <div id="notification-area" class="navbar-notification"></div>
+          <div class="navbar-end">
+            <div class="navbar-item"
+                 hx-get="/components/navbar-notifications"
+                 hx-trigger="load, sse:session_update, sse:notifications.update">
+              {% include 'components/skeleton.html.j2' %}
+            </div>
+            <div class="navbar-item">
+              <a class="theme-toggle" href="#">
+                <span class="icon"><i class="fas fa-moon"></i></span>
+                <span class="theme-text">Light Mode</span>
+              </a>
+            </div>
+          </div>
+        </nav>
       </header>
       <!-- Left Sidebar -->
       <aside class="sidebar p-2 is-flex is-flex-direction-column">
         <div class="sidebar-navigation"
-               class="overflow-y-auto"
-               hx-get="/components/left-sidebar"
-               hx-trigger="load">
-          {% include 'components/skeleton.html.j2' %}
-        </div>
-          <div class="sidebar-settings mt-auto"
-               hx-get="/registry"
-               hx-trigger="load, sse:registry.updated from:body"></div>
+             class="overflow-y-auto"
+             hx-get="/components/left-sidebar"
+             hx-trigger="load">{% include 'components/skeleton.html.j2' %}</div>
+        <div class="sidebar-settings mt-auto"
+             hx-get="/registry"
+             hx-trigger="load, sse:registry.updated from:body"></div>
       </aside>
       <!-- Main Dash -->
-      <main class="dashboard pt-2 px-2 is-flex is-flex-direction-column is-overflow-y-scroll is-overflow-x-clip"></main>
+      <main class="dashboard pt-2 px-2 is-flex is-flex-direction-column is-overflow-y-scroll is-overflow-x-clip">
+      </main>
       <!-- Drawer -->
       <aside class="drawer-container p-2">
         <div class="drawer"
-               hx-get="/components/drawer"
-               hx-trigger="load, route.updated from:body">
-          {% include 'components/skeleton.html.j2' %}
-        </div>
+             hx-get="/components/drawer"
+             hx-trigger="load, route.updated from:body">{% include 'components/skeleton.html.j2' %}</div>
       </aside>
     </div>
   </body>

@@ -1,10 +1,9 @@
-import json
 import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any, TypeVar, ClassVar, Set
 from enum import Enum
 
-from pydantic import BaseModel, Field, model_validator, ConfigDict, RootModel
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 from transitions.extensions import AsyncGraphMachine
 
 from src.core.config_types import SessionTemplate, Step

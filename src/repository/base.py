@@ -19,7 +19,7 @@ def db_operation(func):
         try:
             result = await func(self, conn, *args, **kwargs)
             return result
-        except Exception as e:
+        except Exception:
             # Optional logging
             # from src.service.logging import logger
             # logger.error(f"Error in {func.__name__}: {e}")

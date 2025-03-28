@@ -1,9 +1,9 @@
-from typing import List, Optional
+from typing import Optional
 from uuid import UUID
 import json
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Form
+from fastapi import APIRouter, Depends, HTTPException, Form
 from psycopg import AsyncConnection
 from psycopg.rows import class_row
 from starlette.responses import Response

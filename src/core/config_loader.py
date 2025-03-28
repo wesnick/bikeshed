@@ -219,7 +219,7 @@ class TemplateLoader:
                 def render_fn(**kwargs):
                     # Use the stored template content directly
                     if 'template_raw' not in kwargs:
-                        logger.error(f"Missing required template argument: template_raw")
+                        logger.error("Missing required template argument: template_raw")
                     template_raw = kwargs['template_raw']
                     return self.jinja_env.from_string(template_raw).render(**kwargs)
 

@@ -1,8 +1,4 @@
-from typing import List, Optional, Dict, Any
-from uuid import UUID
 
-from psycopg.rows import class_row
-from psycopg import AsyncConnection
 
 from src.models.models import Blob
 from src.repository.base import BaseRepository

@@ -34,7 +34,6 @@
     "vite": "^6.2.0"
   },
   "dependencies": {
-    "@creativebulma/bulma-tagsinput": "^1.0.3",
     "@rollup/plugin-inject": "^5.0.5"
   }
 }

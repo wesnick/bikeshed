@@ -1,13 +1,12 @@
-<div class="dropdown" id="notifications-dropdown" hx-get="/components/navbar-notifications" hx-trigger="refresh from:body">
+<div class="dropdown"
+     id="notifications-dropdown"
+     hx-get="/components/navbar-notifications"
+     hx-trigger="refresh from:body">
   <div class="dropdown-trigger">
     <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
       <span>Sessions
-        {% if total_running > 0 %}
-          <span class="tag is-rounded is-primary">{{ total_running }}</span>
-        {% endif %}
-        {% if total_waiting > 0 %}
-          <span class="tag is-rounded is-warning">{{ total_waiting }}</span>
-        {% endif %}
+        {% if total_running > 0 %}<span class="tag is-rounded is-primary">{{ total_running }}</span>{% endif %}
+        {% if total_waiting > 0 %}<span class="tag is-rounded is-warning">{{ total_waiting }}</span>{% endif %}
       </span>
       <span class="icon ml-2"><i class="fas fa-bell"></i></span>
     </button>
@@ -22,22 +21,25 @@
             <p class="has-text-weight-bold">Running</p>
           </div>
           {% for session in running_sessions %}
-            <a hx-get="/session/{{ session.id }}" hx-target=".dashboard" hx-push-url="true" class="dropdown-item">
+            <a hx-get="/session/{{ session.id }}"
+               hx-target=".dashboard"
+               hx-push-url="true"
+               class="dropdown-item">
               {{ session.description or "Session " + session.id|string }}
               <span class="tag is-primary is-light">{{ session.status }}</span>
             </a>
           {% endfor %}
         {% endif %}
-
         {% if total_waiting > 0 %}
-          {% if total_running > 0 %}
-            <hr class="dropdown-divider" />
-          {% endif %}
+          {% if total_running > 0 %}<hr class="dropdown-divider" />{% endif %}
           <div class="dropdown-item">
             <p class="has-text-weight-bold">Waiting for Input</p>
           </div>
           {% for session in waiting_sessions %}
-            <a hx-get="/session/{{ session.id }}" hx-target=".dashboard" hx-push-url="true" class="dropdown-item">
+            <a hx-get="/session/{{ session.id }}"
+               hx-target=".dashboard"
+               hx-push-url="true"
+               class="dropdown-item">
               {{ session.description or "Session " + session.id|string }}
               <span class="tag is-warning is-light">{{ session.status }}</span>
             </a>
