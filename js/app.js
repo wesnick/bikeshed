@@ -74,9 +74,24 @@ document.body.addEventListener('htmx:afterSettle', function (event) {
 
     tagsInput.BulmaTagsInput().on('after.add', function (data) {
       console.log(data, 'after.add');
+      // Set the tag ID and action in the form
+      const tagId = data.item.value;
+      document.getElementById('tag-id').value = tagId;
+      document.getElementById('tag-action').value = 'add';
+      
+      // Trigger custom event to submit the form
+      document.body.dispatchEvent(new CustomEvent('tagAdded'));
     })
+    
     tagsInput.BulmaTagsInput().on('after.remove', function (data) {
       console.log(data, 'after.remove');
+      // Set the tag ID and action in the form
+      const tagId = data.item.value;
+      document.getElementById('tag-id').value = tagId;
+      document.getElementById('tag-action').value = 'remove';
+      
+      // Trigger custom event to submit the form
+      document.body.dispatchEvent(new CustomEvent('tagRemoved'));
     })
 
   }

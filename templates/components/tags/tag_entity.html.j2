@@ -1,12 +1,25 @@
 <div class="field">
 	<label class="label">Tags</label>
 	<div class="control">
-		<input class="input tags-input"
-               type="text"
-               data-item-text="name"
-               data-item-value="id"
-               data-case-sensitive="false"
-               placeholder="Add tags..."
-               value="">
+		<form id="entity-tag-form" 
+              hx-post="/tags/entity"
+              hx-ext="form-json"
+              hx-trigger="tagAdded from:body, tagRemoved from:body"
+              hx-swap="none">
+            <input type="hidden" name="entity_id" value="{{ entity_id }}">
+            <input type="hidden" name="entity_type" value="{{ entity_type }}">
+            <input type="hidden" id="tag-action" name="action" value="add">
+            <input type="hidden" id="tag-id" name="tag_id" value="">
+            <input class="input tags-input"
+                   type="text"
+                   data-item-text="name"
+                   data-item-value="id"
+                   data-case-sensitive="false"
+                   placeholder="Add tags..."
+                   value=""
+                   {% if entity_tags %}
+                   data-initial-tags='{{ entity_tags | tojson }}'
+                   {% endif %}>
+		</form>
 	</div>
 </div>

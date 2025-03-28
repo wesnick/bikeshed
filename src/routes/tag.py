@@ -34,6 +34,7 @@ class EntityTagRequest(BaseModel):
     entity_id: UUID
     entity_type: str
     tag_id: str
+    action: str  # 'add' or 'remove'
 
 class TagResponse(BaseModel):
     id: str
@@ -182,6 +183,9 @@ async def tag_selector_component(
     if entity_id and entity_type:
         entity_tag_repo = EntityTagRepository()
         entity_tags = await entity_tag_repo.get_entity_tags(db, entity_id, entity_type)
+        
+        # Format tags for the tagsinput component
+        entity_tags = [{"id": tag.id, "name": tag.name} for tag in entity_tags]
     
     return {
         "top_level_tags": top_level_tags,
@@ -203,5 +207,53 @@ async def entity_tags_component(search_term: str,
     logger.error(f"res: {res}")
 
     return res
+
+
+@router.post("/entity")
+async def manage_entity_tags(
+    request: EntityTagRequest,
+    response: Response,
+    db: AsyncConnection = Depends(get_db)
+):
+    """Add or remove a tag from an entity."""
+    entity_tag_repo = EntityTagRepository()
+    
+    try:
+        if request.action == "add":
+            success = await entity_tag_repo.add_tag_to_entity(
+                db, request.entity_id, request.entity_type, request.tag_id
+            )
+            if success:
+                response.headers['HX-Trigger'] = json.dumps({
+                    "sse:entity.tag.added": {
+                        "entity_id": str(request.entity_id),
+                        "entity_type": request.entity_type,
+                        "tag_id": request.tag_id
+                    }
+                })
+                return {"success": True, "message": "Tag added successfully"}
+            else:
+                return {"success": False, "message": "Tag already exists on entity"}
+                
+        elif request.action == "remove":
+            success = await entity_tag_repo.remove_tag_from_entity(
+                db, request.entity_id, request.entity_type, request.tag_id
+            )
+            if success:
+                response.headers['HX-Trigger'] = json.dumps({
+                    "sse:entity.tag.removed": {
+                        "entity_id": str(request.entity_id),
+                        "entity_type": request.entity_type,
+                        "tag_id": request.tag_id
+                    }
+                })
+                return {"success": True, "message": "Tag removed successfully"}
+            else:
+                return {"success": False, "message": "Tag not found on entity"}
+        else:
+            return {"success": False, "message": "Invalid action"}
+    except Exception as e:
+        logger.error(f"Error managing entity tag: {e}")
+        return {"success": False, "message": str(e)}
 
 
