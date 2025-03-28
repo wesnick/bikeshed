@@ -3,6 +3,7 @@ from typing import Set
 
 from mcp import StdioServerParameters
 from pydantic import BaseModel, Field
+from src.core.config_types import Model, SessionTemplate
 from mcp.server.fastmcp.prompts import Prompt
 from mcp.server.fastmcp.tools import Tool
 from mcp.server.fastmcp.resources import Resource, ResourceTemplate
@@ -33,6 +34,7 @@ class Registry:
         self.resource_templates: dict[str, ResourceTemplate] = {}
         self.prompts: dict[str, Prompt] = {}
         self.tools: dict[str, Tool] = {}
+        self.models: dict[str, Model] = {}
         self.event_registry = event_registry
         self.session_templates: dict[str, SessionTemplate] = {}
         self.mcp_servers: dict[str, StdioServerParameters] = {}
@@ -182,6 +184,27 @@ class Registry:
             if directory_path in self.active_root_watchers:
                 del self.active_root_watchers[directory_path]
             logger.info(f"Root: stopped watching {directory_path}")
+
+    # Model methods
+    def get_model(self, model_id: str) -> Model | None:
+        """Get model by ID."""
+        return self.models.get(model_id)
+
+    def list_models(self) -> list[Model]:
+        """List all registered models."""
+        return list(self.models.values())
+
+    def add_model(self, model: Model) -> Model:
+        """Add a model to the registry."""
+        # Check for duplicates
+        existing = self.models.get(model.id)
+        if existing:
+            if self.warn_on_duplicate_schemas:
+                logger.warning(f"Model already exists: {model.id}")
+            return existing
+
+        self.models[model.id] = model
+        return model
 
     async def stop_watching(self):
         """Stop watching all directories."""

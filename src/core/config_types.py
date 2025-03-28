@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union, Set
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -333,6 +333,41 @@ class SessionTemplate(BaseModel):
                     f"Session-level fallback step '{self.error_handling.fallback_step}' does not exist"
                 )
 
+        return self
+
+
+class Model(BaseModel):
+    """Represents an LLM model."""
+    id: str = Field(description="Unique identifier for the model")
+    name: str = Field(description="Display name of the model")
+    provider: str = Field(description="Provider of the model (e.g., 'ollama', 'openai', 'anthropic')")
+    context_length: Optional[int] = Field(
+        default=None,
+        description="Maximum context length in tokens"
+    )
+    input_cost: Optional[float] = Field(
+        default=None,
+        description="Cost per 1K input tokens in USD"
+    )
+    output_cost: Optional[float] = Field(
+        default=None,
+        description="Cost per 1K output tokens in USD"
+    )
+    capabilities: Optional[Set[str]] = Field(
+        default_factory=set,
+        description="Set of capabilities this model supports (e.g., 'chat', 'embedding', 'vision')"
+    )
+    metadata: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Additional metadata about the model"
+    )
+
+    @model_validator(mode='after')
+    def ensure_id_format(self) -> 'Model':
+        """Ensure the ID is properly formatted."""
+        if not self.id:
+            # If no ID is provided, create one from provider and name
+            self.id = f"{self.provider}/{self.name}"
         return self
 
 

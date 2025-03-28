@@ -30,6 +30,13 @@
     </a>
   </li>
   <li>
+    <a hx-get="/registry/models"
+       hx-target=".dashboard"
+       hx-push-url="true">
+      LLM Models <span class="tag is-info">{{ models|length }}</span>
+    </a>
+  </li>
+  <li>
     <a hx-get="/registry/mcp-servers"
        hx-target=".dashboard"
        hx-push-url="true">

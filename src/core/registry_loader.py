@@ -1,10 +1,12 @@
 import yaml
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
+import importlib.util
 
 from mcp import StdioServerParameters
 
 from src.core.registry import Registry
 from src.core.config_loader import SchemaLoader, TemplateLoader, SessionTemplateLoader
+from src.core.config_types import Model
 from src.service.logging import logger
 
 
@@ -124,6 +126,119 @@ class RegistryBuilder:
         except Exception as e:
             logger.error(f"Failed to load session templates from {templates_dir}: {str(e)}")
 
+    def _load_models(self) -> None:
+        """
+        Load available LLM models from Ollama and LiteLLM.
+        """
+        logger.info("Loading available LLM models")
+        
+        # Load models from Ollama if available
+        try:
+            if importlib.util.find_spec("ollama"):
+                import ollama
+                ollama_models = ollama.list()
+                if ollama_models and 'models' in ollama_models:
+                    for model_data in ollama_models['models']:
+                        model = Model(
+                            id=f"ollama/{model_data['name']}",
+                            name=model_data['name'],
+                            provider="ollama",
+                            metadata={
+                                "size": model_data.get('size', 0),
+                                "modified_at": model_data.get('modified_at', ""),
+                                "digest": model_data.get('digest', "")
+                            },
+                            capabilities={"chat", "completion"}
+                        )
+                        self.registry.add_model(model)
+                        logger.debug(f"Added Ollama model: {model.name}")
+            else:
+                logger.warning("Ollama package not found, skipping Ollama models")
+        except Exception as e:
+            logger.error(f"Failed to load Ollama models: {str(e)}")
+        
+        # Load models from LiteLLM if available
+        try:
+            if importlib.util.find_spec("litellm"):
+                import litellm.utils
+                litellm_models = litellm.utils.get_valid_models()
+                
+                # Define some known model capabilities and costs
+                model_info = {
+                    "gpt-4": {
+                        "context_length": 8192,
+                        "input_cost": 0.03,
+                        "output_cost": 0.06,
+                        "capabilities": {"chat", "completion", "function_calling"}
+                    },
+                    "gpt-4-turbo": {
+                        "context_length": 128000,
+                        "input_cost": 0.01,
+                        "output_cost": 0.03,
+                        "capabilities": {"chat", "completion", "function_calling", "vision"}
+                    },
+                    "gpt-3.5-turbo": {
+                        "context_length": 16385,
+                        "input_cost": 0.0015,
+                        "output_cost": 0.002,
+                        "capabilities": {"chat", "completion", "function_calling"}
+                    },
+                    "claude-3-opus": {
+                        "context_length": 200000,
+                        "input_cost": 0.015,
+                        "output_cost": 0.075,
+                        "capabilities": {"chat", "completion", "function_calling", "vision"}
+                    },
+                    "claude-3-sonnet": {
+                        "context_length": 200000,
+                        "input_cost": 0.003,
+                        "output_cost": 0.015,
+                        "capabilities": {"chat", "completion", "function_calling", "vision"}
+                    },
+                    "claude-3-haiku": {
+                        "context_length": 200000,
+                        "input_cost": 0.00025,
+                        "output_cost": 0.00125,
+                        "capabilities": {"chat", "completion", "function_calling", "vision"}
+                    }
+                }
+                
+                for model_name in litellm_models:
+                    # Determine provider from model name
+                    provider = "unknown"
+                    if "gpt" in model_name:
+                        provider = "openai"
+                    elif "claude" in model_name:
+                        provider = "anthropic"
+                    elif "gemini" in model_name:
+                        provider = "google"
+                    elif "mistral" in model_name or "mixtral" in model_name:
+                        provider = "mistral"
+                    
+                    # Get model info if available
+                    info = {}
+                    for key in model_info:
+                        if key in model_name:
+                            info = model_info[key]
+                            break
+                    
+                    model = Model(
+                        id=f"{provider}/{model_name}",
+                        name=model_name,
+                        provider=provider,
+                        context_length=info.get("context_length"),
+                        input_cost=info.get("input_cost"),
+                        output_cost=info.get("output_cost"),
+                        capabilities=info.get("capabilities", {"chat", "completion"}),
+                        metadata={"source": "litellm"}
+                    )
+                    self.registry.add_model(model)
+                    logger.debug(f"Added LiteLLM model: {model.name}")
+            else:
+                logger.warning("LiteLLM package not found, skipping LiteLLM models")
+        except Exception as e:
+            logger.error(f"Failed to load LiteLLM models: {str(e)}")
+
     async def build(self) -> Registry:
         """
         Build and populate the registry with configuration.
@@ -155,6 +270,9 @@ class RegistryBuilder:
         # Load session templates
         templates_dir = self.config.get('session_templates_dir', 'config')
         self._load_session_templates(templates_dir)
+        
+        # Load available LLM models
+        self._load_models()
 
         logger.info("Registry building completed")
         return self.registry

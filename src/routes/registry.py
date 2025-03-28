@@ -19,7 +19,8 @@ async def registry_component(request: Request) -> dict:
         "resources": registry.resources,
         "resource_templates": registry.resource_templates,
         "schemas": registry.schemas,
-        "mcp_servers": registry.mcp_servers
+        "mcp_servers": registry.mcp_servers,
+        "models": registry.models,
     }
 
 @router.get("/prompts")
