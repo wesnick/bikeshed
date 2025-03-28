@@ -10,6 +10,7 @@ import {initializeEditor} from './prosemirror';
 
 import Dropzone from "dropzone";
 
+import BulmaTagsInput from "@creativebulma/bulma-tagsinput";
 // Import custom handlers
 import './shutdown-handler';
 
@@ -23,12 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('HTMX loaded successfully');
 
     // Log SSE connection events
-    document.body.addEventListener('htmx:sseOpen', function(event) {
+    document.body.addEventListener('htmx:sseOpen', function (event) {
       console.log('SSE Connected');
     });
 
     // Listen for history changes and dispatch route.changed event
-    document.body.addEventListener('htmx:pushedIntoHistory', function(event) {
+    document.body.addEventListener('htmx:pushedIntoHistory', function (event) {
       console.log('Route changed:', window.location.pathname);
       document.body.dispatchEvent(new Event('route.updated'));
     });
@@ -52,7 +53,33 @@ function initializeTheme() {
 }
 
 // Setup theme toggle when navbar is loaded and highlight code blocks
-document.body.addEventListener('htmx:afterSettle', function(event) {
+document.body.addEventListener('htmx:afterSettle', function (event) {
+
+  // Tags input
+  if (event.detail.elt.querySelector && event.detail.elt.querySelector('.tags-input')) {
+
+    const tagsInput = event.detail.elt.querySelector('.tags-input');
+
+    new BulmaTagsInput(tagsInput, {
+      source: async function (value) {
+        // Value equal input value
+        // We can then use it to request data from external API
+        return await fetch("/tags/autocomplete/" + value)
+          .then(function (response) {
+            return response.json();
+          });
+      },
+
+    });
+
+    tagsInput.BulmaTagsInput().on('after.add', function (data) {
+      console.log(data, 'after.add');
+    })
+    tagsInput.BulmaTagsInput().on('after.remove', function (data) {
+      console.log(data, 'after.remove');
+    })
+
+  }
 
   // if (event.detail.elt.querySelector && event.detail.elt.querySelector('#editor')) {
   //   initializeEditor();
@@ -73,25 +100,27 @@ document.body.addEventListener('htmx:afterSettle', function(event) {
   if (event.detail.elt.querySelector && event.detail.elt.querySelector('#dropzone-container')) {
     const dropzone = new Dropzone(document.getElementById('dropzone-container'), {
       url: "/blobs/upload-multi",
-      paramName: function(){return 'files'},
+      paramName: function () {
+        return 'files'
+      },
       maxFilesize: 30, // MB
       // acceptedFiles: ".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip",
       uploadMultiple: true,
       parallelUploads: 5,
       dictDefaultMessage: "Drop files here or click to upload (max 30MB per file)",
-      success: function(file, response) {
-          // Refresh the file list using HTMX after upload
-          //htmx.trigger("#file-list", "htmx:load");
+      success: function (file, response) {
+        // Refresh the file list using HTMX after upload
+        //htmx.trigger("#file-list", "htmx:load");
       },
-      error: function(file, errorMessage) {
-          console.error("Upload error:", errorMessage);
-          file.previewElement.classList.add("dz-error");
+      error: function (file, errorMessage) {
+        console.error("Upload error:", errorMessage);
+        file.previewElement.classList.add("dz-error");
 
-          // Add error message to the file preview
-          const errorElement = file.previewElement.querySelector("[data-dz-errormessage]");
-          errorElement.textContent = typeof errorMessage === "string" ?
-              errorMessage :
-              errorMessage.error || "Upload failed";
+        // Add error message to the file preview
+        const errorElement = file.previewElement.querySelector("[data-dz-errormessage]");
+        errorElement.textContent = typeof errorMessage === "string" ?
+          errorMessage :
+          errorMessage.error || "Upload failed";
       }
     });
     console.log('dropzone initialized');
@@ -111,7 +140,7 @@ function setupThemeToggle() {
   themeToggle.parentNode.replaceChild(newThemeToggle, themeToggle);
 
   // Add click event listener
-  newThemeToggle.addEventListener('click', function(e) {
+  newThemeToggle.addEventListener('click', function (e) {
     e.preventDefault();
 
     const html = document.documentElement;

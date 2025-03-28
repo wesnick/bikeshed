@@ -2,7 +2,7 @@
   "scripts": {
     "build-bulma": "sass --load-path=node_modules style/app.scss build/css/app.css",
     "build-js": "vite build",
-    "dev": "concurrently \"sass --load-path=node_modules style/app.scss build/css/app.css --watch\" \"vite build --watch\"",
+    "dev": "concurrently \"sass --load-path=node_modules style/app.scss build/css/app.css --watch\" \"vite build --watch\" | while read -r line; do echo \"$(date '+[%H:%M:%S]') $line\"; done;",
     "build": "sass --load-path=node_modules style/app.scss build/css/app.css && vite build",
     "start": "npm run dev"
   },
@@ -34,6 +34,7 @@
     "vite": "^6.2.0"
   },
   "dependencies": {
+    "@creativebulma/bulma-tagsinput": "^1.0.3",
     "@rollup/plugin-inject": "^5.0.5"
   }
 }

@@ -164,153 +164,9 @@ async def create_tag(
 
 
 
-# Tag CRUD endpoints
-@router.get("/api", response_model=List[TagResponse])
-async def get_tags(
-    path_prefix: Optional[str] = None,
-    search: Optional[str] = None,
-    limit: int = Query(50, ge=1, le=100),
-    db: AsyncConnection = Depends(get_db),
-    tag_repo: TagRepository = Depends(get_tag_repository)
-):
-    """Get tags, optionally filtered by path prefix or search term."""
-    if path_prefix:
-        # Get children of a path
-        tags = await tag_repo.get_children(db, path_prefix)
-    elif search:
-        # Search by name
-        tags = await tag_repo.search_by_name(db, search, limit)
-    else:
-        # Get all tags with limit
-        tags = await tag_repo.get_all(db, limit=limit)
-    
-    return tags
-
-@router.get("/api/{tag_id}", response_model=TagResponse)
-async def get_tag(
-    tag_id: str, 
-    db: AsyncConnection = Depends(get_db),
-    tag_repo: TagRepository = Depends(get_tag_repository)
-):
-    """Get a tag by ID."""
-    tag = await tag_repo.get_by_id(db, tag_id)
-    if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-    return tag
-
-@router.post("/api", response_model=TagResponse)
-async def create_tag(
-    tag_data: TagCreate, 
-    db: AsyncConnection = Depends(get_db),
-    tag_repo: TagRepository = Depends(get_tag_repository)
-):
-    """Create a new tag."""
-    # Check if tag with this ID already exists
-    existing_tag = await tag_repo.get_by_id(db, tag_data.id)
-    if existing_tag:
-        raise HTTPException(status_code=400, detail="Tag with this ID already exists")
-    
-    # Check if tag with this path already exists
-    existing_path = await tag_repo.get_by_path(db, tag_data.path)
-    if existing_path:
-        raise HTTPException(status_code=400, detail="Tag with this path already exists")
-    
-    # Create the tag
-    tag = Tag(
-        id=tag_data.id,
-        path=tag_data.path,
-        name=tag_data.name,
-        description=tag_data.description,
-        created_at=datetime.now(),
-        updated_at=datetime.now()
-    )
-    
-    created_tag = await tag_repo.create(db, tag)
-    return created_tag
-
-@router.put("/api/{tag_id}", response_model=TagResponse)
-async def update_tag(
-    tag_id: str, 
-    tag_data: TagUpdate, 
-    db: AsyncConnection = Depends(get_db),
-    tag_repo: TagRepository = Depends(get_tag_repository)
-):
-    """Update an existing tag."""
-    # Check if tag exists
-    existing_tag = await tag_repo.get_by_id(db, tag_id)
-    if not existing_tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-    
-    # Prepare update data
-    update_data = tag_data.model_dump(exclude_unset=True)
-    if update_data:
-        update_data["updated_at"] = datetime.now()
-    
-    # Update the tag
-    updated_tag = await tag_repo.update(db, tag_id, update_data)
-    return updated_tag
-
-@router.delete("/api/{tag_id}", response_model=bool)
-async def delete_tag(
-    tag_id: str, 
-    db: AsyncConnection = Depends(get_db),
-    tag_repo: TagRepository = Depends(get_tag_repository)
-):
-    """Delete a tag."""
-    # Check if tag exists
-    existing_tag = await tag_repo.get_by_id(db, tag_id)
-    if not existing_tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-    
-    # Delete the tag
-    success = await tag_repo.delete(db, tag_id)
-    return success
-
-# Entity-tag relationship endpoints
-@router.post("/api/entity", response_model=bool)
-async def add_tag_to_entity(
-    request: EntityTagRequest, 
-    db: AsyncConnection = Depends(get_db),
-    tag_repo: TagRepository = Depends(get_tag_repository)
-):
-    """Add a tag to an entity."""
-    # Verify the tag exists
-    tag = await tag_repo.get_by_id(db, request.tag_id)
-    if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-    
-    entity_tag_repo = EntityTagRepository()
-    success = await entity_tag_repo.add_tag_to_entity(db, request.entity_id, request.entity_type, request.tag_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Relationship already exists")
-    return success
-
-@router.delete("/api/entity", response_model=bool)
-async def remove_tag_from_entity(
-    request: EntityTagRequest, 
-    db: AsyncConnection = Depends(get_db)
-):
-    """Remove a tag from an entity."""
-    entity_tag_repo = EntityTagRepository()
-    success = await entity_tag_repo.remove_tag_from_entity(db, request.entity_id, request.entity_type, request.tag_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Relationship not found")
-    return success
-
-@router.get("/api/entity/{entity_type}/{entity_id}", response_model=List[TagResponse])
-async def get_entity_tags(
-    entity_type: str, 
-    entity_id: UUID, 
-    db: AsyncConnection = Depends(get_db)
-):
-    """Get all tags for an entity."""
-    entity_tag_repo = EntityTagRepository()
-    tags = await entity_tag_repo.get_entity_tags(db, entity_id, entity_type)
-    return tags
-
 # HTML component endpoints
 @router.get("/components/tag-selector")
-@get_jinja().hx('components/tag_selector.html.j2')
+@jinja.hx('components/tags/tag_entity.html.j2')
 async def tag_selector_component(
     entity_id: Optional[UUID] = None,
     entity_type: Optional[str] = None,
@@ -334,19 +190,18 @@ async def tag_selector_component(
         "entity_type": entity_type
     }
 
-@router.get("/components/entity-tags")
-@get_jinja().hx('components/entity_tags.html.j2')
-async def entity_tags_component(
-    entity_id: UUID,
-    entity_type: str,
-    db: AsyncConnection = Depends(get_db)
-):
-    """Render the tags for an entity."""
-    entity_tag_repo = EntityTagRepository()
-    tags = await entity_tag_repo.get_entity_tags(db, entity_id, entity_type)
-    
-    return {
-        "tags": tags,
-        "entity_id": entity_id,
-        "entity_type": entity_type
-    }
+@router.get("/autocomplete/{search_term}")
+async def entity_tags_component(search_term: str,
+                                db: AsyncConnection = Depends(get_db),
+                                tag_repo: TagRepository = Depends(get_tag_repository)):
+
+    terms = await tag_repo.search_by_name(db, search_term)
+
+    res = [{'id': term.id, 'name': term.name} for term in terms]
+
+    from src.service.logging import logger
+    logger.error(f"res: {res}")
+
+    return res
+
+

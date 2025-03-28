@@ -15,7 +15,19 @@ export default defineConfig({
                 entryFileNames: `[name].js`,
                 chunkFileNames: `[name]-[hash].js`,
                 assetFileNames: `assets/[name]-[hash].[ext]`
-            }
+            },
+      onwarn(warning, warn) {
+        // Suppress specific eval warnings for htmx.org
+        if (
+          warning.code === 'EVAL' && 
+          warning.id && 
+          warning.id.includes('htmx.org')
+        ) {
+          return
+        }
+        // Forward all other warnings to the default handler
+        warn(warning)
+      }
         },
         sourcemap: true
     },

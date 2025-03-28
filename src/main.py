@@ -103,15 +103,57 @@ async def left_sidebar_component(db: AsyncConnection = Depends(get_db), registry
         "session_templates": session_templates,
     }
 
-@app.get("/components/drawer")
-@jinja.hx('components/drawer.html.j2')
-async def right_drawer_component(request: Request):
-    """This route serves the right drawer component for htmx requests."""
 
-    all_headers = [f'{key}: {value}' for key, value in request.headers.items()]
+class PathBasedTemplateSelector:
+
+    @staticmethod
+    def parse_request_parts(request: Request):
+        from urllib.parse import urlparse
+        return urlparse(request.headers.get('hx-current-url')).path.strip('/').split('/')
+
+    def get_component(self, request: Request, error: Exception | None) -> str:
+        from urllib.parse import urlparse
+        url_parts = urlparse(request.headers.get('hx-current-url')).path.strip('/').split('/')
+
+        from src.service.logging import logger
+        logger.warning(f"Url parts: {url_parts}")
+
+        if len(url_parts) < 2:
+            return 'components/drawer/empty.html.j2'
+
+        # switch statement
+        match url_parts[0]:
+            case 'session':
+                # test if uuid
+                try:
+                    uuid.UUID(url_parts[1])
+                    return 'components/drawer/session_context.html.j2'
+                except ValueError:
+                    pass
+
+        return 'components/drawer/empty.html.j2'
+
+@app.get("/components/drawer")
+@jinja.hx(PathBasedTemplateSelector())
+async def right_drawer_component(request: Request, db: AsyncConnection = Depends(get_db)):
+    """This route serves the right drawer component for htmx requests."""
+    url_parts = PathBasedTemplateSelector.parse_request_parts(request)
+
+    match url_parts:
+        case ['session', session_id]:
+            from src.repository.session import SessionRepository
+            session_repo = SessionRepository()
+            session = await session_repo.get_by_id(db, session_id)
+            return {
+                'entity_id': session.id,
+                'entity_type': 'session'
+            }
+
+            from src.service.logging import logger
+            logger.warning(f"session_id: {session.id}")
 
     return {
-        'data': f"Time: {datetime.now()} Current URL: {request.headers.get('hx-current-url')} \n\n"
+        'data': f"Url parts: {url_parts} \n\n"
     }
 
 @app.get("/components/navbar-notifications")

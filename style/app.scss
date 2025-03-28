@@ -1,7 +1,8 @@
-// Path to Bulma's sass folder
+@use 'variables' as vars;
+
 @use "bulma/sass" with (
   $family-primary: '"Atkinson Hyperlegible Next", sans-serif',
-  $primary: #5FA,
+  $primary: vars.$primary,
   //$primary: iv.$turquoise !default,
 
   //$info: iv.$cyan !default,
@@ -11,12 +12,14 @@
   //$light: iv.$white-ter !default,
   //$dark: iv.$grey-darker !default,
   //// Link colors
-  $link: #209CEE,
+  $link: vars.$link,
   //$link: iv.$blue !default,
 );
 
 // Bulma steps
 @use 'bulma-o-steps/bulma-steps.css';
+// Bulma tagger
+@use 'bulma-tagger';
 
 // Fancy editor stuff
 @use 'highlight.js/styles/atom-one-dark.min.css';

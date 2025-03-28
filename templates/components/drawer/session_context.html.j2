@@ -1,0 +1,36 @@
+<div class="box"
+    hx-get="/tags/components/tag-selector?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
+     hx-trigger="load"
+>
+{#    <form hx-post="/stashes"#}
+{#          hx-ext="form-json"#}
+{#          hx-target=".dashboard">#}
+{##}
+{#      <div class="field">#}
+{#        <label class="label">Name</label>#}
+{#        <div class="control">#}
+{#          <input class="input" type="text" name="name" required>#}
+{#        </div>#}
+{#      </div>#}
+{##}
+{#      <div class="field">#}
+{#        <label class="label">Description</label>#}
+{#        <div class="control">#}
+{#          <textarea class="textarea" name="description"></textarea>#}
+{#        </div>#}
+{#      </div>#}
+{##}
+{##}
+{#      <div class="field is-grouped">#}
+{#        <div class="control">#}
+{#          <button type="submit" class="button is-primary">Create</button>#}
+{#        </div>#}
+{#        <div class="control">#}
+{#          <button type="button" class="button"#}
+{#                  hx-get="/stashes"#}
+{#                  hx-target=".dashboard"#}
+{#                  hx-push-url="true">Cancel</button>#}
+{#        </div>#}
+{#      </div>#}
+{#    </form>#}
+  </div>
