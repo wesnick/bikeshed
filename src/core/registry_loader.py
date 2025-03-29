@@ -131,17 +131,18 @@ class RegistryBuilder:
         Load available LLM models from Ollama and LiteLLM.
         """
         logger.info("Loading available LLM models")
-        
+
         # Load models from Ollama if available
         try:
             if importlib.util.find_spec("ollama"):
                 import ollama
                 ollama_models = ollama.list()
-                if ollama_models and 'models' in ollama_models:
-                    for model_data in ollama_models['models']:
+                for model_data in ollama_models['models']:
+                    # @TODO: need to figure out how to discern capabilities
+                    for mode in ['ollama', 'ollama_chat']:
                         model = Model(
-                            id=f"ollama/{model_data['name']}",
-                            name=model_data['name'],
+                            id=f"{mode}/{model_data['model']}",
+                            name=model_data['model'],
                             provider="ollama",
                             metadata={
                                 "size": model_data.get('size', 0),
@@ -152,84 +153,75 @@ class RegistryBuilder:
                         )
                         self.registry.add_model(model)
                         logger.debug(f"Added Ollama model: {model.name}")
+
             else:
                 logger.warning("Ollama package not found, skipping Ollama models")
         except Exception as e:
             logger.error(f"Failed to load Ollama models: {str(e)}")
-        
+
         # Load models from LiteLLM if available
         try:
             if importlib.util.find_spec("litellm"):
                 import litellm.utils
                 litellm_models = litellm.utils.get_valid_models()
-                
-                # Define some known model capabilities and costs
-                model_info = {
-                    "gpt-4": {
-                        "context_length": 8192,
-                        "input_cost": 0.03,
-                        "output_cost": 0.06,
-                        "capabilities": {"chat", "completion", "function_calling"}
-                    },
-                    "gpt-4-turbo": {
-                        "context_length": 128000,
-                        "input_cost": 0.01,
-                        "output_cost": 0.03,
-                        "capabilities": {"chat", "completion", "function_calling", "vision"}
-                    },
-                    "gpt-3.5-turbo": {
-                        "context_length": 16385,
-                        "input_cost": 0.0015,
-                        "output_cost": 0.002,
-                        "capabilities": {"chat", "completion", "function_calling"}
-                    },
-                    "claude-3-opus": {
-                        "context_length": 200000,
-                        "input_cost": 0.015,
-                        "output_cost": 0.075,
-                        "capabilities": {"chat", "completion", "function_calling", "vision"}
-                    },
-                    "claude-3-sonnet": {
-                        "context_length": 200000,
-                        "input_cost": 0.003,
-                        "output_cost": 0.015,
-                        "capabilities": {"chat", "completion", "function_calling", "vision"}
-                    },
-                    "claude-3-haiku": {
-                        "context_length": 200000,
-                        "input_cost": 0.00025,
-                        "output_cost": 0.00125,
-                        "capabilities": {"chat", "completion", "function_calling", "vision"}
-                    }
-                }
-                
                 for model_name in litellm_models:
-                    # Determine provider from model name
-                    provider = "unknown"
-                    if "gpt" in model_name:
-                        provider = "openai"
-                    elif "claude" in model_name:
-                        provider = "anthropic"
-                    elif "gemini" in model_name:
-                        provider = "google"
-                    elif "mistral" in model_name or "mixtral" in model_name:
-                        provider = "mistral"
-                    
-                    # Get model info if available
-                    info = {}
-                    for key in model_info:
-                        if key in model_name:
-                            info = model_info[key]
-                            break
-                    
+                    try:
+                        model_info = litellm.utils.get_model_info(model_name)
+                    except Exception as e:
+                        continue
+
+                    capabilities = set()
+                    if model_info.get('supports_system_messages'):
+                        capabilities.add('system_message')
+                    if model_info.get('supports_response_schema'):
+                        capabilities.add('response_schema')
+                    if model_info.get('supports_tool_choice'):
+                        capabilities.add('tool_choice')
+                    if model_info.get('supports_function_calling'):
+                        capabilities.add('function_calling')
+                    if model_info.get('supports_vision'):
+                        capabilities.add('vision')
+                    if model_info.get('supports_audio_input'):
+                        capabilities.add('audio_input')
+                    if model_info.get('supports_audio_output'):
+                        capabilities.add('audio_output')
+                    if model_info.get('supports_native_streaming'):
+                        capabilities.add('native_streaming')
+                    if model_info.get('supports_parallel_function_calling'):
+                        capabilities.add('parallel_function_calling')
+                    if model_info.get('supports_embedding_image_input'):
+                        capabilities.add('embedding_image_input')
+                    if model_info.get('supports_pdf_input'):
+                        capabilities.add('pdf_input')
+                    if model_info.get('supports_prompt_caching'):
+                        capabilities.add('prompt_caching')
+                    if model_info.get('supports_assistant_prefill'):
+                        capabilities.add('assistant_prefill')
+                    if model_info.get('mode') == 'chat':
+                        capabilities.add('chat')
+                    if model_info.get('mode') == 'completion':
+                        capabilities.add('completion')
+                    if model_info.get('mode') == 'embedding':
+                        capabilities.add('embedding')
+                    if model_info.get('mode') == 'image_generation':
+                        capabilities.add('image_generation')
+                    if model_info.get('mode') == 'audio_transcription':
+                        capabilities.add('audio_transcription')
+
+                    # If model name has a slash,
+                    if model_name.find('/') != -1:
+                        current_id = model_name
+                    else:
+                        current_id = f"{model_info.get('litellm_provider')}/{model_name}"
+
                     model = Model(
-                        id=f"{provider}/{model_name}",
+                        id=current_id,
                         name=model_name,
-                        provider=provider,
-                        context_length=info.get("context_length"),
-                        input_cost=info.get("input_cost"),
-                        output_cost=info.get("output_cost"),
-                        capabilities=info.get("capabilities", {"chat", "completion"}),
+                        provider=model_info.get('litellm_provider'),
+                        context_length=model_info.get('max_input_tokens'),
+                        input_cost=model_info.get('input_cost_per_token'),
+                        output_cost=model_info.get('output_cost_per_token'),
+                        capabilities=capabilities,
                         metadata={"source": "litellm"}
                     )
                     self.registry.add_model(model)
@@ -270,7 +262,7 @@ class RegistryBuilder:
         # Load session templates
         templates_dir = self.config.get('session_templates_dir', 'config')
         self._load_session_templates(templates_dir)
-        
+
         # Load available LLM models
         self._load_models()
 

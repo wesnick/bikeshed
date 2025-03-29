@@ -5,7 +5,7 @@ from functools import lru_cache
 
 class Config(BaseSettings):
     """Application configuration settings loaded from environment variables"""
-    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
+    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra='allow')
 
     # Database settings
     postgres_host: str
