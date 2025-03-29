@@ -34,6 +34,9 @@ jobs:
           --health-retries 5
 
     steps:
+    - name: install graphviz
+      uses: tlylt/install-graphviz@main
+
     - name: Checkout code
       uses: actions/checkout@v4
 
