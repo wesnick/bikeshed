@@ -11,23 +11,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // Clean up the URL by removing the query parameter
             history.replaceState({}, '', targetPath);
 
-            // Create a temporary element with HTMX attributes
-            const tempEl = document.createElement('div');
-            tempEl.setAttribute('hx-get', targetPath);
-            tempEl.setAttribute('hx-target', '.dashboard');
-            tempEl.setAttribute('hx-push-url', 'true');
-            tempEl.setAttribute('hx-trigger', 'load');
+            htmx.ajax('GET', targetPath, {
+                  target: '.dashboard',   // The CSS selector for the target element
+                  // swap: 'innerHTML',     // Optional: Specify the swap style (often defaults are fine)
+                  pushUrl: true          // Equivalent to hx-push-url="true"
+                  // source: document.body // Optional: Define the source element if needed for context/inheritance
+                                           // Usually not required for this simple case.
+              });
 
-            // Add it to the DOM temporarily
-            document.body.appendChild(tempEl);
-
-            // Force HTMX to process it
-            htmx.process(tempEl);
-
-            // Remove it after processing
-            setTimeout(() => {
-                document.body.removeChild(tempEl);
-            }, 100);
+            document.body.dispatchEvent(new Event('route.updated'));
         }
     });
 
