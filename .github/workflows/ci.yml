@@ -35,7 +35,7 @@ jobs:
 
     steps:
     - name: install graphviz
-      uses: tlylt/install-graphviz@main
+      run: sudo apt install -y libmagic1 graphviz graphviz-dev
 
     - name: Checkout code
       uses: actions/checkout@v4
