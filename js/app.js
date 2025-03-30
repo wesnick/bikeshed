@@ -10,7 +10,6 @@ import {initializeEditor} from './prosemirror';
 
 import Dropzone from "dropzone";
 
-import BulmaTagsInput from "@creativebulma/bulma-tagsinput";
 // Import custom handlers
 import './shutdown-handler';
 
