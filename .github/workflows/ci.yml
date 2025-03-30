@@ -58,7 +58,7 @@ jobs:
         POSTGRES_PASSWORD: password
         POSTGRES_HOST: localhost
         POSTGRES_PORT: 5432
-        POSTGRES_DB: app_test
+        POSTGRES_DB: app
         REDIS_HOST: localhost
         REDIS_PORT: 6379
         REDIS_DB: 0
