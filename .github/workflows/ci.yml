@@ -51,6 +51,10 @@ jobs:
     - name: Install the project
       run: uv sync --all-extras --dev
 
+    - name: Load PostgreSQL DDL
+      run: |
+        PGPASSWORD=password psql -h localhost -U user -d app_test -f ./config/database/bs.sql
+
     - name: Run tests
       run: uv run pytest tests
       env:
