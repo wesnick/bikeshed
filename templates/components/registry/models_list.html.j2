@@ -1,40 +1,59 @@
 <div class="box">
   <h2 class="title is-4">LLM Models</h2>
   {% if models %}
-    <table class="table is-fullwidth is-striped">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Provider</th>
-          <th>Context Length</th>
-          <th>Input Cost ($/1k)</th>
-          <th>Output Cost ($/1k)</th>
-          <th>Capabilities</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for id, model in models.items() %}
+    <form id="models-form" hx-post="/registry/models/save" hx-ext="form-json">
+      <table class="table is-fullwidth is-striped">
+        <thead>
           <tr>
-            <td>{{ model.id }}</td>
-            <td>{{ model.name }}</td>
-            <td>{{ model.provider }}</td>
-            <td>{{ model.context_length if model.context_length is not none else 'N/A' }}</td>
-            <td>{{ model.input_cost if model.input_cost is not none else 'N/A' }}</td>
-            <td>{{ model.output_cost if model.output_cost is not none else 'N/A' }}</td>
-            <td>
-              {% if model.capabilities %}
-                {% for cap in model.capabilities %}
-                  <span class="tag is-info is-light">{{ cap }}</span>
-                {% endfor %}
-              {% else %}
-                N/A
-              {% endif %}
-            </td>
+            <th>Select</th>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Provider</th>
+            <th>Context Length</th>
+            <th>Input Cost ($/1k)</th>
+            <th>Output Cost ($/1k)</th>
+            <th>Capabilities</th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {% for id, model in models.items() %}
+            <tr>
+              <td>
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" name="selected_models" value="{{ model.id }}">
+                    </label>
+                  </div>
+                </div>
+              </td>
+              <td>{{ model.id }}</td>
+              <td>{{ model.name }}</td>
+              <td>{{ model.provider }}</td>
+              <td>{{ model.context_length if model.context_length is not none else 'N/A' }}</td>
+              <td>{{ model.input_cost if model.input_cost is not none else 'N/A' }}</td>
+              <td>{{ model.output_cost if model.output_cost is not none else 'N/A' }}</td>
+              <td>
+                {% if model.capabilities %}
+                  {% for cap in model.capabilities %}
+                    <span class="tag is-info is-light">{{ cap }}</span>
+                  {% endfor %}
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="field mt-4">
+        <div class="control">
+          <button type="submit" class="button is-primary">
+            Save Selected Models
+          </button>
+        </div>
+      </div>
+    </form>
   {% else %}
     <div class="notification is-warning">No LLM models found in the registry.</div>
   {% endif %}

@@ -1,10 +1,17 @@
-from fastapi import APIRouter, Depends, Request
+import yaml
+from pathlib import Path
+from fastapi import APIRouter, Depends, Request, Form
+from typing import List
+from pydantic import BaseModel
 from src.service.mcp_client import MCPClient
 from src.dependencies import get_jinja, get_mcp_client
 
 router = APIRouter(prefix="/registry", tags=["registry"])
 
 jinja = get_jinja()
+
+class ModelsSelectionRequest(BaseModel):
+    selected_models: List[str]
 
 
 @router.get("/")
@@ -78,4 +85,34 @@ async def registry_mcp_servers(request: Request, mcp_client: MCPClient = Depends
 async def registry_models(request: Request) -> dict:
     """This route serves the LLM models listing page."""
     registry = request.app.state.registry
+    return {"models": registry.models}
+
+@router.post("/models/save")
+@jinja.hx('components/registry/models_list.html.j2')
+async def save_models(request: Request, selection: ModelsSelectionRequest) -> dict:
+    """Save selected models to config/models.yaml file."""
+    registry = request.app.state.registry
+    
+    # Get the selected models
+    selected_models = {}
+    for model_id in selection.selected_models:
+        if model_id in registry.models:
+            model = registry.models[model_id]
+            selected_models[model_id] = {
+                "id": model.id,
+                "name": model.name,
+                "provider": model.provider,
+                "context_length": model.context_length,
+                "input_cost": model.input_cost,
+                "output_cost": model.output_cost,
+                "capabilities": list(model.capabilities) if model.capabilities else [],
+                "metadata": model.metadata
+            }
+    
+    # Save to YAML file
+    config_path = Path("config/models.yaml")
+    with open(config_path, "w") as f:
+        yaml.dump({"models": selected_models}, f, default_flow_style=False, sort_keys=False)
+    
+    # Return the updated models list
     return {"models": registry.models}

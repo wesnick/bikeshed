@@ -12,6 +12,10 @@ setup-env:
 fastapi-dev:
     uvicorn src.main:app --reload --timeout-graceful-shutdown 2 --env-file .env --no-access-log
 
+# Restart the FastAPI development server
+fastapi-restart:
+    just kill-fapi && just fastapi-dev
+
 # Start the frontend development server
 frontend-dev:
     npm run dev
