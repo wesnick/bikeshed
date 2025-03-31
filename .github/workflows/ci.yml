@@ -51,14 +51,18 @@ jobs:
     - name: Install the project
       run: uv sync --all-extras --dev
 
+    - name: Load PostgreSQL DDL
+      run: |
+        PGPASSWORD=password psql -h localhost -U user -d app_test -f ./config/database/bs.sql
+
     - name: Run tests
       run: uv run pytest tests
       env:
         POSTGRES_USER: user
         POSTGRES_PASSWORD: password
-        POSTGRES_HOST: postgres
+        POSTGRES_HOST: localhost
         POSTGRES_PORT: 5432
-        POSTGRES_DB: app_test
-        REDIS_HOST: redis
+        POSTGRES_DB: app
+        REDIS_HOST: localhost
         REDIS_PORT: 6379
         REDIS_DB: 0
