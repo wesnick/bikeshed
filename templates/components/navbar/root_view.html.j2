@@ -1,0 +1,100 @@
+{% if error %}
+<div class="notification is-danger">
+  {{ error }}
+</div>
+{% else %}
+<div class="box">
+  <h3 class="title is-5">{{ root.uri }}</h3>
+  
+  {% if root.files %}
+    <div class="file-tree mt-4">
+      {% set path_tree = {} %}
+      
+      {# Build the path tree structure #}
+      {% for file in root.files %}
+        {% set path_parts = file.path.split('/') %}
+        {% set current = path_tree %}
+        
+        {% for part in path_parts[:-1] %}
+          {% if part not in current %}
+            {% set _ = current.update({part: {'__files__': []}}) %}
+          {% endif %}
+          {% set current = current[part] %}
+        {% endfor %}
+        
+        {% set filename = path_parts[-1] %}
+        {% if '__files__' not in current %}
+          {% set _ = current.update({'__files__': []}) %}
+        {% endif %}
+        {% set _ = current['__files__'].append(file) %}
+      {% endfor %}
+      
+      {# Render the tree recursively #}
+      {% macro render_tree(tree, level=0) %}
+        <ul class="tree {% if level == 0 %}root-tree{% endif %}">
+          {% for key, value in tree.items() if key != '__files__' %}
+            <li>
+              <details {% if level == 0 %}open{% endif %}>
+                <summary class="folder">{{ key }}</summary>
+                {{ render_tree(value, level + 1) }}
+              </details>
+            </li>
+          {% endfor %}
+          
+          {% for file in tree['__files__'] %}
+            <li class="file">
+              <span class="file-name" data-path="{{ file.path }}" data-mime="{{ file.mime_type }}">
+                {{ file.name }}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endmacro %}
+      
+      {{ render_tree(path_tree) }}
+    </div>
+  {% else %}
+    <p>No files found in this root.</p>
+  {% endif %}
+</div>
+
+<style>
+  .tree {
+    list-style: none;
+    padding-left: 1.5rem;
+  }
+  
+  .root-tree {
+    padding-left: 0;
+  }
+  
+  .tree li {
+    margin: 0.3rem 0;
+  }
+  
+  .tree summary {
+    cursor: pointer;
+    font-weight: bold;
+  }
+  
+  .tree summary.folder::before {
+    content: "📁 ";
+  }
+  
+  .tree details[open] > summary.folder::before {
+    content: "📂 ";
+  }
+  
+  .tree .file::before {
+    content: "📄 ";
+  }
+  
+  .tree .file-name {
+    cursor: pointer;
+  }
+  
+  .tree .file-name:hover {
+    text-decoration: underline;
+  }
+</style>
+{% endif %}

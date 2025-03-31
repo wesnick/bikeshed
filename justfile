@@ -66,6 +66,11 @@ setup-test-db:
 lint-html:
     uvx djlint templates/ --reformat --extension=html.j2 --indent 2
 
+# View a specific root in the browser
+view-root uri:
+    echo "Opening root view for: {{uri}}"
+    python -c "import urllib.parse; print(f'http://localhost:8000/root?root_uri={urllib.parse.quote(\"{{uri}}\")}')" | xargs xdg-open
+
 # Python lint and fix
 lint-python:
     uvx ruff check src/ --fix

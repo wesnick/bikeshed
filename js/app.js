@@ -77,6 +77,19 @@ document.body.addEventListener('htmx:afterSettle', function (event) {
     initializeDropdowns(dropdowns);
   }
 
+  // File tree support
+  if (event.detail.elt.querySelector && event.detail.elt.querySelector('.file-tree')) {
+    // Add click handlers for files in the file tree
+    document.querySelectorAll('.file-name').forEach(file => {
+      file.addEventListener('click', function() {
+        const path = this.getAttribute('data-path');
+        const mime = this.getAttribute('data-mime');
+        console.log(`File clicked: ${path} (${mime})`);
+        // Here you can add code to handle file clicks, e.g., open file content
+      });
+    });
+  }
+
   // Dropzone support
   if (event.detail.elt.querySelector && event.detail.elt.querySelector('#dropzone-container')) {
     const dropzone = new Dropzone(document.getElementById('dropzone-container'), {
