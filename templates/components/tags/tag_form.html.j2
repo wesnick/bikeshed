@@ -8,9 +8,10 @@
 {% elif not is_edit %}
   <p>Creating a top-level tag.</p>
 {% endif %}
-<form hx-post="{{ '/tags/' + tag.id if is_edit else '/tags/' }}" {# Adjust target for PUT later #}
+<form hx-post="{{ '/tags/' + tag.id if is_edit else '/tags' }}" {# Adjust target for PUT later #}
   hx-target="#tag-details" {# Or maybe trigger tree refresh #}
   hx-swap="innerHTML" {# Swap content of the details box on success/error #}
+  hx-ext="form-json"
   class="mt-4">
   {# Hidden field for parent path when creating a child #}
   {% if not is_edit and parent_tag %}<input type="hidden" name="parent_path" value="{{ parent_tag.path }}">{% endif %}

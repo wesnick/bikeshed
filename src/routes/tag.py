@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Form
 from psycopg import AsyncConnection
 from psycopg.rows import class_row
 from starlette.responses import Response
+from pydantic import BaseModel, Field
 
 from src.dependencies import get_db, get_jinja, get_tag_repository
 from src.models.models import Tag
@@ -18,32 +19,15 @@ router = APIRouter(prefix="/tags", tags=["tags"])
 jinja = get_jinja()
 
 
-from pydantic import BaseModel
-
-class TagCreate(BaseModel):
-    id: str
-    path: str
+class TagCreateRequest(BaseModel):
     name: str
+    tag_id: str = Field(..., pattern=r'^[a-z0-9_]+$') # Use Field for validation
     description: Optional[str] = None
-
-class TagUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
+    parent_path: Optional[str] = None
 
 class EntityTagRequest(BaseModel):
     entity_id: UUID
     entity_type: str
-    tag_id: str
-    action: str  # 'add' or 'remove'
-
-class TagResponse(BaseModel):
-    id: str
-    path: str
-    name: str
-    description: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
-
 
 @router.get("/")
 @jinja.hx('components/tags/tag_management.html.j2', no_data=True)
@@ -97,30 +81,21 @@ async def create_tag_form(parent_path: Optional[str] = None,
 
 @router.post("/")
 async def create_tag(
+    tag_data: TagCreateRequest,
     response: Response,
-    name: str = Form(...),
-    tag_id: str = Form(...), # This is the human-readable ID, also used in path
-    description: Optional[str] = Form(None),
-    parent_path: Optional[str] = Form(None),
     db: AsyncConnection = Depends(get_db),
     tag_repo: TagRepository = Depends(get_tag_repository)
 ):
-    """Handles the creation of a new tag."""
-    if not name or not tag_id:
-        raise HTTPException(status_code=400, detail="Name and ID are required")
+    """Handles the creation of a new tag using JSON data."""
+    # Validation is handled by Pydantic based on TagCreateRequest definition
 
-    # Basic validation for tag_id (ltree segment)
-    import re
-    if not re.match(r'^[a-z0-9_]+$', tag_id):
-         raise HTTPException(status_code=400, detail="Tag ID must contain only lowercase letters, numbers, and underscores.")
-
-    if parent_path:
-        parent_tag = await tag_repo.get_by_path(db, parent_path)
+    if tag_data.parent_path:
+        parent_tag = await tag_repo.get_by_path(db, tag_data.parent_path)
         if not parent_tag:
             raise HTTPException(status_code=404, detail="Parent tag not found")
-        new_path = f"{parent_path}.{tag_id}"
+        new_path = f"{tag_data.parent_path}.{tag_data.tag_id}"
     else:
-        new_path = tag_id # Top-level tag
+        new_path = tag_data.tag_id # Top-level tag
 
     # Check if path already exists
     existing_tag = await tag_repo.get_by_path(db, new_path)
@@ -128,10 +103,10 @@ async def create_tag(
         raise HTTPException(status_code=400, detail=f"Tag path '{new_path}' already exists.")
 
     new_tag = Tag(
-        id=tag_id, # Using the human-readable ID here
+        id=tag_data.tag_id, # Using the human-readable ID here
         path=new_path,
-        name=name,
-        description=description
+        name=tag_data.name,
+        description=tag_data.description
     )
 
     try:
@@ -141,18 +116,19 @@ async def create_tag(
         # Trigger an update to the specific part of the tree
         # If it's a top-level tag, target the main tree container
         # If it's a child, target the parent's children container
-        if parent_path:
+        parent_path_for_trigger = tag_data.parent_path # Use the value from the request data
+        if parent_path_for_trigger:
              # Target the children container of the parent tag
-             response.headers['HX-Trigger'] = json.dumps({"sse:tag.created": {"parent_path": parent_path, "tag": created_tag.model_dump_json() }})
+             response.headers['HX-Trigger'] = json.dumps({"sse:tag.created": {"parent_path": parent_path_for_trigger, "tag": created_tag.model_dump_json() }})
              # We might want to return the newly created tag item directly
-             # return jinja.render('components/tags/tag_item.html.j2', {"tag": created_tag, "parent_path": parent_path})
+             # return jinja.render('components/tags/tag_item.html.j2', {"tag": created_tag, "parent_path": parent_path_for_trigger})
         else:
              # Target the root tree container
              response.headers['HX-Trigger'] = json.dumps({"sse:tag.created": {"parent_path": None, "tag": created_tag.model_dump_json() }})
              # return jinja.render('components/tags/tag_item.html.j2', {"tag": created_tag, "parent_path": None})
 
         # For simplicity now, just trigger a general refresh or rely on SSE
-        response.headers['HX-Trigger'] = json.dumps({"sse:tag.created": {"parent_path": parent_path}}) # Simplified trigger
+        response.headers['HX-Trigger'] = json.dumps({"sse:tag.created": {"parent_path": parent_path_for_trigger}}) # Simplified trigger
 
         # Redirect back to the tag management page or return success indicator
         # Let's return an empty response with trigger for now
