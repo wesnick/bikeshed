@@ -17,12 +17,12 @@
         </thead>
         <tbody>
           {% for id, model in models.items() %}
-            <tr>
+            <tr class="{% if not model.upstream_present %}is-danger{% elif model.overrides %}is-warning{% endif %}">
               <td>
                 <div class="field">
                   <div class="control">
                     <label class="checkbox">
-                      <input type="checkbox" name="selected_models[{{ model.id }}]">
+                      <input type="checkbox" name="selected_models_form" value="{{ model.id }}" {% if model.selected %}checked{% endif %}>
                     </label>
                   </div>
                 </div>
@@ -30,10 +30,16 @@
               <td>{{ model.id }}</td>
               <td>{{ model.name }}</td>
               <td>{{ model.provider }}</td>
-              <td>{{ model.context_length | format_text_length if model.context_length is not none else 'N/A' }}</td>
-              <td>{{ model.metadata.input_cost_per_token | format_cost_per_million if model.metadata.input_cost_per_token is not none else 'N/A' }}</td>
-              <td>{{ model.metadata.output_cost_per_token | format_cost_per_million if model.metadata.output_cost_per_token is not none else 'N/A' }}</td>
-              <td>
+              <td class="{% if 'context_length' in model.overrides %}has-text-weight-bold{% endif %}">
+                {{ model.context_length | format_text_length if model.context_length is not none else 'N/A' }}
+              </td>
+              <td class="{% if 'input_cost' in model.overrides %}has-text-weight-bold{% endif %}">
+                {{ model.input_cost | format_cost_per_million if model.input_cost is not none else 'N/A' }}
+              </td>
+              <td class="{% if 'output_cost' in model.overrides %}has-text-weight-bold{% endif %}">
+                {{ model.output_cost | format_cost_per_million if model.output_cost is not none else 'N/A' }}
+              </td>
+              <td class="{% if 'capabilities' in model.overrides %}has-text-weight-bold{% endif %}">
                 {% if model.capabilities %}
                   {% for cap in model.capabilities %}
                     <span class="tag is-info is-light">{{ cap }}</span>
@@ -52,6 +58,12 @@
             Save Selected Models
           </button>
         </div>
+      </div>
+      
+      <div class="mt-4">
+        <p><span class="tag is-danger">Red rows</span> indicate models that are in your configuration but not available from upstream sources.</p>
+        <p><span class="tag is-warning">Yellow rows</span> indicate models with configuration values that override upstream defaults.</p>
+        <p><span class="has-text-weight-bold">Bold fields</span> indicate specific values that have been overridden.</p>
       </div>
     </form>
   {% else %}
