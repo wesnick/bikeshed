@@ -32,24 +32,28 @@
       {# Render the tree recursively #}
       {% macro render_tree(tree, level=0) %}
         <ul class="tree {% if level == 0 %}root-tree{% endif %}">
-          {% for key, value in tree.items() if key != '__files__' %}
-            <li>
-              <details {% if level == 0 %}open{% endif %}>
-                <summary class="folder">{{ key }}</summary>
-                {{ render_tree(value, level + 1) }}
-              </details>
-            </li>
-          {% endfor %}
-          
-          {% if tree['__files__'] %}
-            {% for file in tree['__files__'] %}
-              <li class="file">
-                <span class="file-name" data-path="{{ file.path }}" data-mime="{{ file.mime_type }}">
-                  {{ file.name }}
-                </span>
+          {# Combine folder and file rendering in one loop #}
+          {% for key, value in tree.items() %}
+            {% if key == '__files__' %}
+              {# Render files for this level #}
+              {% for file in value %}
+                <li class="file">
+                  <span class="file-name" data-path="{{ file.path }}" data-mime="{{ file.mime_type }}">
+                    {{ file.name }}
+                  </span>
+                </li>
+              {% endfor %}
+            {% else %}
+              {# Render a folder #}
+              <li>
+                <details {% if level == 0 %}open{% endif %}>
+                  <summary class="folder">{{ key }}</summary>
+                  {# Recursively render the contents of the subfolder #}
+                  {{ render_tree(value, level + 1) }}
+                </details>
               </li>
-            {% endfor %}
-          {% endif %}
+            {% endif %}
+          {% endfor %}
         </ul>
       {% endmacro %}
 
