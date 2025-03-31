@@ -1,7 +1,6 @@
 import yaml
 from pathlib import Path
-from fastapi import APIRouter, Depends, Request, Form
-from typing import List
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from src.service.mcp_client import MCPClient
 from src.service.logging import logger
@@ -88,7 +87,6 @@ async def registry_models(request: Request) -> dict:
     registry = request.app.state.registry
     return {"models": registry.models}
 
-from src.core.config_types import Model
 
 # Define the fields to be saved in models.yaml
 # Excludes tracking fields like 'selected', 'upstream_present', 'overrides'

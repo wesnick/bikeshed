@@ -10,7 +10,6 @@ from mcp.server.fastmcp.resources import Resource, ResourceTemplate
 from fastapi_events.registry.payload_schema import registry as event_registry
 from watchfiles import awatch
 
-from src.core.config_types import SessionTemplate
 from src.service.logging import logger
 
 class TemplatePrompt(Prompt):

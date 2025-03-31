@@ -20,14 +20,15 @@
           <a data-target="tools">Tools</a>
           <a data-target="embedding">Embedding</a>
         </p>
-
         {% for id, model in models.items() %}
           <div class="panel-block {% if not model.upstream_present %}has-background-danger-light{% elif model.overrides %}has-background-warning-light{% endif %}"
-               data-category="{% if model.selected %}selected{% endif %}{% if model.capabilities %} {% for cap in model.model_filterable_capabilities %}{{ cap }} {% endfor %}{% endif %}">
+               data-category="{% if model.selected %}selected{% endif %}{% if model.capabilities %} {% for cap in model.model_filterable_capabilities %}{{ cap }}{% endfor %}{% endif %}">
             <div class="columns is-mobile is-gapless is-multiline is-fullwidth">
               <div class="column is-1">
                 <label class="checkbox">
-                  <input type="checkbox" name="selected_models[{{ model.id }}]" {% if model.selected %}checked{% endif %}>
+                  <input type="checkbox"
+                         name="selected_models[{{ model.id }}]"
+                         {% if model.selected %}checked{% endif %}>
                 </label>
               </div>
               <div class="column is-3">
@@ -50,9 +51,7 @@
               </div>
               <div class="column is-2 {% if 'capabilities' in model.overrides %}has-text-weight-bold{% endif %}">
                 {% if model.capabilities %}
-                  {% for cap in model.capabilities %}
-                    <span class="tag is-info is-light is-small">{{ cap }}</span>
-                  {% endfor %}
+                  {% for cap in model.capabilities %}<span class="tag is-info is-light is-small">{{ cap }}</span>{% endfor %}
                 {% else %}
                   N/A
                 {% endif %}
@@ -61,19 +60,21 @@
           </div>
         {% endfor %}
       </nav>
-
       <div class="field mt-4">
         <div class="control">
-          <button type="submit" class="button is-primary">
-            Save Selected Models
-          </button>
+          <button type="submit" class="button is-primary">Save Selected Models</button>
         </div>
       </div>
-
       <div class="mt-4">
-        <p><span class="tag is-danger">Red background</span> indicates models that are in your configuration but not available from upstream sources.</p>
-        <p><span class="tag is-warning">Yellow background</span> indicates models with configuration values that override upstream defaults.</p>
-        <p><span class="has-text-weight-bold">Bold fields</span> indicate specific values that have been overridden.</p>
+        <p>
+          <span class="tag is-danger">Red background</span> indicates models that are in your configuration but not available from upstream sources.
+        </p>
+        <p>
+          <span class="tag is-warning">Yellow background</span> indicates models with configuration values that override upstream defaults.
+        </p>
+        <p>
+          <span class="has-text-weight-bold">Bold fields</span> indicate specific values that have been overridden.
+        </p>
       </div>
     </form>
   {% else %}

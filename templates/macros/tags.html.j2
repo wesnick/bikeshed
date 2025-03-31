@@ -1,5 +1,5 @@
 {% macro render_tag(tag, entity_id, entity_type) %}
-<span class="tag is-info is-medium mr-2 mb-2">
+  <span class="tag is-info is-medium mr-2 mb-2">
     {{ tag.name }}
     <button class="delete is-small"
             type="button"
@@ -8,7 +8,6 @@
             hx-target="#tag-entity-component-{{ entity_id }}"
             hx-swap="outerHTML"
             hx-ext="form-json"
-            hx-indicator="#tag-entity-indicator-{{ entity_id }}">
-    </button>
-</span>
+            hx-indicator="#tag-entity-indicator-{{ entity_id }}"></button>
+  </span>
 {% endmacro %}
