@@ -6,14 +6,16 @@ import hljs from 'highlight.js';
 // import Bulma from "@vizuaalog/bulmajs";
 import Dropdown from "@vizuaalog/bulmajs/src/plugins/dropdown";
 
+
 import {initializeEditor} from './prosemirror';
+import {initializePanelFilters} from './components/panel_filter';
+
 
 import Dropzone from "dropzone";
 
 // Import custom handlers
 import './shutdown-handler';
 import './components/tags';
-import './components/panel_filter';
 
 
 // Initialize application
@@ -65,6 +67,10 @@ document.body.addEventListener('htmx:afterSettle', function (event) {
   //     hljs.highlightElement(elem);
   //   }
   // }
+
+  if (event.detail.elt.querySelector && event.detail.elt.querySelector('.panel')) {
+    initializePanelFilters(event.detail.elt.querySelectorAll('.panel'));
+  }
 
   // Activate bulma JS behaviors on newly added elements
   if (event.detail.elt.querySelector && event.detail.elt.querySelector('.dropdown')) {

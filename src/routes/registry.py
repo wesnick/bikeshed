@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request, Form
 from typing import List
 from pydantic import BaseModel
 from src.service.mcp_client import MCPClient
+from src.service.logging import logger
 from src.dependencies import get_jinja, get_mcp_client
 
 router = APIRouter(prefix="/registry", tags=["registry"])
@@ -98,19 +99,14 @@ MODEL_SAVE_FIELDS = [
 
 @router.post("/models/save")
 @jinja.hx('components/registry/models_list.html.j2')
-async def save_models(request: Request, selected_models_form: List[str] = Form(...)) -> dict:
+async def save_models(request: Request, selected_models: ModelsSelectionRequest) -> dict:
     """Save selected models to config/models.yaml file."""
     registry = request.app.state.registry
-    logger.info(f"Received model selection form data: {selected_models_form}")
-
-    # The form sends a list of model IDs that were checked.
-    selected_model_ids = set(selected_models_form)
-    logger.info(f"Saving selected model IDs: {selected_model_ids}")
 
     models_to_save = {}
     # Iterate through all models currently in the registry
     for model_id, model in registry.models.items():
-        if model_id in selected_model_ids:
+        if model_id in selected_models.selected_models.keys():
             # If the model is selected in the form, prepare it for saving
             model_data = {}
             for field in MODEL_SAVE_FIELDS:

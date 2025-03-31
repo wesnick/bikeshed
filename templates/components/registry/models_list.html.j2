@@ -20,10 +20,10 @@
           <a data-target="tools">Tools</a>
           <a data-target="embedding">Embedding</a>
         </p>
-        
+
         {% for id, model in models.items() %}
-          <div class="panel-block {% if not model.upstream_present %}has-background-danger-light{% elif model.overrides %}has-background-warning-light{% endif %}" 
-               data-category="{% if model.selected %}selected{% endif %}{% if model.capabilities %} {% for cap in model.capabilities %}{{ cap }} {% endfor %}{% endif %}">
+          <div class="panel-block {% if not model.upstream_present %}has-background-danger-light{% elif model.overrides %}has-background-warning-light{% endif %}"
+               data-category="{% if model.selected %}selected{% endif %}{% if model.capabilities %} {% for cap in model.model_filterable_capabilities %}{{ cap }} {% endfor %}{% endif %}">
             <div class="columns is-mobile is-gapless is-multiline is-fullwidth">
               <div class="column is-1">
                 <label class="checkbox">
@@ -61,7 +61,7 @@
           </div>
         {% endfor %}
       </nav>
-      
+
       <div class="field mt-4">
         <div class="control">
           <button type="submit" class="button is-primary">

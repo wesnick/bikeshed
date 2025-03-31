@@ -1,7 +1,8 @@
 from typing import Any, Dict, List, Literal, Optional, Union, Set
+
 from pydantic import BaseModel, Field, model_validator
 
-
+    
 ## Session Template Configuration classes
 
 class Metadata(BaseModel):
@@ -374,6 +375,18 @@ class Model(BaseModel):
         default_factory=dict,
         description="Fields overridden by models.yaml compared to upstream source"
     )
+
+    @property
+    def model_filterable_capabilities(self):
+        core = ['chat', 'vision', 'tools', 'embedding']
+        caps = []
+        for capability in self.capabilities:
+            if capability in core:
+                caps.append(capability)
+            elif capability == 'function_calling':
+                caps.append('tools')
+        return caps
+
 
     @model_validator(mode='after')
     def ensure_id_format(self) -> 'Model':

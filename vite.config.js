@@ -9,8 +9,7 @@ export default defineConfig({
     emptyOutDir: false, // Don't empty the entire build directory
     rollupOptions: {
       input: {
-        app: 'js/app.js',
-        panel_filter: 'js/components/panel_filter.js',
+        app: 'js/app.js'
       },
       output: {
         entryFileNames: `[name].js`,

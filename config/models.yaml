@@ -4,8 +4,6 @@ models:
     name: gemma3:latest
     provider: ollama
     context_length: 131072
-    input_cost: 0.0
-    output_cost: 0.0
     capabilities:
     - chat
     metadata:
@@ -36,11 +34,9 @@ models:
     name: qwq:latest
     provider: ollama
     context_length: 40960
-    input_cost: 0.0
-    output_cost: 0.0
     capabilities:
-    - function_calling
     - chat
+    - function_calling
     metadata:
       key: qwq:latest
       litellm_provider: ollama
@@ -64,3 +60,72 @@ models:
       - tool_choice
       - functions
       - response_format
+  fireworks_ai/accounts/fireworks/models/firefunction-v2:
+    id: fireworks_ai/accounts/fireworks/models/firefunction-v2
+    name: fireworks_ai/accounts/fireworks/models/firefunction-v2
+    provider: fireworks_ai
+    context_length: 8192
+    input_cost: 9.0e-07
+    output_cost: 9.0e-07
+    capabilities:
+    - chat
+    - function_calling
+    - response_schema
+    - tool_choice
+    metadata:
+      key: fireworks_ai/accounts/fireworks/models/firefunction-v2
+      max_tokens: 8192
+      max_input_tokens: 8192
+      max_output_tokens: 8192
+      input_cost_per_token: 9.0e-07
+      cache_creation_input_token_cost: null
+      cache_read_input_token_cost: null
+      input_cost_per_character: null
+      input_cost_per_token_above_128k_tokens: null
+      input_cost_per_query: null
+      input_cost_per_second: null
+      input_cost_per_audio_token: null
+      input_cost_per_token_batches: null
+      output_cost_per_token_batches: null
+      output_cost_per_token: 9.0e-07
+      output_cost_per_audio_token: null
+      output_cost_per_character: null
+      output_cost_per_token_above_128k_tokens: null
+      output_cost_per_character_above_128k_tokens: null
+      output_cost_per_second: null
+      output_cost_per_image: null
+      output_vector_size: null
+      litellm_provider: fireworks_ai
+      mode: chat
+      supports_system_messages: null
+      supports_response_schema: true
+      supports_vision: false
+      supports_function_calling: true
+      supports_tool_choice: true
+      supports_assistant_prefill: false
+      supports_prompt_caching: false
+      supports_audio_input: false
+      supports_audio_output: false
+      supports_pdf_input: false
+      supports_embedding_image_input: false
+      supports_native_streaming: null
+      tpm: null
+      rpm: null
+      supported_openai_params:
+      - stream
+      - tools
+      - tool_choice
+      - max_completion_tokens
+      - max_tokens
+      - temperature
+      - top_p
+      - top_k
+      - frequency_penalty
+      - presence_penalty
+      - n
+      - stop
+      - response_format
+      - user
+      - logprobs
+      - prompt_truncate_length
+      - context_length_exceeded_behavior
