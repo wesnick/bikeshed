@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from psycopg import AsyncConnection
+from pydantic import BaseModel
 from starlette.responses import Response
 
 from src.repository import root_repository
@@ -50,11 +51,38 @@ async def navbar_component(db: AsyncConnection = Depends(get_db)):
     }
 
 
-@router.get("/root/{root_uri}")
+class RootSelectRequest(BaseModel):
+    root_uri: str
+
+
+@router.post("/root/select")
+@jinja.hx('components/navbar/root_selector.html.j2')
+async def select_root(root_select: RootSelectRequest,
+                      db: AsyncConnection = Depends(get_db),
+                      broadcast_service: BroadcastService = Depends(get_broadcast_service)):
+    """Select a root as the current working root."""
+    from src.main import app
+    from src.repository.root import RootRepository
+
+    root_repo = RootRepository()
+    app.state.selected_root = await root_repo.get_by_uri(db, root_select.root_uri)
+    roots = await root_repo.get_all(db)
+
+    await broadcast_service.broadcast("root.selected", {"root_uri": root_select.root_uri})
+
+    return {
+        'roots': roots,
+        'selected_root': app.state.selected_root
+    }
+
+@router.get("/root")
 @jinja.hx('components/navbar/root_view.html.j2')
 async def view_root(root_uri: str, db: AsyncConnection = Depends(get_db)):
     """This route serves the root view component for htmx requests."""
     from src.repository.root import RootRepository
+
+    from src.service.logging import logger
+    logger.warning(f"Root URI: {root_uri}")
 
     root_repo = RootRepository()
     root = await root_repo.get_with_files(db, root_uri)
@@ -66,22 +94,3 @@ async def view_root(root_uri: str, db: AsyncConnection = Depends(get_db)):
         'root': root
     }
 
-@router.post("/root/select/{root_uri}")
-@jinja.hx('components/navbar/root_selector.html.j2')
-async def select_root(root_uri: str,
-                      db: AsyncConnection = Depends(get_db),
-                      broadcast_service: BroadcastService = Depends(get_broadcast_service)):
-    """Select a root as the current working root."""
-    from src.main import app
-    from src.repository.root import RootRepository
-
-    root_repo = RootRepository()
-    app.state.selected_root = await root_repo.get_by_uri(db, root_uri)
-    roots = await root_repo.get_all(db)
-
-    await broadcast_service.broadcast("root.selected", {"root_uri": root_uri})
-
-    return {
-        'roots': roots,
-        'selected_root': app.state.selected_root
-    }

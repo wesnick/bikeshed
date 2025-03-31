@@ -7,7 +7,6 @@
     "start": "npm run dev"
   },
   "devDependencies": {
-    "@vizuaalog/bulmajs": "^0.12.2",
     "bulma": "^1.0.3",
     "bulma-o-steps": "^1.1.0",
     "concurrently": "^9.1.2",

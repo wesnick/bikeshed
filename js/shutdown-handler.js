@@ -1,4 +1,3 @@
-import Bulma from "@vizuaalog/bulmajs";
 import htmx from "htmx.org";
 
 
@@ -42,13 +41,14 @@ document.addEventListener('DOMContentLoaded', function() {
              // connection was closed due to reception of message sse-close
              console.log('Server shutdown detected:');
 
+             const html_template = `<div class="notification is-primary">
+  The server is restarting. The page has to reload cuz SSE does not reconnect.
+</div>`
 
-            // Use Bulma's native notification
-            Bulma('#notification-area').notification({
-                color: 'warning',
-                body: "The server is restarting. The page has to reload cuz SSE does not reconnect. <button class=\"reload-page\">Reload</button>",
-
-            }).show();
+             const notificationArea = document.getElementById('notification-area');
+             if (notificationArea) {
+                 notificationArea.innerHTML = html_template;
+             }
 
             setTimeout(() => {
                 window.location.reload();

@@ -64,7 +64,7 @@ async def get_arq_redis() -> AsyncGenerator[ArqRedis, None]:
 
 @lru_cache
 def get_jinja() -> Jinja:
-    from src.jinja_extensions import markdown2html, format_file_size, get_file_icon, format_text_length, format_cost_per_million, model_select
+    from src.jinja_extensions import markdown2html, quote_plus, format_file_size, get_file_icon, format_text_length, format_cost_per_million, model_select
 
     jinja_templates = Jinja2Templates(directory="templates")
     jinja_templates.env.filters['markdown2html'] = markdown2html
@@ -72,6 +72,7 @@ def get_jinja() -> Jinja:
     jinja_templates.env.filters['file_icon'] = get_file_icon
     jinja_templates.env.filters['format_text_length'] = format_text_length
     jinja_templates.env.filters['format_cost_per_million'] = format_cost_per_million
+    jinja_templates.env.filters['quote_plus'] = quote_plus
 
     jinja_templates.env.globals.update({'model_select': model_select})
 

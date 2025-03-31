@@ -18,7 +18,9 @@
       {% if roots %}
         {% for root in roots %}
           <a class="dropdown-item"
-             hx-post="/root/select/{{ root.uri }}"
+             hx-vals='{"root_uri": "{{ root.uri }}"}'
+             hx-post="/root/select"
+             hx-ext="form-json"
              hx-target="closest .dropdown">
             <span class="icon"><i class="fas fa-folder"></i></span>
             <span>{{ root.name or root.uri }}</span>
@@ -36,7 +38,7 @@
       </a>
       {% if selected_root %}
         <a class="dropdown-item"
-           hx-get="/root/{{ selected_root.uri }}"
+           hx-get="/root?root_uri={{ selected_root.uri | quote_plus }}"
            hx-target=".dashboard">
           <span class="icon has-text-info"><i class="fas fa-eye"></i></span>
           <span>View Root Files</span>

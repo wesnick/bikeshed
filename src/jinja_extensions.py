@@ -41,6 +41,12 @@ def model_select():
 
     return models
 
+def quote_plus(url: str) -> str:
+    from urllib.parse import quote_plus
+
+    return quote_plus(url)
+
+
 
 def format_file_size(byte_size):
     """Format byte size to human readable format"""
