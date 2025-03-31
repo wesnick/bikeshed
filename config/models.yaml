@@ -1,3 +1,66 @@
-# This config file is auto-generated from the Registry Manager area
-# It contains the selected models that will be available in the application
-models: {}
+models:
+  ollama_chat/gemma3:latest:
+    id: ollama_chat/gemma3:latest
+    name: gemma3:latest
+    provider: ollama
+    context_length: 131072
+    input_cost: 0.0
+    output_cost: 0.0
+    capabilities:
+    - chat
+    metadata:
+      key: gemma3:latest
+      litellm_provider: ollama
+      mode: chat
+      supports_function_calling: false
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.0
+      max_tokens: 131072
+      max_input_tokens: 131072
+      max_output_tokens: 131072
+      supported_openai_params:
+      - max_tokens
+      - max_completion_tokens
+      - stream
+      - top_p
+      - temperature
+      - seed
+      - frequency_penalty
+      - stop
+      - tools
+      - tool_choice
+      - functions
+      - response_format
+  ollama_chat/qwq:latest:
+    id: ollama_chat/qwq:latest
+    name: qwq:latest
+    provider: ollama
+    context_length: 40960
+    input_cost: 0.0
+    output_cost: 0.0
+    capabilities:
+    - function_calling
+    - chat
+    metadata:
+      key: qwq:latest
+      litellm_provider: ollama
+      mode: chat
+      supports_function_calling: true
+      input_cost_per_token: 0.0
+      output_cost_per_token: 0.0
+      max_tokens: 40960
+      max_input_tokens: 40960
+      max_output_tokens: 40960
+      supported_openai_params:
+      - max_tokens
+      - max_completion_tokens
+      - stream
+      - top_p
+      - temperature
+      - seed
+      - frequency_penalty
+      - stop
+      - tools
+      - tool_choice
+      - functions
+      - response_format

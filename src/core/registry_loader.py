@@ -290,8 +290,6 @@ class RegistryBuilder:
             name=model_info.get('key'),
             provider=model_info.get('litellm_provider'),
             context_length=model_info.get('max_input_tokens'),
-            input_cost=model_info.get('input_cost_per_token'),
-            output_cost=model_info.get('output_cost_per_token'),
             capabilities=capabilities,
-            metadata={"source": "litellm"}
+            metadata=model_info
         )

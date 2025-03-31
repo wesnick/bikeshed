@@ -11,7 +11,7 @@ router = APIRouter(prefix="/registry", tags=["registry"])
 jinja = get_jinja()
 
 class ModelsSelectionRequest(BaseModel):
-    selected_models: List[str]
+    selected_models: dict[str, bool]
 
 
 @router.get("/")
@@ -92,10 +92,10 @@ async def registry_models(request: Request) -> dict:
 async def save_models(request: Request, selection: ModelsSelectionRequest) -> dict:
     """Save selected models to config/models.yaml file."""
     registry = request.app.state.registry
-    
+
     # Get the selected models
     selected_models = {}
-    for model_id in selection.selected_models:
+    for model_id in selection.selected_models.keys():
         if model_id in registry.models:
             model = registry.models[model_id]
             selected_models[model_id] = {
@@ -108,11 +108,11 @@ async def save_models(request: Request, selection: ModelsSelectionRequest) -> di
                 "capabilities": list(model.capabilities) if model.capabilities else [],
                 "metadata": model.metadata
             }
-    
+
     # Save to YAML file
     config_path = Path("config/models.yaml")
     with open(config_path, "w") as f:
         yaml.dump({"models": selected_models}, f, default_flow_style=False, sort_keys=False)
-    
+
     # Return the updated models list
     return {"models": registry.models}

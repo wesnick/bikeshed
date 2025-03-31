@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import AsyncGenerator
 import asyncio
 import json
@@ -61,13 +62,16 @@ async def get_arq_redis() -> AsyncGenerator[ArqRedis, None]:
         await redis.close()
 
 
+@lru_cache
 def get_jinja() -> Jinja:
-    from src.jinja_extensions import markdown2html, format_file_size, get_file_icon
-    
+    from src.jinja_extensions import markdown2html, format_file_size, get_file_icon, format_text_length, format_cost_per_million
+
     jinja_templates = Jinja2Templates(directory="templates")
     jinja_templates.env.filters['markdown2html'] = markdown2html
     jinja_templates.env.filters['format_file_size'] = format_file_size
     jinja_templates.env.filters['file_icon'] = get_file_icon
+    jinja_templates.env.filters['format_text_length'] = format_text_length
+    jinja_templates.env.filters['format_cost_per_million'] = format_cost_per_million
 
     return Jinja(jinja_templates)
 
@@ -96,14 +100,14 @@ _registry_lock = asyncio.Lock()
 async def get_registry() -> AsyncGenerator[Registry, None]:
     """Dependency for getting the singleton Registry instance"""
     global _registry_initialized
-    
+
     # Use a lock to prevent multiple initialization attempts
     async with _registry_lock:
         if not _registry_initialized:
             builder = RegistryBuilder(registry)
             await builder.build()
             _registry_initialized = True
-    
+
     yield registry
 
 # Create the singleton BroadcastService instance
@@ -140,7 +144,7 @@ async def get_completion_service() -> AsyncGenerator[ChainedCompletionService, N
 async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
     """Dependency for getting the singleton WorkflowService instance"""
     global _workflow_service
-    
+
     # Use a lock to prevent multiple initialization attempts
     async with _workflow_service_lock:
         if _workflow_service is None:
@@ -163,7 +167,7 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
                 completion_service=completion_service,
                 broadcast_service=broadcast_service
             )
-    
+
     yield _workflow_service
 
 

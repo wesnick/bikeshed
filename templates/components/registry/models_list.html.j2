@@ -22,7 +22,7 @@
                 <div class="field">
                   <div class="control">
                     <label class="checkbox">
-                      <input type="checkbox" name="selected_models" value="{{ model.id }}">
+                      <input type="checkbox" name="selected_models[{{ model.id }}]">
                     </label>
                   </div>
                 </div>
@@ -30,9 +30,9 @@
               <td>{{ model.id }}</td>
               <td>{{ model.name }}</td>
               <td>{{ model.provider }}</td>
-              <td>{{ model.context_length if model.context_length is not none else 'N/A' }}</td>
-              <td>{{ model.input_cost if model.input_cost is not none else 'N/A' }}</td>
-              <td>{{ model.output_cost if model.output_cost is not none else 'N/A' }}</td>
+              <td>{{ model.context_length | format_text_length if model.context_length is not none else 'N/A' }}</td>
+              <td>{{ model.metadata.input_cost_per_token | format_cost_per_million if model.metadata.input_cost_per_token is not none else 'N/A' }}</td>
+              <td>{{ model.metadata.output_cost_per_token | format_cost_per_million if model.metadata.output_cost_per_token is not none else 'N/A' }}</td>
               <td>
                 {% if model.capabilities %}
                   {% for cap in model.capabilities %}

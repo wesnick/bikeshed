@@ -345,14 +345,6 @@ class Model(BaseModel):
         default=None,
         description="Maximum context length in tokens"
     )
-    input_cost: Optional[float] = Field(
-        default=None,
-        description="Cost per 1K input tokens in USD"
-    )
-    output_cost: Optional[float] = Field(
-        default=None,
-        description="Cost per 1K output tokens in USD"
-    )
     capabilities: Optional[Set[str]] = Field(
         default_factory=set,
         description="Set of capabilities this model supports (e.g., 'chat', 'embedding', 'vision')"
