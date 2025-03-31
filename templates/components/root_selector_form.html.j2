@@ -1,0 +1,26 @@
+<div class="root-selector-form">
+  <div class="field">
+    <div class="control">
+      <div class="select is-small">
+        <select id="root-select"
+                hx-post="/root/select/${event.target.value}"
+                hx-trigger="change"
+                hx-target="closest .root-selector">
+          <option value="">Select a root</option>
+          {% for root in roots %}
+            <option value="{{ root.uri }}">{{ root.name or root.uri }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="field">
+    <div class="control">
+      <button class="button is-small"
+              hx-get="/components/root-selector"
+              hx-target="closest .root-selector">
+        <span class="icon"><i class="fas fa-times"></i></span>
+      </button>
+    </div>
+  </div>
+</div>

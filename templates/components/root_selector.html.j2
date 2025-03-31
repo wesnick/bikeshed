@@ -1,0 +1,35 @@
+<div class="root-selector">
+  {% if selected_root %}
+    <div class="selected-root">
+      <div class="buttons">
+        <button class="button is-small"
+                hx-get="/components/root-selector"
+                hx-target="closest .root-selector">
+          <span class="icon"><i class="fas fa-folder-open"></i></span>
+          <span>{{ selected_root.name or selected_root.uri }}</span>
+        </button>
+        <a class="button is-small is-info"
+           hx-get="/root/{{ selected_root.uri }}"
+           hx-target=".dashboard">
+          <span class="icon"><i class="fas fa-eye"></i></span>
+        </a>
+      </div>
+    </div>
+  {% else %}
+    <div class="root-selection-form">
+      <div class="buttons">
+        <button class="button is-small"
+                hx-get="/components/root-selector/form"
+                hx-target="closest .root-selector">
+          <span class="icon"><i class="fas fa-folder"></i></span>
+          <span>Select Root</span>
+        </button>
+        <button class="button is-small is-success"
+                hx-get="/components/root-selector/new"
+                hx-target="closest .root-selector">
+          <span class="icon"><i class="fas fa-plus"></i></span>
+        </button>
+      </div>
+    </div>
+  {% endif %}
+</div>

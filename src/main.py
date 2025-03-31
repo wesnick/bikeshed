@@ -155,6 +155,36 @@ async def right_drawer_component(request: Request, db: AsyncConnection = Depends
         'data': f"Url parts: {url_parts} \n\n"
     }
 
+@app.get("/components/root-selector")
+@jinja.hx('components/root_selector.html.j2')
+async def root_selector_component(db: AsyncConnection = Depends(get_db)):
+    """This route serves the root selector component for htmx requests."""
+    from src.repository.root import RootRepository
+    
+    root_repo = RootRepository()
+    recent_roots = await root_repo.get_recent_roots(db)
+    
+    # Get the currently selected root from session or cookie if implemented
+    selected_root = None
+    
+    return {
+        'roots': recent_roots,
+        'selected_root': selected_root
+    }
+
+@app.get("/components/root-selector/form")
+@jinja.hx('components/root_selector_form.html.j2')
+async def root_selector_form(db: AsyncConnection = Depends(get_db)):
+    """This route serves the root selector form component for htmx requests."""
+    from src.repository.root import RootRepository
+    
+    root_repo = RootRepository()
+    recent_roots = await root_repo.get_recent_roots(db)
+    
+    return {
+        'roots': recent_roots
+    }
+
 @app.get("/components/navbar-notifications")
 @jinja.hx('components/navbar-notifications.html.j2')
 async def navbar_component(db: AsyncConnection = Depends(get_db)):
@@ -174,6 +204,33 @@ async def navbar_component(db: AsyncConnection = Depends(get_db)):
         'waiting_sessions': waiting_sessions
     }
 
+
+@app.get("/root/{root_uri}")
+@jinja.hx('components/root_view.html.j2')
+async def view_root(root_uri: str, db: AsyncConnection = Depends(get_db)):
+    """This route serves the root view component for htmx requests."""
+    from src.repository.root import RootRepository
+    
+    root_repo = RootRepository()
+    root = await root_repo.get_with_files(db, root_uri)
+    
+    if not root:
+        return {"error": "Root not found"}
+    
+    return {
+        'root': root
+    }
+
+@app.post("/root/select/{root_uri}")
+async def select_root(root_uri: str, request: Request, 
+                     broadcast_service: BroadcastService = Depends(get_broadcast_service)):
+    """Select a root as the current working root."""
+    # In a real implementation, you might store this in a session or cookie
+    # For now, we'll just broadcast an event
+    await broadcast_service.broadcast("root.selected", {"root_uri": root_uri})
+    
+    # Return a 204 No Content response
+    return Response(status_code=204)
 
 @app.get("/kitchen-sink")
 @jinja.hx('components/kitchen_sink.html.j2', no_data=True)

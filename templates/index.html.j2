@@ -35,6 +35,16 @@
           <div id="notification-area" class="navbar-notification"></div>
           <div class="navbar-end">
             <div class="navbar-item"
+                 hx-get="/components/root-selector"
+                 hx-trigger="load, sse:root.selected, sse:root.updated">
+              <div class="buttons">
+                <button class="button is-small">
+                  <span class="icon"><i class="fas fa-folder"></i></span>
+                  <span>Select Root</span>
+                </button>
+              </div>
+            </div>
+            <div class="navbar-item"
                  hx-get="/components/navbar-notifications"
                  hx-trigger="load, sse:session_update, sse:notifications.update">
               {% include 'components/skeleton.html.j2' %}
