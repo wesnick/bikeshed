@@ -14,7 +14,9 @@
       <span class="tag is-light">No tags yet.</span>
     {% endif %}
      <span id="tag-entity-indicator-{{ entity_id }}" class="htmx-indicator">
-        <img src="/img/bars.svg" alt="Loading..." style="height: 1em;"/>
+       <span class="icon is-small">
+            <i class="fas fa-spinner"></i>
+          </span>
      </span>
   </div>
 
@@ -24,11 +26,12 @@
         hx-target="#tag-entity-component-{{ entity_id }}"
         hx-swap="outerHTML"
         hx-indicator="#tag-entity-indicator-{{ entity_id }}"
+        hx-ext="form-json"
         class="is-hidden">
       <input type="hidden" name="entity_id" value="{{ entity_id }}">
       <input type="hidden" name="entity_type" value="{{ entity_type }}">
-      <input type="hidden" name="tag_id" value=""> {# Populated by JS #}
-      <input type="hidden" name="action" value=""> {# Populated by JS ('add' or 'remove') #}
+      <input type="hidden" name="tag_id" value="">
+      <input type="hidden" name="action" value="">
   </form>
 
   {# Autocomplete Input with Dropdown #}

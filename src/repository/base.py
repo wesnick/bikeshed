@@ -35,25 +35,25 @@ async def prepare_data_for_db(data: Dict[str, Any], non_persisted_fields: Option
     """
     if non_persisted_fields is None:
         non_persisted_fields = set()
-        
+
     prepared_data = {}
-    
+
     for k, v in data.items():
         if k in non_persisted_fields or v is None:
             continue
-            
+
         # Handle Pydantic models and collections
         if isinstance(v, BaseModel):
             prepared_data[k] = Jsonb(v.model_dump(mode='json'))
         elif isinstance(v, (list, dict)):
             # Recursively serialize any Pydantic models in collections
-            serialized = json.dumps(v, default=lambda o: 
+            serialized = json.dumps(v, default=lambda o:
                 o.model_dump(mode='json') if isinstance(o, BaseModel) else o)
             prepared_data[k] = Jsonb(json.loads(serialized))
         else:
             # Primitive type
             prepared_data[k] = v
-            
+
     return prepared_data
 
 
@@ -78,7 +78,7 @@ class BaseRepository(Generic[T]):
              raise ValueError(f"Model {model.__name__} must define __db_table__")
 
     @db_operation
-    async def get_by_id(self, conn: AsyncConnection, id: UUID) -> Optional[T]:
+    async def get_by_id(self, conn: AsyncConnection, id: UUID | str) -> Optional[T]:
         """Get an entity by ID"""
         query = SQL("SELECT * FROM {} WHERE id = %s").format(Identifier(self.table_name))
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
@@ -92,16 +92,16 @@ class BaseRepository(Generic[T]):
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, (limit, offset))
             return await cur.fetchall()
-            
+
     @db_operation
     async def get_recent(self, conn: AsyncConnection, limit: int = 40) -> List[T]:
         """Get the most recent entities ordered by created_at"""
         query = SQL("""
-            SELECT * FROM {} 
-            ORDER BY created_at DESC 
+            SELECT * FROM {}
+            ORDER BY created_at DESC
             LIMIT %s
         """).format(Identifier(self.table_name))
-        
+
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, (limit,))
             return await cur.fetchall()
@@ -110,10 +110,10 @@ class BaseRepository(Generic[T]):
     async def get_by_field(self, conn: AsyncConnection, field: str, value: Any) -> Optional[T]:
         """Get an entity by a specific field value"""
         query = SQL("""
-            SELECT * FROM {} 
+            SELECT * FROM {}
             WHERE {} = %s
         """).format(Identifier(self.table_name), Identifier(field))
-        
+
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, (value,))
             return await cur.fetchone()

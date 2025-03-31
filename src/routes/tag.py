@@ -177,16 +177,16 @@ async def tag_selector_component(
     """Render a tag selector component."""
     # Get all top-level tags (those without a parent)
     top_level_tags = await tag_repo.get_children(db, "root")
-    
+
     # If entity ID and type are provided, get the entity's tags
     entity_tags = []
     if entity_id and entity_type:
         entity_tag_repo = EntityTagRepository()
         entity_tags = await entity_tag_repo.get_entity_tags(db, entity_id, entity_type)
-        
+
         # Format tags for the tagsinput component
         entity_tags = [{"id": tag.id, "name": tag.name} for tag in entity_tags]
-    
+
     return {
         "top_level_tags": top_level_tags,
         "entity_tags": entity_tags,
@@ -214,12 +214,10 @@ async def tag_autocomplete_search(search_term: Optional[str] = None,
         return {"tags": []}
 
 
-@router.post("/entity", response_class=Response) # Ensure we return Response for HX
+@router.post("/entity")
+@jinja.hx("components/tags/tag_entity.html.j2")
 async def manage_entity_tags(
-    entity_id: UUID = Form(...),
-    entity_type: str = Form(...),
-    tag_id: str = Form(...),
-    action: str = Form(...), # 'add' or 'remove'
+    tag_entity: EntityTagRequest,
     db: AsyncConnection = Depends(get_db),
     tag_repo: TagRepository = Depends(get_tag_repository) # Added tag_repo dependency
 ):
@@ -229,36 +227,36 @@ async def manage_entity_tags(
     message = ""
 
     try:
-        if action == "add":
+        if tag_entity.action == "add":
             # Check if tag exists before adding
-            tag_to_add = await tag_repo.get_by_id(db, tag_id)
+            tag_to_add = await tag_repo.get_by_id(db, tag_entity.tag_id)
             if not tag_to_add:
                  # This case should ideally not happen if UI only allows selecting existing tags
-                 logger.warning(f"Attempted to add non-existent tag '{tag_id}' to {entity_type}:{entity_id}")
-                 message = f"Tag '{tag_id}' does not exist."
+                 logger.warning(f"Attempted to add non-existent tag '{tag_entity.tag_id}' to {tag_entity.entity_type}:{tag_entity.entity_id}")
+                 message = f"Tag '{tag_entity.tag_id}' does not exist."
             else:
                 success = await entity_tag_repo.add_tag_to_entity(
-                    db, entity_id, entity_type, tag_id
+                    db, tag_entity.entity_id, tag_entity.entity_type, tag_entity.tag_id
                 )
                 message = f"Tag '{tag_to_add.name}' added." if success else f"Tag '{tag_to_add.name}' already present."
                 if success:
-                    logger.info(f"Added tag '{tag_id}' to {entity_type}:{entity_id}")
+                    logger.info(f"Added tag '{tag_entity.tag_id}' to {tag_entity.entity_type}:{tag_entity.entity_id}")
 
 
-        elif action == "remove":
+        elif tag_entity.action == "remove":
             # Fetch tag name for logging/message before potentially removing it
-            tag_to_remove = await tag_repo.get_by_id(db, tag_id)
-            tag_name = tag_to_remove.name if tag_to_remove else tag_id
+            tag_to_remove = await tag_repo.get_by_id(db, tag_entity.tag_id)
+            tag_name = tag_to_remove.name if tag_to_remove else tag_entity.tag_id
 
             success = await entity_tag_repo.remove_tag_from_entity(
-                db, entity_id, entity_type, tag_id
+                db, tag_entity.entity_id, tag_entity.entity_type, tag_entity.tag_id
             )
             message = f"Tag '{tag_name}' removed." if success else f"Tag '{tag_name}' not found on entity."
             if success:
-                logger.info(f"Removed tag '{tag_id}' from {entity_type}:{entity_id}")
+                logger.info(f"Removed tag '{tag_entity.tag_id}' from {tag_entity.entity_type}:{tag_entity.entity_id}")
 
         else:
-            logger.warning(f"Invalid action '{action}' received for entity tag management.")
+            logger.warning(f"Invalid action '{tag_entity.action}' received for entity tag management.")
             message = "Invalid action specified."
             raise HTTPException(status_code=400, detail=message)
 
@@ -266,7 +264,7 @@ async def manage_entity_tags(
         # Re-raise HTTP exceptions
         raise http_exc
     except Exception as e:
-        logger.error(f"Error managing tag '{tag_id}' for {entity_type}:{entity_id} (action: {action}): {e}")
+        logger.error(f"Error managing tag '{tag_entity.tag_id}' for {tag_entity.entity_type}:{tag_entity.entity_id} (action: {tag_entity.action}): {e}")
         # Return a generic error message within the component to avoid breaking the UI flow
         message = f"An error occurred while managing tag: {e}"
         # Optionally raise HTTPException(500) instead, but returning the component might be better UX
@@ -274,24 +272,19 @@ async def manage_entity_tags(
 
     # Always re-fetch the current tags for the entity
     try:
-        current_entity_tags = await entity_tag_repo.get_entity_tags(db, entity_id, entity_type)
+        current_entity_tags = await entity_tag_repo.get_entity_tags(db, tag_entity.entity_id, tag_entity.entity_type)
         # Format tags for the template
         formatted_tags = [{"id": tag.id, "name": tag.name, "path": tag.path, "description": tag.description} for tag in current_entity_tags]
     except Exception as e:
-        logger.error(f"Failed to re-fetch tags for {entity_type}:{entity_id} after update: {e}")
+        logger.error(f"Failed to re-fetch tags for {tag_entity.entity_type}:{tag_entity.entity_id} after update: {e}")
         formatted_tags = [] # Render empty if fetch fails
         message += " (Failed to refresh tag list)"
 
 
-    # Render the component again with the updated (or error) state
-    # Note: We pass the original entity_id and entity_type back to the template
-    context = {
-        "entity_id": entity_id,
-        "entity_type": entity_type,
+    return {
+        "entity_id": tag_entity.entity_id,
+        "entity_type": tag_entity.entity_type,
         "entity_tags": formatted_tags,
-        "message": message, # Optionally display a status message
-        "success": success and action in ['add', 'remove'] # Indicate overall success of the intended action
+        "message": message,
+        "success": success and tag_entity.action in ['add', 'remove']
     }
-    return jinja.template_response("components/tags/tag_entity.html.j2", context)
-
-
