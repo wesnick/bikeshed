@@ -5,7 +5,12 @@ https://github.com/zhanymkanov/fastapi-best-practices
  - events https://github.com/melvinkcx/fastapi-events
  - workflow https://github.com/pytransitions/transitions
  - inotify https://watchfiles.helpmanual.io/
- - 
+
+
+### Tree views
+
+https://iamkate.com/code/tree-views/
+
 
 ### Markdown Textarea
 

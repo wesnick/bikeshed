@@ -1,18 +1,5 @@
 I have several suggestions for improving your AI workflow app schema:
 
-### 1. Message Tagging System
-
-Consider adding a tagging system for messages to make them more searchable and filterable:
-
-```python
-# Association table for message tags
-message_tags = Table(
-    'message_tags',
-    Base.metadata,
-    Column('message_id', UUID(as_uuid=True), ForeignKey('messages.id'), primary_key=True),
-    Column('tag', String(50), primary_key=True)
-)
-```
 
 This would allow you to categorize messages (e.g., "reasoning", "question", "conclusion") and easily retrieve related content.
 
