@@ -130,104 +130,38 @@ class RegistryBuilder:
         """
         Load available LLM models from Ollama and LiteLLM.
         """
+        import litellm.utils
+        import ollama
         logger.info("Loading available LLM models")
 
         # Load models from Ollama if available
         try:
-            if importlib.util.find_spec("ollama"):
-                import ollama
-                ollama_models = ollama.list()
-                for model_data in ollama_models['models']:
-                    # @TODO: need to figure out how to discern capabilities
-                    for mode in ['ollama', 'ollama_chat']:
-                        model = Model(
-                            id=f"{mode}/{model_data['model']}",
-                            name=model_data['model'],
-                            provider="ollama",
-                            metadata={
-                                "size": model_data.get('size', 0),
-                                "modified_at": model_data.get('modified_at', ""),
-                                "digest": model_data.get('digest', "")
-                            },
-                            capabilities={"chat", "completion"}
-                        )
-                        self.registry.add_model(model)
-                        logger.debug(f"Added Ollama model: {model.name}")
-
-            else:
-                logger.warning("Ollama package not found, skipping Ollama models")
+            ollama_models = ollama.list()
+            for model_data in ollama_models['models']:
+                logger.warning(f"ollama model_data {model_data}")
+                model_info = litellm.utils.get_model_info('ollama_chat/' + model_data['model'])
+                model = self._load_model_from_litellm(model_info)
+                # Fix ollama model id to use "chat" endpoint
+                model.id = 'ollama_chat/' + model_data['model']
+                self.registry.add_model(model)
+                logger.debug(f"Added Ollama model: {model.name}")
         except Exception as e:
             logger.error(f"Failed to load Ollama models: {str(e)}")
 
         # Load models from LiteLLM if available
         try:
-            if importlib.util.find_spec("litellm"):
-                import litellm.utils
-                litellm_models = litellm.utils.get_valid_models()
-                for model_name in litellm_models:
-                    try:
-                        model_info = litellm.utils.get_model_info(model_name)
-                    except Exception as e:
-                        continue
+            import litellm.utils
+            litellm_models = litellm.utils.get_valid_models()
+            for model_name in litellm_models:
+                try:
+                    model_info = litellm.utils.get_model_info(model_name)
+                except Exception as e:
+                    continue
 
-                    capabilities = set()
-                    if model_info.get('supports_system_messages'):
-                        capabilities.add('system_message')
-                    if model_info.get('supports_response_schema'):
-                        capabilities.add('response_schema')
-                    if model_info.get('supports_tool_choice'):
-                        capabilities.add('tool_choice')
-                    if model_info.get('supports_function_calling'):
-                        capabilities.add('function_calling')
-                    if model_info.get('supports_vision'):
-                        capabilities.add('vision')
-                    if model_info.get('supports_audio_input'):
-                        capabilities.add('audio_input')
-                    if model_info.get('supports_audio_output'):
-                        capabilities.add('audio_output')
-                    if model_info.get('supports_native_streaming'):
-                        capabilities.add('native_streaming')
-                    if model_info.get('supports_parallel_function_calling'):
-                        capabilities.add('parallel_function_calling')
-                    if model_info.get('supports_embedding_image_input'):
-                        capabilities.add('embedding_image_input')
-                    if model_info.get('supports_pdf_input'):
-                        capabilities.add('pdf_input')
-                    if model_info.get('supports_prompt_caching'):
-                        capabilities.add('prompt_caching')
-                    if model_info.get('supports_assistant_prefill'):
-                        capabilities.add('assistant_prefill')
-                    if model_info.get('mode') == 'chat':
-                        capabilities.add('chat')
-                    if model_info.get('mode') == 'completion':
-                        capabilities.add('completion')
-                    if model_info.get('mode') == 'embedding':
-                        capabilities.add('embedding')
-                    if model_info.get('mode') == 'image_generation':
-                        capabilities.add('image_generation')
-                    if model_info.get('mode') == 'audio_transcription':
-                        capabilities.add('audio_transcription')
+                model = self._load_model_from_litellm(model_info)
+                self.registry.add_model(model)
+                logger.debug(f"Added LiteLLM model: {model.name}")
 
-                    # If model name has a slash,
-                    if model_name.find('/') != -1:
-                        current_id = model_name
-                    else:
-                        current_id = f"{model_info.get('litellm_provider')}/{model_name}"
-
-                    model = Model(
-                        id=current_id,
-                        name=model_name,
-                        provider=model_info.get('litellm_provider'),
-                        context_length=model_info.get('max_input_tokens'),
-                        input_cost=model_info.get('input_cost_per_token'),
-                        output_cost=model_info.get('output_cost_per_token'),
-                        capabilities=capabilities,
-                        metadata={"source": "litellm"}
-                    )
-                    self.registry.add_model(model)
-                    logger.debug(f"Added LiteLLM model: {model.name}")
-            else:
-                logger.warning("LiteLLM package not found, skipping LiteLLM models")
         except Exception as e:
             logger.error(f"Failed to load LiteLLM models: {str(e)}")
 
@@ -305,3 +239,59 @@ class RegistryBuilder:
                     logger.info(f"Connected to MCP server: {name}")
             except Exception as e:
                 logger.error(f"Failed to connect to MCP server {name}: {str(e)}")
+
+    def _load_model_from_litellm(self, model_info):
+
+        capabilities = set()
+        if model_info.get('supports_system_messages'):
+            capabilities.add('system_message')
+        if model_info.get('supports_response_schema'):
+            capabilities.add('response_schema')
+        if model_info.get('supports_tool_choice'):
+            capabilities.add('tool_choice')
+        if model_info.get('supports_function_calling'):
+            capabilities.add('function_calling')
+        if model_info.get('supports_vision'):
+            capabilities.add('vision')
+        if model_info.get('supports_audio_input'):
+            capabilities.add('audio_input')
+        if model_info.get('supports_audio_output'):
+            capabilities.add('audio_output')
+        if model_info.get('supports_native_streaming'):
+            capabilities.add('native_streaming')
+        if model_info.get('supports_parallel_function_calling'):
+            capabilities.add('parallel_function_calling')
+        if model_info.get('supports_embedding_image_input'):
+            capabilities.add('embedding_image_input')
+        if model_info.get('supports_pdf_input'):
+            capabilities.add('pdf_input')
+        if model_info.get('supports_prompt_caching'):
+            capabilities.add('prompt_caching')
+        if model_info.get('supports_assistant_prefill'):
+            capabilities.add('assistant_prefill')
+        if model_info.get('mode') == 'chat':
+            capabilities.add('chat')
+        if model_info.get('mode') == 'completion':
+            capabilities.add('completion')
+        if model_info.get('mode') == 'embedding':
+            capabilities.add('embedding')
+        if model_info.get('mode') == 'image_generation':
+            capabilities.add('image_generation')
+        if model_info.get('mode') == 'audio_transcription':
+            capabilities.add('audio_transcription')
+
+        if model_info.get('key').startswith(model_info.get('litellm_provider') + '/'):
+            model_id = model_info.get('key')
+        else:
+            model_id = model_info.get('litellm_provider') + '/' + model_info.get('key')
+
+        return Model(
+            id=model_id,
+            name=model_info.get('key'),
+            provider=model_info.get('litellm_provider'),
+            context_length=model_info.get('max_input_tokens'),
+            input_cost=model_info.get('input_cost_per_token'),
+            output_cost=model_info.get('output_cost_per_token'),
+            capabilities=capabilities,
+            metadata={"source": "litellm"}
+        )
