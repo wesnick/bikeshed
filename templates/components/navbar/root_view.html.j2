@@ -31,29 +31,31 @@
 
       {# Render the tree recursively #}
       {% macro render_tree(tree, level=0) %}
+        {# Create the UL for the current level's items (folders and files) #}
         <ul class="tree {% if level == 0 %}root-tree{% endif %}">
-          {# Combine folder and file rendering in one loop #}
-          {% for key, value in tree.items() %}
-            {% if key == '__files__' %}
-              {# Render files for this level #}
-              {% for file in value %}
-                <li class="file">
-                  <span class="file-name" data-path="{{ file.path }}" data-mime="{{ file.mime_type }}">
-                    {{ file.name }}
-                  </span>
-                </li>
-              {% endfor %}
-            {% else %}
-              {# Render a folder #}
-              <li>
-                <details {% if level == 0 %}open{% endif %}>
-                  <summary class="folder">{{ key }}</summary>
-                  {# Recursively render the contents of the subfolder #}
-                  {{ render_tree(value, level + 1) }}
-                </details>
-              </li>
-            {% endif %}
+          {# Render folders first #}
+          {% for key, value in tree.items() if key != '__files__' %}
+            {# Each folder is an LI #}
+            <li>
+              <details {% if level == 0 %}open{% endif %}>
+                <summary class="folder">{{ key }}</summary>
+                {# Recursively render the contents (which will start with a UL) #}
+                {{ render_tree(value, level + 1) }}
+              </details>
+            </li>
           {% endfor %}
+
+          {# Render files at this level #}
+          {% if tree['__files__'] %}
+            {% for file in tree['__files__'] %}
+              {# Each file is an LI, sibling to folder LIs #}
+              <li class="file">
+                <span class="file-name" data-path="{{ file.path }}" data-mime="{{ file.mime_type }}">
+                  {{ file.name }}
+                </span>
+              </li>
+            {% endfor %}
+          {% endif %}
         </ul>
       {% endmacro %}
 
