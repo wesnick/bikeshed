@@ -1,135 +1,73 @@
+import logging
 from datetime import datetime
 from pathlib import Path
-from psycopg import AsyncConnection, sql
+from psycopg import AsyncConnection
 from src.models.models import Root, RootFile
+from src.repository.root import RootRepository
+from src.repository.root_file import RootFileRepository
 import aiofiles
 import aiofiles.os
 import magic
-import uuid
-from typing import Callable, AsyncGenerator, Dict, List, Tuple
+from typing import Callable, AsyncGenerator, Dict, List, Optional
+
+
+logger = logging.getLogger(__name__)
 
 
 class FileScanner:
 
-    def __init__(self, get_db: Callable[[], AsyncGenerator[AsyncConnection, None]]):
+    def __init__(self,
+                 get_db: Callable[[], AsyncGenerator[AsyncConnection, None]],
+                 root_repo: RootRepository,
+                 root_file_repo: RootFileRepository):
         self.get_db = get_db
+        self.root_repo = root_repo
+        self.root_file_repo = root_file_repo
 
-    async def _scan_file(self, root: Root, file_path: Path) -> RootFile:
-        """Scan a single file and create a RootFile entity."""
+    async def _scan_file(self, root_uri: str, file_path: Path) -> Optional[RootFile]:
+        """Scan a single file and create a RootFile Pydantic model."""
+        try:
         try:
             stat = await aiofiles.os.stat(file_path)
-            relative_path = file_path.relative_to(root.uri)
+            # Ensure root_uri is a Path object for relative_to
+            root_path_obj = Path(root_uri)
+            relative_path = file_path.relative_to(root_path_obj)
 
             # Use magic to determine MIME type
             mime_type = magic.from_file(str(file_path), mime=True)
 
             root_file = RootFile(
-                root_uri=root.uri,
+                root_uri=root_uri, # Use the passed root_uri string
                 name=file_path.name,
-                path=str(relative_path),
+                path=str(relative_path), # Store relative path as string
                 extension=file_path.suffix,
                 mime_type=mime_type,
                 size=stat.st_size,
                 atime=datetime.fromtimestamp(stat.st_atime),
                 mtime=datetime.fromtimestamp(stat.st_mtime),
                 ctime=datetime.fromtimestamp(stat.st_ctime),
+                # No id or root_id here, handled by DB/repo
             )
             return root_file
+        except FileNotFoundError:
+            logger.warning(f"File not found during scan: {file_path}")
+            return None
         except Exception as e:
-            print(f"Error scanning file {file_path}: {e}") # Use logger
+            logger.error(f"Error scanning file {file_path}: {e}", exc_info=True)
             return None
 
-    async def _scan_directory_recursive(self, root: Root, directory_path: Path, conn: AsyncConnection):
-        """Recursively scan a directory and create RootFile entities."""
-        try:
-            entries = await aiofiles.os.scandir(directory_path)
-            root_files = []
-
-            # First, collect all files in this directory
-            for entry in entries:
-                entry_path = Path(entry.path)
-                if entry.is_file():
-                    root_file = await self._scan_file(root, entry_path)
-                    if root_file:
-                        root_files.append((
-                            str(root_file.id),
-                            str(root_file.root_id),
-                            root_file.name,
-                            root_file.path,
-                            root_file.extension,
-                            root_file.mime_type,
-                            root_file.size,
-                            root_file.atime,
-                            root_file.mtime,
-                            root_file.ctime
-                        ))
-
-            # Use COPY to insert all files in a batch if there are any
-            if root_files:
-                async with conn.cursor() as cursor:
-                    async with cursor.copy(
-                        sql.SQL("COPY root_files (id, root_id, name, path, extension, mime_type, size, atime, mtime, ctime) FROM STDIN")
-                    ) as copy:
-                        for record in root_files:
-                            await copy.write_row(record)
-
-            # Then recursively process subdirectories
-            for entry in entries:
-                entry_path = Path(entry.path)
-                if entry.is_dir():
-                    await self._scan_directory_recursive(root, entry_path, conn)
-        except Exception as e:
-            print(f"Error scanning directory {directory_path}: {e}") # Use logger
-
-
-    async def scan_directory(self, root: Root) -> None:
-        """
-        Recursively scan a directory and store file information in the database,
-        associating files with the given Root.
-
-        This is a fast initial load that uses batch insertion.
-        For updating existing data, use sync_directory instead.
-        """
-        async for conn in self.get_db():
-            async with conn.transaction():
-                directory_path = Path(root.uri)
-                await self._scan_directory_recursive(root, directory_path, conn)
-
-    async def _get_existing_files(self, root_id: uuid.UUID, conn: AsyncConnection) -> Dict[str, RootFile]:
-        """Get all existing files for a root from the database."""
-        existing_files = {}
-        async with conn.cursor() as cursor:
-            await cursor.execute(
-                sql.SQL("""
-                SELECT id, root_id, name, path, extension, mime_type, size,
-                       atime, mtime, ctime
-                FROM root_files
-                WHERE root_id = %s
-                """),
-                (str(root_id),)
-            )
-            async for row in cursor:
-                root_file = RootFile(
-                    id=row[0],
-                    root_id=row[1],
-                    name=row[2],
-                    path=row[3],
-                    extension=row[4],
-                    mime_type=row[5],
-                    size=row[6],
-                    atime=row[7],
-                    mtime=row[8],
-                    ctime=row[9]
-                )
-                existing_files[root_file.path] = root_file
-        return existing_files
+    async def _get_existing_files(self, root_uri: str, conn: AsyncConnection) -> Dict[str, RootFile]:
+        """Get all existing files for a root from the database using the repository."""
+        files = await self.root_file_repo.get_files_by_root(conn, root_uri)
+        return {file.path: file for file in files}
 
     async def _collect_filesystem_files(self, root: Root) -> Dict[str, Path]:
         """Collect all files in the filesystem for a root."""
+        # Ensure root.uri is a Path object
         root_path = Path(root.uri)
         filesystem_files = {}
 
-        async def collect_files(directory: Path):
+        async def _collect_files_recursive(directory: Path):
             try:
                 entries = await aiofiles.os.scandir(directory)
                 for entry in entries:
@@ -138,97 +76,49 @@ class FileScanner:
                         relative_path = entry_path.relative_to(root_path)
                         filesystem_files[str(relative_path)] = entry_path
                     elif entry.is_dir():
-                        await collect_files(entry_path)
+                        # Ensure recursive call uses the internal helper name
+                        await _collect_files_recursive(entry_path)
             except Exception as e:
-                print(f"Error collecting files from {directory}: {e}")  # Use logger
+                logger.error(f"Error collecting files from {directory}: {e}", exc_info=True)
 
-        await collect_files(root_path)
+        # Initial call to the recursive helper
+        await _collect_files_recursive(root_path)
         return filesystem_files
 
-    async def _update_file(self, root_file: RootFile, file_path: Path, conn: AsyncConnection) -> None:
-        """Update an existing file in the database if it has changed."""
-        try:
-            stat = await aiofiles.os.stat(file_path)
-            file_mtime = datetime.fromtimestamp(stat.st_mtime)
-
-            # If modification time is different, update the file
-            if file_mtime != root_file.mtime or stat.st_size != root_file.size:
-                # Use magic to determine MIME type
-                mime_type = magic.from_file(str(file_path), mime=True)
-
-                await conn.execute(
-                    sql.SQL("""
-                    UPDATE root_files
-                    SET name = %s, extension = %s, mime_type = %s, size = %s,
-                        atime = %s, mtime = %s, ctime = %s
-                    WHERE id = %s
-                    """),
-                    (
-                        file_path.name,
-                        file_path.suffix,
-                        mime_type,
-                        stat.st_size,
-                        datetime.fromtimestamp(stat.st_atime),
-                        file_mtime,
-                        datetime.fromtimestamp(stat.st_ctime),
-                        str(root_file.id)
-                    )
-                )
-        except Exception as e:
-            print(f"Error updating file {file_path}: {e}")  # Use logger
-
-    async def _insert_new_files(self, root: Root, new_file_paths: List[Tuple[str, Path]], conn: AsyncConnection) -> None:
-        """Insert new files into the database."""
-        root_files = []
-
-        for relative_path_str, file_path in new_file_paths:
-            root_file = await self._scan_file(root, file_path)
-            if root_file:
-                root_files.append((
-                    str(root_file.id),
-                    str(root_file.root_id),
-                    root_file.name,
-                    root_file.path,
-                    root_file.extension,
-                    root_file.mime_type,
-                    root_file.size,
-                    root_file.atime,
-                    root_file.mtime,
-                    root_file.ctime
-                ))
-
-        # Use COPY to insert all files in a batch if there are any
-        if root_files:
-            async with conn.cursor() as cursor:
-                async with cursor.copy(
-                    sql.SQL("COPY root_files (id, root_id, name, path, extension, mime_type, size, atime, mtime, ctime) FROM STDIN")
-                ) as copy:
-                    for record in root_files:
-                        await copy.write_row(record)
-
-    async def _delete_removed_files(self, root_id: uuid.UUID, paths_to_delete: List[str], conn: AsyncConnection) -> None:
-        """Delete files that no longer exist in the filesystem."""
-        if paths_to_delete:
-            # Convert list to tuple for SQL IN clause
-            placeholders = sql.SQL(', ').join([sql.Placeholder()] * len(paths_to_delete))
-            query = sql.SQL("DELETE FROM root_files WHERE root_id = %s AND path IN ({})").format(placeholders)
-            await conn.execute(query, (str(root_id), *paths_to_delete))
+    async def _delete_removed_files(self, root_uri: str, paths_to_delete: List[str], conn: AsyncConnection) -> int:
+        """Delete files using the repository."""
+        deleted_count = 0
+        if not paths_to_delete:
+            return 0
+        for path in paths_to_delete:
+            try:
+                deleted = await self.root_file_repo.delete(conn, root_uri, path)
+                if deleted:
+                    deleted_count += 1
+            except Exception as e:
+                logger.error(f"Error deleting file {path} for root {root_uri}: {e}", exc_info=True)
+        return deleted_count
 
     async def sync_directory(self, root: Root) -> None:
         """
-        Synchronize the database with the current state of the filesystem.
-        This will:
-        1. Update existing files that have changed
-        2. Add new files that aren't in the database
-        3. Remove files from the database that no longer exist in the filesystem
+        Synchronize the database with the current state of the filesystem for a given root.
+        Uses bulk operations for efficiency.
         """
+        logger.info(f"Starting sync for root: {root.uri}")
+        added_count = 0
+        updated_count = 0
+        deleted_count = 0
+        files_to_upsert: List[RootFile] = []
+
         async for conn in self.get_db():
             try:
-                # Get existing files from database
-                existing_files = await self._get_existing_files(root.id, conn)
+                # Get existing files from database via repository
+                existing_files = await self._get_existing_files(root.uri, conn)
+                logger.debug(f"Found {len(existing_files)} existing files in DB for {root.uri}")
 
                 # Get current files from filesystem
                 filesystem_files = await self._collect_filesystem_files(root)
+                logger.debug(f"Found {len(filesystem_files)} files on disk for {root.uri}")
 
                 # Find files to update, add, or remove
                 existing_paths = set(existing_files.keys())
@@ -236,74 +126,116 @@ class FileScanner:
 
                 paths_to_update = existing_paths.intersection(filesystem_paths)
                 paths_to_add = filesystem_paths - existing_paths
-                paths_to_delete = existing_paths - filesystem_paths
+                paths_to_delete = list(existing_paths - filesystem_paths) # Convert set to list
+
+                logger.debug(f"Files to add: {len(paths_to_add)}")
+                logger.debug(f"Files to update/check: {len(paths_to_update)}")
+                logger.debug(f"Files to delete: {len(paths_to_delete)}")
+
+                # Process files to add
+                for path_str in paths_to_add:
+                    file_path = filesystem_files[path_str]
+                    scanned_file = await self._scan_file(root.uri, file_path)
+                    if scanned_file:
+                        files_to_upsert.append(scanned_file)
+                        added_count += 1 # Tentative count
+
+                # Process files to update
+                for path_str in paths_to_update:
+                    existing_file = existing_files[path_str]
+                    file_path = filesystem_files[path_str]
+                    try:
+                        stat = await aiofiles.os.stat(file_path)
+                        # Check if file changed based on mtime or size
+                        if datetime.fromtimestamp(stat.st_mtime) != existing_file.mtime or stat.st_size != existing_file.size:
+                            scanned_file = await self._scan_file(root.uri, file_path)
+                            if scanned_file:
+                                files_to_upsert.append(scanned_file)
+                                updated_count += 1 # Tentative count
+                    except FileNotFoundError:
+                        logger.warning(f"File {file_path} found in DB but not on disk during update check. Will be deleted.")
+                        # If file disappeared between listing and stat, it will be handled by delete
+                        if path_str not in paths_to_delete:
+                             paths_to_delete.append(path_str)
+                    except Exception as e:
+                        logger.error(f"Error checking file for update {file_path}: {e}", exc_info=True)
+
 
                 async with conn.transaction():
-                    # Update existing files that might have changed
-                    for path in paths_to_update:
-                        await self._update_file(existing_files[path], filesystem_files[path], conn)
+                    # Bulk insert/update changed/new files
+                    if files_to_upsert:
+                        logger.info(f"Upserting {len(files_to_upsert)} files for root {root.uri}")
+                        # bulk_create handles ON CONFLICT DO UPDATE
+                        results = await self.root_file_repo.bulk_create(conn, files_to_upsert)
+                        # Note: bulk_create returns the upserted models. We could refine counts here if needed.
+                        logger.debug(f"Upsert result count: {len(results)}")
 
-                    # Insert new files
-                    new_file_paths = [(path, filesystem_files[path]) for path in paths_to_add]
-                    await self._insert_new_files(root, new_file_paths, conn)
 
                     # Delete removed files
-                    await self._delete_removed_files(root.id, list(paths_to_delete), conn)
+                    if paths_to_delete:
+                        logger.info(f"Deleting {len(paths_to_delete)} files for root {root.uri}")
+                        deleted_count = await self._delete_removed_files(root.uri, paths_to_delete, conn)
 
-                print(f"Sync completed for {root.uri}:")  # Use logger
-                print(f"  - Updated: {len(paths_to_update)} files")
-                print(f"  - Added: {len(paths_to_add)} files")
-                print(f"  - Removed: {len(paths_to_delete)} files")
+
+                # Final logging outside transaction
+                logger.info(f"Sync completed for {root.uri}:")
+                # Note: Counts are based on intent before bulk operations. Actual DB changes might differ slightly on conflict/error.
+                logger.info(f"  - Added/Updated: {len(files_to_upsert)} (approx {added_count} added, {updated_count} updated)")
+                logger.info(f"  - Deleted: {deleted_count}")
 
             except Exception as e:
-                print(f"Error synchronizing directory {root.uri}: {e}")  # Use logger
+                logger.error(f"Error synchronizing directory {root.uri}: {e}", exc_info=True)
+                # Ensure transaction is rolled back if error occurs before commit
+                # (Handled by async context manager and db_operation decorator)
 
     async def create_root_and_scan(self, directory_path: str, sync: bool = False) -> None:
         """
         Create a Root if it doesn't exist, and then scan the directory.
 
         Args:
-            directory_path: Path to the directory to scan
-            sync: If True, use sync_directory instead of scan_directory to update existing files
+            directory_path: Path to the directory to scan.
+            sync: If True, perform a full sync (add, update, delete).
+                  If False (default), only add new files and update existing ones (no deletes).
+                  A sync is always performed if the root is newly created.
         """
-        path = Path(directory_path).resolve()
-        if not path.is_dir():
+        path_str = str(Path(directory_path).resolve())
+        path_obj = Path(path_str) # Use Path object for checks
+
+        if not path_obj.is_dir():
             raise ValueError(f"'{directory_path}' is not a valid directory.")
 
+        root: Optional[Root] = None
+        is_new_root = False
+
+        # Check/Create Root using repository
         async for conn in self.get_db():
+             # Wrap repository calls potentially needing transaction in one block
             async with conn.transaction():
-                # Check if Root exists
-                result = await conn.execute(
-                    sql.SQL("SELECT id, uri FROM roots WHERE uri = %s"),
-                    (str(path),)
-                )
-                root_data = await result.fetchone()
-
-                if root_data is None:
-                    # Create Root object
-                    root_id = uuid.uuid4()
-                    await conn.execute(
-                        sql.SQL("INSERT INTO roots (id, uri) VALUES (%s, %s)"),
-                        (root_id, str(path))
-                    )
-                    root = Root(id=root_id, uri=str(path))
-                    print(f"Root created: {root.uri} (ID: {root.id})")  # Use logger
-                    # For new roots, always do a full scan
-                    sync = False
+                root = await self.root_repo.get_by_uri(conn, path_str)
+                if root is None:
+                    logger.info(f"Root not found for {path_str}, creating new one.")
+                    new_root_model = Root(uri=path_str) # Let DB handle created_at/updated_at
+                    root = await self.root_repo.create(conn, new_root_model)
+                    logger.info(f"Root created: {root.uri}")
+                    is_new_root = True
+                    sync = True # Always sync fully for a new root
                 else:
-                    root = Root(id=root_data[0], uri=root_data[1])
-                    print(f"Root already exists: {root.uri} (ID: {root.id})")  # Use logger
+                    logger.info(f"Found existing root: {root.uri}")
 
-        # Process directory in a separate transaction
-        if sync:
-            await self.sync_directory(root)
-        else:
-            await self.scan_directory(root)
+        if root is None:
+             # This should not happen if DB/repo logic is correct, but defensively check
+             logger.error(f"Failed to get or create root for {path_str}")
+             return
+
+        # Perform the sync operation (outside the root creation transaction)
+        # sync_directory now handles add/update/delete based on comparison
+        await self.sync_directory(root)
 
     async def sync_root(self, directory_path: str) -> None:
         """
-        Convenience method to sync an existing root with the filesystem.
+        Convenience method to fully sync (add, update, delete) a root directory.
         Creates the root if it doesn't exist.
         """
+        # create_root_and_scan with sync=True now handles the full sync logic
         await self.create_root_and_scan(directory_path, sync=True)
 
