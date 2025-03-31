@@ -75,6 +75,7 @@ async def select_root(root_select: RootSelectRequest,
         'selected_root': app.state.selected_root
     }
 
+
 @router.get("/root")
 @jinja.hx('components/navbar/root_view.html.j2')
 async def view_root(root_uri: str, db: AsyncConnection = Depends(get_db)):

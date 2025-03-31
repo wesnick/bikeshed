@@ -56,14 +56,6 @@ class RootRepository(BaseRepository[Root]):
 
             return root
 
-    # BaseRepository provides get_by_id, update, delete.
-    # If BaseRepository strictly expects a UUID 'id', these might need overrides
-    # or BaseRepository needs modification. Assuming BaseRepository can handle
-    # string PKs based on model's __unique_fields__.
-    # If overrides are needed:
-    # async def update(self, conn: AsyncConnection, uri: str, data: Dict[str, Any]) -> Optional[Root]: ...
-    # async def delete(self, conn: AsyncConnection, uri: str) -> bool: ...
-
     @db_operation
     async def get_recent_roots(self, conn: AsyncConnection, limit: int = 10) -> List[Root]:
         """Get the most recently created roots"""

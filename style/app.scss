@@ -19,6 +19,8 @@
 // Bulma steps
 @use 'bulma-o-steps/bulma-steps.css';
 
+@use '_root_tree';
+
 // Fancy editor stuff
 @use 'highlight.js/styles/atom-one-dark.min.css';
 @use 'prosemirror-view/style/prosemirror.css';
