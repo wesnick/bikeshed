@@ -73,14 +73,15 @@ class BaseRepository(Generic[T]):
         if not issubclass(model, DBModelMixin):
             raise TypeError(f"Model {model.__name__} must inherit from DBModelMixin")
         self.model = model
-        self.table_name = model.__db_table__ # Use table name from mixin
+        self.table_name = model.__db_table__
+        self.identifier_field = 'id'
         if not self.table_name:
              raise ValueError(f"Model {model.__name__} must define __db_table__")
 
     @db_operation
     async def get_by_id(self, conn: AsyncConnection, id: UUID | str) -> Optional[T]:
         """Get an entity by ID"""
-        query = SQL("SELECT * FROM {} WHERE id = %s").format(Identifier(self.table_name))
+        query = SQL("SELECT * FROM {} WHERE {} = %s").format(Identifier(self.table_name), Identifier(self.identifier_field))
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
             await cur.execute(query, (id,))
             return await cur.fetchone()
@@ -142,7 +143,7 @@ class BaseRepository(Generic[T]):
             return entity
 
     @db_operation
-    async def update(self, conn: AsyncConnection, id: UUID, update_data: Dict[str, Any]) -> Optional[T]:
+    async def update(self, conn: AsyncConnection, id: UUID | str, update_data: Dict[str, Any]) -> Optional[T]:
         """
         Update an existing entity.
         Expects a dictionary of fields to update.
@@ -172,9 +173,10 @@ class BaseRepository(Generic[T]):
         # Add the ID for the WHERE clause at the end of the values tuple
         values = tuple(values_list) + (id,)
 
-        query = SQL("UPDATE {} SET {} WHERE id = %s RETURNING *").format(
+        query = SQL("UPDATE {} SET {} WHERE {} = %s RETURNING *").format(
             Identifier(self.table_name),
-            set_clause
+            set_clause,
+            Identifier(self.identifier_field)
         )
 
         async with conn.cursor(row_factory=class_row(self.model)) as cur:
@@ -183,9 +185,13 @@ class BaseRepository(Generic[T]):
             return entity
 
     @db_operation
-    async def delete(self, conn: AsyncConnection, id: UUID) -> bool:
+    async def delete(self, conn: AsyncConnection, id: UUID | str) -> bool:
         """Delete an entity by ID"""
-        query = SQL("DELETE FROM {} WHERE id = %s RETURNING id").format(Identifier(self.table_name))
+        query = SQL("DELETE FROM {} WHERE {} = %s RETURNING {}").format(
+            Identifier(self.table_name),
+            Identifier(self.identifier_field),
+            Identifier(self.identifier_field)
+        )
 
         async with conn.cursor() as cur:
             await cur.execute(query, (id,))

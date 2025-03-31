@@ -4,7 +4,7 @@ from psycopg import AsyncConnection
 from psycopg.rows import class_row
 from psycopg.sql import SQL, Identifier
 
-from src.models.models import RootFile
+from src.models.models import RootFile, T
 from src.repository.base import BaseRepository, db_operation
 
 class RootFileRepository(BaseRepository[RootFile]):
@@ -118,19 +118,16 @@ class RootFileRepository(BaseRepository[RootFile]):
             # Commit is handled by the db_operation decorator
             return results
 
-    # Remove get_by_path as get_by_pk replaces it
-    # async def get_by_path(...) -> No longer needed
+    @db_operation
+    async def delete(self, conn: AsyncConnection, root_uri: str, path: str) -> bool:
+        query = SQL("DELETE FROM {} WHERE root_uri = %s AND path = %s").format(Identifier(self.table_name))
+        async with conn.cursor() as cur:
+            await cur.execute(query, (root_uri, path))
+            return cur.rowcount > 0
 
-    # If BaseRepository.delete assumes a single 'id' PK, override it:
-    # @db_operation
-    # async def delete(self, conn: AsyncConnection, root_uri: str, path: str) -> bool:
-    #     query = SQL("DELETE FROM {} WHERE root_uri = %s AND path = %s").format(Identifier(self.table_name))
-    #     async with conn.cursor() as cur:
-    #         await cur.execute(query, (root_uri, path))
-    #         return cur.rowcount > 0
+    async def get_by_id(self, conn: AsyncConnection, id: UUID | str) -> Optional[T]:
+        raise NotImplemented
 
-    # If BaseRepository.update assumes a single 'id' PK, override it:
-    # @db_operation
-    # async def update(self, conn: AsyncConnection, root_uri: str, path: str, data: Dict[str, Any]) -> Optional[RootFile]:
-    #     # ... implementation ...
-    #     pass
+    @db_operation
+    async def update(self, conn: AsyncConnection, root_uri: str, path: str, data: Dict[str, Any]) -> Optional[RootFile]:
+        raise NotImplemented

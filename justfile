@@ -36,11 +36,11 @@ aider-gemini *args:
     just aider '--model gemini-2.5-pro' {{args}}
 
 # Start Docker containers in detached mode
-docup:
+docker-up:
     docker compose up -d
 
 # Stop and remove Docker containers
-docdown:
+docker-down:
     docker compose down
 
 # Run database migrations to the latest version
@@ -49,10 +49,6 @@ migrate *args:
 
 migrate-test *args:
     pg-schema-diff apply --dsn "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/app_test" --schema-dir config/database --allow-hazards ACQUIRES_ACCESS_EXCLUSIVE_LOCK,INDEX_BUILD,INDEX_DROPPED,HAS_UNTRACKABLE_DEPENDENCIES {{args}}
-
-# Generate a migration script based on current schema vs target schema
-migrate-generate *args:
-    pg-schema-diff generate --dsn "postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB" --schema-dir config/database {{args}}
 
 # Search MCP with an optional query
 search-mcp query="":
@@ -67,11 +63,11 @@ setup-test-db:
     PGPASSWORD=$POSTGRES_PASSWORD createdb -h 127.0.0.1 -U $POSTGRES_USER app_test || echo "Test database already exists"
 
 # Fix formatting on html templates
-html-lint:
+lint-html:
     uvx djlint templates/ --reformat --extension=html.j2 --indent 2
 
 # Python lint and fix
-py-lint:
+lint-python:
     uvx ruff check src/ --fix
 
 kill-fapi:

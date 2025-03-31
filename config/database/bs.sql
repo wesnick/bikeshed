@@ -45,29 +45,25 @@ create table messages
 
 create table roots
 (
-    id               uuid       not null primary key,
-    uri              text       not null unique,
+    uri              text       not null primary key,
     created_at       timestamp  not null default current_timestamp,
     extra            jsonb
 );
 
 create table root_files
 (
-    id        uuid         not null primary key,
-    root_id   uuid         not null references roots,
-    name      varchar(255) not null,
-    path      text         not null,
-    extension varchar(50),
-    mime_type varchar(100),
-    size      integer,
-    atime     timestamp,
-    mtime     timestamp,
-    ctime     timestamp,
-    extra     jsonb
+    root_uri   text         not null references roots(uri),
+    path       text         not null,
+    name       varchar(255) not null,
+    extension  varchar(50),
+    mime_type  varchar(100),
+    size       integer,
+    atime      timestamp,
+    mtime      timestamp,
+    ctime      timestamp,
+    extra      jsonb,
+    primary key (root_uri, path)
 );
-
--- Unique index on root_id/path
-create unique index uq_root_files_root_id_path on root_files (root_id, path);
 
 
 create table blobs

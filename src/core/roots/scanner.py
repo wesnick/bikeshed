@@ -27,7 +27,6 @@ class FileScanner:
     async def _scan_file(self, root_uri: str, file_path: Path) -> Optional[RootFile]:
         """Scan a single file and create a RootFile Pydantic model."""
         try:
-        try:
             stat = await aiofiles.os.stat(file_path)
             # Ensure root_uri is a Path object for relative_to
             root_path_obj = Path(root_uri)

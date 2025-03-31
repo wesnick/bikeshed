@@ -152,7 +152,7 @@ async def test_filter_roots(db_conn_clean: AsyncConnection, root_repo: RootRepos
     filtered_roots = await root_repo.filter(db_conn_clean, {"uri": "file:///test/filter/filter_test_2"})
 
     assert len(filtered_roots) == 1
-    assert filtered_roots[0].uri == "file:///test/path/filter_test_2"
+    assert filtered_roots[0].uri == "file:///test/filter/filter_test_2"
 
 
 async def test_get_recent_roots(db_conn_clean: AsyncConnection, root_repo: RootRepository, sample_root_data: dict):

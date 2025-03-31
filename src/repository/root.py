@@ -14,6 +14,7 @@ class RootRepository(BaseRepository[Root]):
         # For now, we pass the model which defines its PK via __unique_fields__.
         super().__init__(Root)
         self.table_name = "roots"
+        self.identifier_field = "uri"
         self.pk_columns = ["uri"] # Explicitly define PK for clarity if needed by BaseRepository
 
     @db_operation
@@ -35,7 +36,7 @@ class RootRepository(BaseRepository[Root]):
         async with conn.cursor(row_factory=class_row(Root)) as cur:
             await cur.execute(root_query, (root_uri,))
             root = await cur.fetchone()
-            
+
             if not root:
                 return None
             # Then get all files for this root using root_uri
@@ -49,10 +50,10 @@ class RootRepository(BaseRepository[Root]):
             async with conn.cursor(row_factory=class_row(RootFile)) as files_cur:
                 await files_cur.execute(files_query, (root_uri,))
                 files = await files_cur.fetchall()
-            
+
             # Manually set the files relationship
             root.files = files
-            
+
             return root
 
     # BaseRepository provides get_by_id, update, delete.
@@ -67,11 +68,11 @@ class RootRepository(BaseRepository[Root]):
     async def get_recent_roots(self, conn: AsyncConnection, limit: int = 10) -> List[Root]:
         """Get the most recently created roots"""
         query = SQL("""
-            SELECT * FROM {} 
-            ORDER BY created_at DESC 
+            SELECT * FROM {}
+            ORDER BY created_at DESC
             LIMIT %s
         """).format(Identifier(self.table_name))
-        
+
         async with conn.cursor(row_factory=class_row(Root)) as cur:
             await cur.execute(query, (limit,))
             return await cur.fetchall()
