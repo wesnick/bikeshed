@@ -10,6 +10,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         app: 'js/app.js',
+        panel_filter: 'js/components/panel_filter.js',
       },
       output: {
         entryFileNames: `[name].js`,

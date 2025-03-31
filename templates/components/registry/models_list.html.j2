@@ -2,56 +2,66 @@
   <h2 class="title is-4">LLM Models</h2>
   {% if models %}
     <form id="models-form" hx-post="/registry/models/save" hx-ext="form-json">
-      <table class="table is-fullwidth is-striped">
-        <thead>
-          <tr>
-            <th>Select</th>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Provider</th>
-            <th>Context Length</th>
-            <th>Input Cost ($/1k)</th>
-            <th>Output Cost ($/1k)</th>
-            <th>Capabilities</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for id, model in models.items() %}
-            <tr class="{% if not model.upstream_present %}is-danger{% elif model.overrides %}is-warning{% endif %}">
-              <td>
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" name="selected_models[{{ model.id }}]" {% if model.selected %}checked{% endif %}>
-                    </label>
-                  </div>
-                </div>
-              </td>
-              <td>{{ model.id }}</td>
-              <td>{{ model.name }}</td>
-              <td>{{ model.provider }}</td>
-              <td class="{% if 'context_length' in model.overrides %}has-text-weight-bold{% endif %}">
+      <nav class="panel">
+        <p class="panel-heading">Models</p>
+        <div class="panel-block">
+          <p class="control has-icons-left">
+            <input class="input" type="text" placeholder="Search models">
+            <span class="icon is-left">
+              <i class="fas fa-search" aria-hidden="true"></i>
+            </span>
+          </p>
+        </div>
+        <p class="panel-tabs">
+          <a class="is-active" data-all>All</a>
+          <a data-target="selected">Selected</a>
+          <a data-target="chat">Chat</a>
+          <a data-target="vision">Vision</a>
+          <a data-target="tools">Tools</a>
+          <a data-target="embedding">Embedding</a>
+        </p>
+        
+        {% for id, model in models.items() %}
+          <div class="panel-block {% if not model.upstream_present %}has-background-danger-light{% elif model.overrides %}has-background-warning-light{% endif %}" 
+               data-category="{% if model.selected %}selected{% endif %}{% if model.capabilities %} {% for cap in model.capabilities %}{{ cap }} {% endfor %}{% endif %}">
+            <div class="columns is-mobile is-gapless is-multiline is-fullwidth">
+              <div class="column is-1">
+                <label class="checkbox">
+                  <input type="checkbox" name="selected_models[{{ model.id }}]" {% if model.selected %}checked{% endif %}>
+                </label>
+              </div>
+              <div class="column is-3">
+                <strong>{{ model.name }}</strong>
+                <div class="is-size-7">{{ model.id }}</div>
+              </div>
+              <div class="column is-2">
+                <span class="tag">{{ model.provider }}</span>
+              </div>
+              <div class="column is-2 {% if 'context_length' in model.overrides %}has-text-weight-bold{% endif %}">
                 {{ model.context_length | format_text_length if model.context_length is not none else 'N/A' }}
-              </td>
-              <td class="{% if 'input_cost' in model.overrides %}has-text-weight-bold{% endif %}">
-                {{ model.input_cost | format_cost_per_million if model.input_cost is not none else 'N/A' }}
-              </td>
-              <td class="{% if 'output_cost' in model.overrides %}has-text-weight-bold{% endif %}">
-                {{ model.output_cost | format_cost_per_million if model.output_cost is not none else 'N/A' }}
-              </td>
-              <td class="{% if 'capabilities' in model.overrides %}has-text-weight-bold{% endif %}">
+              </div>
+              <div class="column is-2">
+                <div class="{% if 'input_cost' in model.overrides %}has-text-weight-bold{% endif %}">
+                  In: {{ model.input_cost | format_cost_per_million if model.input_cost is not none else 'N/A' }}
+                </div>
+                <div class="{% if 'output_cost' in model.overrides %}has-text-weight-bold{% endif %}">
+                  Out: {{ model.output_cost | format_cost_per_million if model.output_cost is not none else 'N/A' }}
+                </div>
+              </div>
+              <div class="column is-2 {% if 'capabilities' in model.overrides %}has-text-weight-bold{% endif %}">
                 {% if model.capabilities %}
                   {% for cap in model.capabilities %}
-                    <span class="tag is-info is-light">{{ cap }}</span>
+                    <span class="tag is-info is-light is-small">{{ cap }}</span>
                   {% endfor %}
                 {% else %}
                   N/A
                 {% endif %}
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </nav>
+      
       <div class="field mt-4">
         <div class="control">
           <button type="submit" class="button is-primary">
@@ -61,8 +71,8 @@
       </div>
 
       <div class="mt-4">
-        <p><span class="tag is-danger">Red rows</span> indicate models that are in your configuration but not available from upstream sources.</p>
-        <p><span class="tag is-warning">Yellow rows</span> indicate models with configuration values that override upstream defaults.</p>
+        <p><span class="tag is-danger">Red background</span> indicates models that are in your configuration but not available from upstream sources.</p>
+        <p><span class="tag is-warning">Yellow background</span> indicates models with configuration values that override upstream defaults.</p>
         <p><span class="has-text-weight-bold">Bold fields</span> indicate specific values that have been overridden.</p>
       </div>
     </form>
