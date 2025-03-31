@@ -20,8 +20,10 @@
     <div class="control">
       <div class="select">
         <select id="model" name="model">
-          <option value="faker">Faker</option>
-          <option value="ollama_chat/gemma3">Ollama</option>
+            <option value="faker" selected="selected">Faker</option>
+            {% for model in model_select() %}
+              <option value="{{ model.id }}">{{ model.name }}</option>
+            {% endfor %}
         </select>
       </div>
     </div>

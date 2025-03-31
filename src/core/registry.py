@@ -189,9 +189,13 @@ class Registry:
         """Get model by ID."""
         return self.models.get(model_id)
 
-    def list_models(self) -> list[Model]:
+    def list_models(self, filter_selected: bool=True) -> list[Model]:
         """List all registered models."""
-        return list(self.models.values())
+        if not filter_selected:
+            return list(self.models.values())
+
+        return [model for model in self.models.values() if model.selected == filter_selected]
+
 
     def add_model(self, model: Model) -> Model:
         """Add a model to the registry."""
