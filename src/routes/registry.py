@@ -87,32 +87,69 @@ async def registry_models(request: Request) -> dict:
     registry = request.app.state.registry
     return {"models": registry.models}
 
+from src.core.config_types import Model
+
+# Define the fields to be saved in models.yaml
+# Excludes tracking fields like 'selected', 'upstream_present', 'overrides'
+MODEL_SAVE_FIELDS = [
+    "id", "name", "provider", "context_length",
+    "input_cost", "output_cost", "capabilities", "metadata"
+]
+
 @router.post("/models/save")
 @jinja.hx('components/registry/models_list.html.j2')
-async def save_models(request: Request, selection: ModelsSelectionRequest) -> dict:
+async def save_models(request: Request, selected_models_form: List[str] = Form(...)) -> dict:
     """Save selected models to config/models.yaml file."""
     registry = request.app.state.registry
+    logger.info(f"Received model selection form data: {selected_models_form}")
 
-    # Get the selected models
-    selected_models = {}
-    for model_id in selection.selected_models.keys():
-        if model_id in registry.models:
-            model = registry.models[model_id]
-            selected_models[model_id] = {
-                "id": model.id,
-                "name": model.name,
-                "provider": model.provider,
-                "context_length": model.context_length,
-                "input_cost": model.input_cost,
-                "output_cost": model.output_cost,
-                "capabilities": list(model.capabilities) if model.capabilities else [],
-                "metadata": model.metadata
-            }
+    # The form sends a list of model IDs that were checked.
+    selected_model_ids = set(selected_models_form)
+    logger.info(f"Saving selected model IDs: {selected_model_ids}")
 
-    # Save to YAML file
+    models_to_save = {}
+    # Iterate through all models currently in the registry
+    for model_id, model in registry.models.items():
+        if model_id in selected_model_ids:
+            # If the model is selected in the form, prepare it for saving
+            model_data = {}
+            for field in MODEL_SAVE_FIELDS:
+                value = getattr(model, field, None)
+                if field == "capabilities" and isinstance(value, set):
+                    # Convert capabilities set to sorted list for consistent YAML output
+                    value = sorted(list(value))
+                if value is not None: # Only save fields that have a value
+                     # Special handling for default costs if they are 0.0 and not overridden
+                    if field in ["input_cost", "output_cost"] and value == 0.0:
+                        # Check if this cost was explicitly set in overrides or config
+                        is_overridden = field in model.overrides
+                        is_in_config_only = not model.upstream_present and field in model.model_dump(exclude={'selected', 'upstream_present', 'overrides'})
+
+                        if not is_overridden and not is_in_config_only:
+                             # Don't save default 0.0 cost unless it was explicitly set
+                             continue
+
+                    model_data[field] = value
+
+            # Use the model's ID as the key in the YAML dictionary
+            models_to_save[model_id] = model_data
+            # Update the model's selected status in the live registry
+            model.selected = True
+        else:
+             # If the model is not selected in the form, mark it as not selected in the live registry
+             model.selected = False
+
+
+    # Save the selected models data to YAML file
     config_path = Path("config/models.yaml")
-    with open(config_path, "w") as f:
-        yaml.dump({"models": selected_models}, f, default_flow_style=False, sort_keys=False)
+    try:
+        with open(config_path, "w") as f:
+            yaml.dump({"models": models_to_save}, f, default_flow_style=False, sort_keys=False, indent=2)
+        logger.info(f"Successfully saved {len(models_to_save)} models to {config_path}")
+    except Exception as e:
+        logger.error(f"Failed to save models to {config_path}: {str(e)}")
+        # Consider returning an error response or message to the user
 
-    # Return the updated models list
+    # Return the updated models list (reflecting the new 'selected' status)
+    # The template will re-render based on the registry's current state
     return {"models": registry.models}

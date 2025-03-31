@@ -345,6 +345,14 @@ class Model(BaseModel):
         default=None,
         description="Maximum context length in tokens"
     )
+    input_cost: Optional[float] = Field(
+        default=0.0,
+        description="Cost per input token"
+    )
+    output_cost: Optional[float] = Field(
+        default=0.0,
+        description="Cost per output token"
+    )
     capabilities: Optional[Set[str]] = Field(
         default_factory=set,
         description="Set of capabilities this model supports (e.g., 'chat', 'embedding', 'vision')"
@@ -352,6 +360,19 @@ class Model(BaseModel):
     metadata: Optional[Dict[str, Any]] = Field(
         default_factory=dict,
         description="Additional metadata about the model"
+    )
+    # Tracking fields added by RegistryBuilder
+    selected: bool = Field(
+        default=False,
+        description="Indicates if the model is selected (present in models.yaml)"
+    )
+    upstream_present: bool = Field(
+        default=True,
+        description="Indicates if the model was found in upstream sources (Ollama, LiteLLM)"
+    )
+    overrides: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Fields overridden by models.yaml compared to upstream source"
     )
 
     @model_validator(mode='after')

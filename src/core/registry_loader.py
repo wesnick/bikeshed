@@ -128,42 +128,135 @@ class RegistryBuilder:
 
     def _load_models(self) -> None:
         """
-        Load available LLM models from Ollama and LiteLLM.
+        Load available LLM models from config/models.yaml, Ollama, and LiteLLM.
+        Merges configuration and tracks selection status.
         """
         import litellm.utils
         import ollama
+        from pathlib import Path
         logger.info("Loading available LLM models")
 
-        # Load models from Ollama if available
+        config_models: Dict[str, Dict[str, Any]] = {}
+        upstream_models: Dict[str, Dict[str, Any]] = {}
+        final_models: Dict[str, Model] = {}
+
+        # 1. Load models from config/models.yaml
+        config_path = Path("config/models.yaml")
+        if config_path.exists():
+            try:
+                with open(config_path, 'r') as f:
+                    yaml_data = yaml.safe_load(f)
+                    if yaml_data and 'models' in yaml_data:
+                        config_models = yaml_data['models']
+                        logger.info(f"Loaded {len(config_models)} models from {config_path}")
+            except Exception as e:
+                logger.error(f"Failed to load models from {config_path}: {str(e)}")
+
+        # 2. Load models from upstream: Ollama
         try:
-            ollama_models = ollama.list()
-            for model_data in ollama_models['models']:
-                logger.warning(f"ollama model_data {model_data}")
-                model_info = litellm.utils.get_model_info('ollama_chat/' + model_data['model'])
-                model = self._load_model_from_litellm(model_info)
-                # Fix ollama model id to use "chat" endpoint
-                model.id = 'ollama_chat/' + model_data['model']
-                self.registry.add_model(model)
-                logger.debug(f"Added Ollama model: {model.name}")
+            ollama_response = ollama.list()
+            for model_data in ollama_response.get('models', []):
+                model_id = 'ollama_chat/' + model_data['model']
+                try:
+                    # Use litellm to get standardized info, but prioritize ollama's own data if needed
+                    model_info = litellm.utils.get_model_info(model_id)
+                    upstream_model_data = self._parse_model_from_litellm(model_info)
+                    # Ensure the ID uses the ollama_chat prefix
+                    upstream_model_data['id'] = model_id
+                    upstream_models[model_id] = upstream_model_data
+                    logger.debug(f"Loaded upstream Ollama model: {model_id}")
+                except Exception as e:
+                    logger.warning(f"Could not get detailed info for Ollama model {model_id}: {e}. Skipping.")
         except Exception as e:
             logger.error(f"Failed to load Ollama models: {str(e)}")
 
-        # Load models from LiteLLM if available
+        # 3. Load models from upstream: LiteLLM (excluding ollama handled above)
         try:
-            import litellm.utils
-            litellm_models = litellm.utils.get_valid_models()
-            for model_name in litellm_models:
+            litellm_valid_models = litellm.utils.get_valid_models()
+            for model_name in litellm_valid_models:
+                if model_name.startswith('ollama'): # Already handled
+                    continue
                 try:
                     model_info = litellm.utils.get_model_info(model_name)
+                    upstream_model_data = self._parse_model_from_litellm(model_info)
+                    model_id = upstream_model_data['id']
+                    if model_id not in upstream_models: # Avoid duplicates if get_valid_models has aliases
+                        upstream_models[model_id] = upstream_model_data
+                        logger.debug(f"Loaded upstream LiteLLM model: {model_id}")
                 except Exception as e:
-                    continue
-
-                model = self._load_model_from_litellm(model_info)
-                self.registry.add_model(model)
-                logger.debug(f"Added LiteLLM model: {model.name}")
-
+                    # It's common for get_model_info to fail for some models listed by get_valid_models
+                    logger.debug(f"Could not get detailed info for LiteLLM model {model_name}: {e}. Skipping.")
         except Exception as e:
             logger.error(f"Failed to load LiteLLM models: {str(e)}")
+
+        # 4. Merge models: Prioritize upstream, apply config overrides, track status
+        processed_config_ids = set()
+
+        for model_id, upstream_data in upstream_models.items():
+            overrides = {}
+            selected = False
+            final_data = upstream_data.copy() # Start with upstream data
+            final_data['upstream_present'] = True
+
+            if model_id in config_models:
+                selected = True
+                processed_config_ids.add(model_id)
+                config_data = config_models[model_id]
+
+                # Apply config values over upstream values and track overrides
+                for key, config_value in config_data.items():
+                    # Convert capabilities list back to set for comparison if needed
+                    if key == 'capabilities' and isinstance(config_value, list):
+                         config_value_internal = set(config_value)
+                    else:
+                         config_value_internal = config_value
+
+                    if key in final_data and final_data[key] != config_value_internal:
+                        # Handle set comparison for capabilities
+                        if key == 'capabilities':
+                            if set(final_data[key]) != config_value_internal:
+                                overrides[key] = {'config': sorted(list(config_value_internal)), 'upstream': sorted(list(final_data[key]))}
+                                final_data[key] = config_value_internal # Apply override
+                        else:
+                            overrides[key] = {'config': config_value, 'upstream': final_data[key]}
+                            final_data[key] = config_value # Apply override
+                    elif key not in final_data:
+                         # Key exists in config but not upstream (e.g. cost)
+                         final_data[key] = config_value
+                         overrides[key] = {'config': config_value, 'upstream': None}
+
+
+            final_data['selected'] = selected
+            final_data['overrides'] = overrides
+            try:
+                final_models[model_id] = Model(**final_data)
+            except Exception as e:
+                logger.error(f"Failed to validate merged model data for {model_id}: {e}. Data: {final_data}")
+
+
+        # 5. Add models present only in config (upstream removed)
+        for model_id, config_data in config_models.items():
+            if model_id not in processed_config_ids:
+                logger.warning(f"Model '{model_id}' found in config/models.yaml but not in upstream sources.")
+                final_data = config_data.copy()
+                final_data['selected'] = True
+                final_data['upstream_present'] = False
+                final_data['overrides'] = {} # No upstream to compare against
+                 # Ensure capabilities is a set
+                if 'capabilities' in final_data and isinstance(final_data['capabilities'], list):
+                    final_data['capabilities'] = set(final_data['capabilities'])
+                try:
+                    final_models[model_id] = Model(**final_data)
+                except Exception as e:
+                    logger.error(f"Failed to validate config-only model data for {model_id}: {e}. Data: {final_data}")
+
+
+        # 6. Add all processed models to the registry
+        for model in final_models.values():
+            self.registry.add_model(model)
+
+        logger.info(f"Final loaded models count: {len(self.registry.models)}")
+
 
     async def build(self) -> Registry:
         """
@@ -240,7 +333,73 @@ class RegistryBuilder:
             except Exception as e:
                 logger.error(f"Failed to connect to MCP server {name}: {str(e)}")
 
+    def _parse_model_from_litellm(self, model_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Parses model information from LiteLLM's get_model_info result into a dictionary."""
+        capabilities = set()
+        # Mapping from litellm info keys to capability names
+        capability_map = {
+            'supports_system_messages': 'system_message',
+            'supports_response_schema': 'response_schema',
+            'supports_tool_choice': 'tool_choice',
+            'supports_function_calling': 'function_calling',
+            'supports_vision': 'vision',
+            'supports_audio_input': 'audio_input',
+            'supports_audio_output': 'audio_output',
+            'supports_native_streaming': 'native_streaming',
+            'supports_parallel_function_calling': 'parallel_function_calling',
+            'supports_embedding_image_input': 'embedding_image_input',
+            'supports_pdf_input': 'pdf_input',
+            'supports_prompt_caching': 'prompt_caching',
+            'supports_assistant_prefill': 'assistant_prefill',
+        }
+        for info_key, cap_name in capability_map.items():
+            if model_info.get(info_key):
+                capabilities.add(cap_name)
+
+        # Mode-based capabilities
+        mode_capability_map = {
+            'chat': 'chat',
+            'completion': 'completion',
+            'embedding': 'embedding',
+            'image_generation': 'image_generation',
+            'audio_transcription': 'audio_transcription',
+        }
+        mode = model_info.get('mode')
+        if mode and mode in mode_capability_map:
+            capabilities.add(mode_capability_map[mode])
+
+        # Determine the canonical model ID (provider/key)
+        provider = model_info.get('litellm_provider')
+        key = model_info.get('key')
+        if provider and key:
+            if key.startswith(provider + '/'):
+                model_id = key
+            else:
+                model_id = f"{provider}/{key}"
+        else:
+            # Fallback or raise error if ID cannot be determined
+            model_id = key or "unknown_model" # Or handle error more strictly
+            logger.warning(f"Could not determine provider for model key '{key}'. Using ID: {model_id}")
+
+
+        return {
+            "id": model_id,
+            "name": key, # Use the original key as the name
+            "provider": provider,
+            "context_length": model_info.get('max_input_tokens'), # Prefer max_input_tokens
+            "input_cost": model_info.get('input_cost_per_token', 0.0),
+            "output_cost": model_info.get('output_cost_per_token', 0.0),
+            "capabilities": capabilities,
+            "metadata": model_info # Store the raw info as metadata
+        }
+
     def _load_model_from_litellm(self, model_info):
+        # This method is kept for potential backward compatibility or direct use if needed,
+        # but the primary loading now uses _parse_model_from_litellm within _load_models.
+        # It now directly returns a Model instance based on the parsed data.
+        parsed_data = self._parse_model_from_litellm(model_info)
+        return Model(**parsed_data)
+
 
         capabilities = set()
         if model_info.get('supports_system_messages'):
