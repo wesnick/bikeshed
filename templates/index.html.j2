@@ -31,10 +31,9 @@
               {% block branding %}BikeShed{% endblock %}
             </a>
           </div>
-          <!-- Notification Section -->
-          <div id="notification-area" class="navbar-notification"></div>
-          <div class="navbar-end">
-            <div class="navbar-item"
+        <div class="navbar-divider"></div>
+        <div class="navbar-content">
+          <div class="navbar-item"
                  hx-get="/components/root-selector"
                  hx-trigger="load, sse:root.selected, sse:root.updated">
               <div class="buttons">
@@ -44,6 +43,12 @@
                 </button>
               </div>
             </div>
+          <!-- Notification Section -->
+          <div id="notification-area" class="navbar-notification"></div>
+        </div>
+
+
+          <div class="navbar-end">
             <div class="navbar-item"
                  hx-get="/components/navbar-notifications"
                  hx-trigger="load, sse:session_update, sse:notifications.update">
