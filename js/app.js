@@ -3,8 +3,6 @@ import htmx from 'htmx.org';
 import 'htmx-ext-form-json';
 import 'htmx-ext-sse';
 import hljs from 'highlight.js';
-// import Bulma from "@vizuaalog/bulmajs";
-import Dropdown from "@vizuaalog/bulmajs/src/plugins/dropdown";
 
 
 import {initializeEditor} from './prosemirror';
@@ -74,7 +72,8 @@ document.body.addEventListener('htmx:afterSettle', function (event) {
 
   // Activate bulma JS behaviors on newly added elements
   if (event.detail.elt.querySelector && event.detail.elt.querySelector('.dropdown')) {
-    Dropdown.parseDocument();
+
+
   }
 
   // Dropzone support
