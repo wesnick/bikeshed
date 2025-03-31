@@ -163,10 +163,9 @@ class Session(BaseModel, DBModelMixin):
 class Root(BaseModel, DBModelMixin):
     __db_table__ = "roots"
     __non_persisted_fields__ = {'files', 'created_at'}
-    __unique_fields__ = {'uri'} # Assuming URI should be unique
+    __unique_fields__ = {'uri'} # URI is the primary key
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    uri: str  # The root URI
+    uri: str  # The root URI (Primary Key)
     created_at: Optional[datetime] = None
     extra: Optional[Dict[str, Any]] = None  # For additional metadata
 
@@ -176,12 +175,11 @@ class Root(BaseModel, DBModelMixin):
 class RootFile(BaseModel, DBModelMixin):
     __db_table__ = "root_files"
     __non_persisted_fields__ = {'root'}
-    __unique_fields__ = {'root_id', 'path'} # Unique within a root
+    __unique_fields__ = {'root_uri', 'path'} # Composite primary key
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    root_id: uuid.UUID
+    root_uri: str # Foreign key referencing Root.uri
     name: str  # Filename
-    path: str  # Path relative to the root
+    path: str  # Path relative to the root (Part of Primary Key)
     extension: Optional[str] = None  # File extension
     mime_type: Optional[str] = None
     size: Optional[int] = None  # File size in bytes

@@ -9,48 +9,60 @@ from src.repository.base import BaseRepository, db_operation
 
 class RootRepository(BaseRepository[Root]):
     def __init__(self):
+        # BaseRepository needs to know the primary key column name if it's not 'id'
+        # Assuming BaseRepository can handle this or we adjust its methods.
+        # For now, we pass the model which defines its PK via __unique_fields__.
         super().__init__(Root)
-        self.table_name = "roots"  # Ensure correct table name
-    
+        self.table_name = "roots"
+        self.pk_columns = ["uri"] # Explicitly define PK for clarity if needed by BaseRepository
+
     @db_operation
-    async def get_with_files(self, conn: AsyncConnection, root_id: UUID) -> Optional[Root]:
-        """Get a root with all its files"""
-        # First get the root
-        root_query = SQL("SELECT * FROM {} WHERE id = %s").format(Identifier(self.table_name))
-        
+    async def get_by_uri(self, conn: AsyncConnection, uri: str) -> Optional[Root]:
+        """Get a root by its URI (Primary Key)"""
+        # This method already exists and is correct
+        query = SQL("SELECT * FROM {} WHERE uri = %s").format(Identifier(self.table_name))
+
         async with conn.cursor(row_factory=class_row(Root)) as cur:
-            await cur.execute(root_query, (root_id,))
+            await cur.execute(query, (uri,))
+            return await cur.fetchone()
+
+    @db_operation
+    async def get_with_files(self, conn: AsyncConnection, root_uri: str) -> Optional[Root]:
+        """Get a root with all its files using the root URI"""
+        # First get the root by URI
+        root_query = SQL("SELECT * FROM {} WHERE uri = %s").format(Identifier(self.table_name))
+
+        async with conn.cursor(row_factory=class_row(Root)) as cur:
+            await cur.execute(root_query, (root_uri,))
             root = await cur.fetchone()
             
             if not root:
                 return None
-            
-            # Then get all files for this root - use correct table name "root_files"
+            # Then get all files for this root using root_uri
             files_query = SQL("""
-                SELECT * FROM root_files 
-                WHERE root_id = %s 
+                SELECT * FROM root_files
+                WHERE root_uri = %s
                 ORDER BY path
             """)
-            
+
             # Create a new cursor with the RootFile row factory for fetching files
             async with conn.cursor(row_factory=class_row(RootFile)) as files_cur:
-                await files_cur.execute(files_query, (root_id,))
+                await files_cur.execute(files_query, (root_uri,))
                 files = await files_cur.fetchall()
             
             # Manually set the files relationship
             root.files = files
             
             return root
-    
-    @db_operation
-    async def get_by_uri(self, conn: AsyncConnection, uri: str) -> Optional[Root]:
-        """Get a root by its URI"""
-        query = SQL("SELECT * FROM {} WHERE uri = %s").format(Identifier(self.table_name))
-        
-        async with conn.cursor(row_factory=class_row(Root)) as cur:
-            await cur.execute(query, (uri,))
-            return await cur.fetchone()
-    
+
+    # BaseRepository provides get_by_id, update, delete.
+    # If BaseRepository strictly expects a UUID 'id', these might need overrides
+    # or BaseRepository needs modification. Assuming BaseRepository can handle
+    # string PKs based on model's __unique_fields__.
+    # If overrides are needed:
+    # async def update(self, conn: AsyncConnection, uri: str, data: Dict[str, Any]) -> Optional[Root]: ...
+    # async def delete(self, conn: AsyncConnection, uri: str) -> bool: ...
+
     @db_operation
     async def get_recent_roots(self, conn: AsyncConnection, limit: int = 10) -> List[Root]:
         """Get the most recently created roots"""
