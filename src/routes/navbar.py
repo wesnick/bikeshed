@@ -20,25 +20,14 @@ async def root_selector_component(
     """This route serves the root selector component for htmx requests."""
 
     from src.main import app
+    from src.repository.root import RootRepository
 
-    roots = await root_repository.get_all(db)
+    root_repo = RootRepository()
+    roots = await root_repo.get_all(db)
 
     return {
         'roots': roots,
         'selected_root': app.state.selected_root
-    }
-
-@router.get("/components/root-selector/form")
-@jinja.hx('components/navbar/root_selector_form.html.j2')
-async def root_selector_form(db: AsyncConnection = Depends(get_db)):
-    """This route serves the root selector form component for htmx requests."""
-    from src.repository.root import RootRepository
-
-    root_repo = RootRepository()
-    recent_roots = await root_repo.get_all(db)
-
-    return {
-        'roots': recent_roots
     }
 
 @router.get("/components/navbar-notifications")
@@ -84,12 +73,15 @@ async def select_root(root_uri: str,
                       broadcast_service: BroadcastService = Depends(get_broadcast_service)):
     """Select a root as the current working root."""
     from src.main import app
+    from src.repository.root import RootRepository
 
-    app.state.selected_root = root_repository.get_by_uri(db, root_uri)
+    root_repo = RootRepository()
+    app.state.selected_root = await root_repo.get_by_uri(db, root_uri)
+    roots = await root_repo.get_all(db)
 
     await broadcast_service.broadcast("root.selected", {"root_uri": root_uri})
 
     return {
-        'roots': root_repository.get_all(db),
+        'roots': roots,
         'selected_root': app.state.selected_root
     }

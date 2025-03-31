@@ -1,35 +1,47 @@
-<div class="root-selector">
-  {% if selected_root %}
-    <div class="selected-root">
-      <div class="buttons">
-        <button class="button is-small"
-                hx-get="/components/root-selector"
-                hx-target="closest .root-selector">
+<div class="dropdown" id="root-selector-dropdown">
+  <div class="dropdown-trigger">
+    <button class="button" aria-haspopup="true" aria-controls="root-dropdown-menu">
+      <span>
+        {% if selected_root %}
           <span class="icon"><i class="fas fa-folder-open"></i></span>
           <span>{{ selected_root.name or selected_root.uri }}</span>
-        </button>
-        <a class="button is-small is-info"
-           hx-get="/root/{{ selected_root.uri }}"
-           hx-target=".dashboard">
-          <span class="icon"><i class="fas fa-eye"></i></span>
-        </a>
-      </div>
-    </div>
-  {% else %}
-    <div class="root-selection-form">
-      <div class="buttons">
-        <button class="button is-small"
-                hx-get="/components/root-selector/form"
-                hx-target="closest .root-selector">
+        {% else %}
           <span class="icon"><i class="fas fa-folder"></i></span>
           <span>Select Root</span>
-        </button>
-        <button class="button is-small is-success"
-                hx-get="/components/root-selector/new"
-                hx-target="closest .root-selector">
-          <span class="icon"><i class="fas fa-plus"></i></span>
-        </button>
-      </div>
+        {% endif %}
+      </span>
+      <span class="icon ml-2"><i class="fas fa-chevron-down"></i></span>
+    </button>
+  </div>
+  <div class="dropdown-menu" id="root-dropdown-menu" role="menu">
+    <div class="dropdown-content">
+      {% if roots %}
+        {% for root in roots %}
+          <a class="dropdown-item"
+             hx-post="/root/select/{{ root.uri }}"
+             hx-target="closest .dropdown">
+            <span class="icon"><i class="fas fa-folder"></i></span>
+            <span>{{ root.name or root.uri }}</span>
+          </a>
+        {% endfor %}
+      {% else %}
+        <div class="dropdown-item">No roots available</div>
+      {% endif %}
+      <hr class="dropdown-divider" />
+      <a class="dropdown-item"
+         hx-get="/components/root-selector/new"
+         hx-target="closest .dropdown">
+        <span class="icon has-text-success"><i class="fas fa-plus"></i></span>
+        <span>Add New Root</span>
+      </a>
+      {% if selected_root %}
+        <a class="dropdown-item"
+           hx-get="/root/{{ selected_root.uri }}"
+           hx-target=".dashboard">
+          <span class="icon has-text-info"><i class="fas fa-eye"></i></span>
+          <span>View Root Files</span>
+        </a>
+      {% endif %}
     </div>
-  {% endif %}
+  </div>
 </div>
