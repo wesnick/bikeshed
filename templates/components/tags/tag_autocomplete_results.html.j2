@@ -1,0 +1,11 @@
+{% if tags %}
+  {% for tag in tags %}
+    <a href="#" class="dropdown-item tag-suggestion"
+       data-tag-id="{{ tag.id }}"
+       data-tag-name="{{ tag.name }}">
+      {{ tag.name }} ({{ tag.id }})
+    </a>
+  {% endfor %}
+{% else %}
+  <div class="dropdown-item">No tags found</div>
+{% endif %}

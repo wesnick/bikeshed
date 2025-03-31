@@ -194,66 +194,104 @@ async def tag_selector_component(
         "entity_type": entity_type
     }
 
-@router.get("/autocomplete/{search_term}")
-async def entity_tags_component(search_term: str,
-                                db: AsyncConnection = Depends(get_db),
-                                tag_repo: TagRepository = Depends(get_tag_repository)):
+@router.get("/autocomplete")
+@jinja.hx("components/tags/tag_autocomplete_results.html.j2")
+async def tag_autocomplete_search(search_term: Optional[str] = None,
+                                  db: AsyncConnection = Depends(get_db),
+                                  tag_repo: TagRepository = Depends(get_tag_repository)):
+    """Searches for tags based on the search term and returns HTML fragment."""
+    if not search_term or len(search_term) < 1:
+        # Optionally return popular/recent tags or an empty list
+        return {"tags": []}
 
-    terms = await tag_repo.search_by_name(db, search_term)
-
-    res = [{'id': term.id, 'name': term.name} for term in terms]
-
-    from src.service.logging import logger
-    logger.error(f"res: {res}")
-
-    return res
-
-
-@router.post("/entity")
-async def manage_entity_tags(
-    request: EntityTagRequest,
-    response: Response,
-    db: AsyncConnection = Depends(get_db)
-):
-    """Add or remove a tag from an entity."""
-    entity_tag_repo = EntityTagRepository()
-    
     try:
-        if request.action == "add":
-            success = await entity_tag_repo.add_tag_to_entity(
-                db, request.entity_id, request.entity_type, request.tag_id
-            )
-            if success:
-                response.headers['HX-Trigger'] = json.dumps({
-                    "sse:entity.tag.added": {
-                        "entity_id": str(request.entity_id),
-                        "entity_type": request.entity_type,
-                        "tag_id": request.tag_id
-                    }
-                })
-                return {"success": True, "message": "Tag added successfully"}
-            else:
-                return {"success": False, "message": "Tag already exists on entity"}
-                
-        elif request.action == "remove":
-            success = await entity_tag_repo.remove_tag_from_entity(
-                db, request.entity_id, request.entity_type, request.tag_id
-            )
-            if success:
-                response.headers['HX-Trigger'] = json.dumps({
-                    "sse:entity.tag.removed": {
-                        "entity_id": str(request.entity_id),
-                        "entity_type": request.entity_type,
-                        "tag_id": request.tag_id
-                    }
-                })
-                return {"success": True, "message": "Tag removed successfully"}
-            else:
-                return {"success": False, "message": "Tag not found on entity"}
-        else:
-            return {"success": False, "message": "Invalid action"}
+        tags = await tag_repo.search_by_name(db, f"%{search_term}%", limit=10)
+        logger.debug(f"Autocomplete search for '{search_term}' found {len(tags)} tags.")
+        return {"tags": tags}
     except Exception as e:
-        logger.error(f"Error managing entity tag: {e}")
-        return {"success": False, "message": str(e)}
+        logger.error(f"Error during tag autocomplete search for '{search_term}': {e}")
+        # Return an empty list or an error message in the template
+        return {"tags": []}
+
+
+@router.post("/entity", response_class=Response) # Ensure we return Response for HX
+async def manage_entity_tags(
+    entity_id: UUID = Form(...),
+    entity_type: str = Form(...),
+    tag_id: str = Form(...),
+    action: str = Form(...), # 'add' or 'remove'
+    db: AsyncConnection = Depends(get_db),
+    tag_repo: TagRepository = Depends(get_tag_repository) # Added tag_repo dependency
+):
+    """Add or remove a tag from an entity using form data and return updated component."""
+    entity_tag_repo = EntityTagRepository()
+    success = False
+    message = ""
+
+    try:
+        if action == "add":
+            # Check if tag exists before adding
+            tag_to_add = await tag_repo.get_by_id(db, tag_id)
+            if not tag_to_add:
+                 # This case should ideally not happen if UI only allows selecting existing tags
+                 logger.warning(f"Attempted to add non-existent tag '{tag_id}' to {entity_type}:{entity_id}")
+                 message = f"Tag '{tag_id}' does not exist."
+            else:
+                success = await entity_tag_repo.add_tag_to_entity(
+                    db, entity_id, entity_type, tag_id
+                )
+                message = f"Tag '{tag_to_add.name}' added." if success else f"Tag '{tag_to_add.name}' already present."
+                if success:
+                    logger.info(f"Added tag '{tag_id}' to {entity_type}:{entity_id}")
+
+
+        elif action == "remove":
+            # Fetch tag name for logging/message before potentially removing it
+            tag_to_remove = await tag_repo.get_by_id(db, tag_id)
+            tag_name = tag_to_remove.name if tag_to_remove else tag_id
+
+            success = await entity_tag_repo.remove_tag_from_entity(
+                db, entity_id, entity_type, tag_id
+            )
+            message = f"Tag '{tag_name}' removed." if success else f"Tag '{tag_name}' not found on entity."
+            if success:
+                logger.info(f"Removed tag '{tag_id}' from {entity_type}:{entity_id}")
+
+        else:
+            logger.warning(f"Invalid action '{action}' received for entity tag management.")
+            message = "Invalid action specified."
+            raise HTTPException(status_code=400, detail=message)
+
+    except HTTPException as http_exc:
+        # Re-raise HTTP exceptions
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Error managing tag '{tag_id}' for {entity_type}:{entity_id} (action: {action}): {e}")
+        # Return a generic error message within the component to avoid breaking the UI flow
+        message = f"An error occurred while managing tag: {e}"
+        # Optionally raise HTTPException(500) instead, but returning the component might be better UX
+        # For now, we proceed to render the component with potentially outdated tags + error hint
+
+    # Always re-fetch the current tags for the entity
+    try:
+        current_entity_tags = await entity_tag_repo.get_entity_tags(db, entity_id, entity_type)
+        # Format tags for the template
+        formatted_tags = [{"id": tag.id, "name": tag.name, "path": tag.path, "description": tag.description} for tag in current_entity_tags]
+    except Exception as e:
+        logger.error(f"Failed to re-fetch tags for {entity_type}:{entity_id} after update: {e}")
+        formatted_tags = [] # Render empty if fetch fails
+        message += " (Failed to refresh tag list)"
+
+
+    # Render the component again with the updated (or error) state
+    # Note: We pass the original entity_id and entity_type back to the template
+    context = {
+        "entity_id": entity_id,
+        "entity_type": entity_type,
+        "entity_tags": formatted_tags,
+        "message": message, # Optionally display a status message
+        "success": success and action in ['add', 'remove'] # Indicate overall success of the intended action
+    }
+    return jinja.template_response("components/tags/tag_entity.html.j2", context)
 
 

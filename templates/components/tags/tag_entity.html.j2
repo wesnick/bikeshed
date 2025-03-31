@@ -1,21 +1,56 @@
-<div class="field">
+{% from "macros/tags.html.j2" import render_tag %}
+
+{# Use entity_id in the ID to ensure uniqueness if multiple components are on the page #}
+<div id="tag-entity-component-{{ entity_id }}" class="field tag-entity-component" data-entity-id="{{ entity_id }}">
   <label class="label">Tags</label>
-  <div class="control">
-    <form id="entity-tag-form"
-          hx-post="/tags/entity"
-          hx-ext="form-json"
-          hx-trigger="tagAdded from:body, tagRemoved from:body"
-          hx-swap="none">
+
+  {# Display existing tags #}
+  <div class="tags are-medium mb-3">
+    {% if entity_tags %}
+      {% for tag in entity_tags %}
+        {{ render_tag(tag, entity_id, entity_type) }}
+      {% endfor %}
+    {% else %}
+      <span class="tag is-light">No tags yet.</span>
+    {% endif %}
+     <span id="tag-entity-indicator-{{ entity_id }}" class="htmx-indicator">
+        <img src="/img/bars.svg" alt="Loading..." style="height: 1em;"/>
+     </span>
+  </div>
+
+  {# Hidden form for adding/removing tags #}
+  <form id="entity-tag-form-{{ entity_id }}"
+        hx-post="/tags/entity"
+        hx-target="#tag-entity-component-{{ entity_id }}"
+        hx-swap="outerHTML"
+        hx-indicator="#tag-entity-indicator-{{ entity_id }}"
+        class="is-hidden">
       <input type="hidden" name="entity_id" value="{{ entity_id }}">
       <input type="hidden" name="entity_type" value="{{ entity_type }}">
-      <input class="input tags-input"
-             type="text"
-             data-item-text="name"
-             data-item-value="id"
-             data-case-sensitive="false"
-             placeholder="Add tags..."
-             value=""
-             {% if entity_tags %}data-initial-tags='{{ entity_tags | tojson }}'{% endif %}>
-    </form>
+      <input type="hidden" name="tag_id" value=""> {# Populated by JS #}
+      <input type="hidden" name="action" value=""> {# Populated by JS ('add' or 'remove') #}
+  </form>
+
+  {# Autocomplete Input with Dropdown #}
+  <div class="control">
+    <div class="dropdown tag-autocomplete-dropdown" style="width: 100%;">
+      <div class="dropdown-trigger" style="width: 100%;">
+        <input class="input tag-autocomplete-input"
+               type="text"
+               placeholder="Search and add tags..."
+               autocomplete="off"
+               hx-get="/tags/autocomplete"
+               hx-trigger="input changed delay:300ms, focus"
+               hx-target="#tag-autocomplete-results-{{ entity_id }}"
+               hx-indicator="#tag-entity-indicator-{{ entity_id }}"
+               name="search_term"> {# Name attribute is needed for hx-get #}
+      </div>
+      <div class="dropdown-menu" style="width: 100%;">
+        <div class="dropdown-content" id="tag-autocomplete-results-{{ entity_id }}">
+          {# Autocomplete results will be loaded here by HTMX #}
+          <div class="dropdown-item">Start typing to search...</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

@@ -12,6 +12,7 @@ import Dropzone from "dropzone";
 
 // Import custom handlers
 import './shutdown-handler';
+import './components/tags';
 
 
 // Initialize application
