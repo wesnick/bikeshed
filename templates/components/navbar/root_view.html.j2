@@ -30,36 +30,36 @@
       {% endfor %}
 
       {# Render the tree recursively #}
-      {% macro render_tree(tree, level=0) %}
+      {% macro render_tree(tree, level=0) -%} {#<-- Add hyphen #}
         {# Create the UL for the current level's items (folders and files) #}
         <ul class="tree {% if level == 0 %}root-tree{% endif %}">
           {# Render folders first #}
-          {% for key, value in tree.items() if key != '__files__' %}
+          {%- for key, value in tree.items() if key != '__files__' -%} {#<-- Add hyphens #}
             {# Each folder is an LI #}
             <li>
               <details {% if level == 0 %}open{% endif %}>
                 <summary class="folder">{{ key }}</summary>
                 {# Recursively render the contents (which will start with a UL) #}
-                {{ render_tree(value, level + 1) }}
+                {{- render_tree(value, level + 1) -}} {#<-- Add hyphens #}
               </details>
             </li>
-          {% endfor %}
+          {%- endfor -%} {#<-- Add hyphen #}
 
           {# Render files at this level #}
-          {% if tree['__files__'] %}
-            {% for file in tree['__files__'] %}
+          {%- if tree['__files__'] -%} {#<-- Add hyphen #}
+            {%- for file in tree['__files__'] -%} {#<-- Add hyphens #}
               {# Each file is an LI, sibling to folder LIs #}
               <li class="file">
                 <span class="file-name" data-path="{{ file.path }}" data-mime="{{ file.mime_type }}">
                   {{ file.name }}
                 </span>
               </li>
-            {% endfor %}
-          {% endif %}
+            {%- endfor -%} {#<-- Add hyphen #}
+          {%- endif -%} {#<-- Add hyphen #}
         </ul>
-      {% endmacro %}
+      {%- endmacro %} {#<-- Add hyphen #}
 
-      {{ render_tree(path_tree) }}
+      {{- render_tree(path_tree) -}} {#<-- Add hyphens #}
     </div>
   {% else %}
     <p>No files found in this root.</p>
