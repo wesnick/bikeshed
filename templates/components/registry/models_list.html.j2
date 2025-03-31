@@ -22,7 +22,7 @@
                 <div class="field">
                   <div class="control">
                     <label class="checkbox">
-                      <input type="checkbox" name="selected_models_form" value="{{ model.id }}" {% if model.selected %}checked{% endif %}>
+                      <input type="checkbox" name="selected_models[{{ model.id }}]" {% if model.selected %}checked{% endif %}>
                     </label>
                   </div>
                 </div>
@@ -59,7 +59,7 @@
           </button>
         </div>
       </div>
-      
+
       <div class="mt-4">
         <p><span class="tag is-danger">Red rows</span> indicate models that are in your configuration but not available from upstream sources.</p>
         <p><span class="tag is-warning">Yellow rows</span> indicate models with configuration values that override upstream defaults.</p>
