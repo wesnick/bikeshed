@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Literal, Optional, Union, Set
 
 from pydantic import BaseModel, Field, model_validator
 
-    
+
 ## Session Template Configuration classes
 
 class Metadata(BaseModel):

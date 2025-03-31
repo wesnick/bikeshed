@@ -6,7 +6,7 @@
         <p class="panel-heading">Models</p>
         <div class="panel-block">
           <p class="control has-icons-left">
-            <input class="input" type="text" placeholder="Search models">
+            <input class="input" id="model-search-input" type="text" placeholder="Search models">
             <span class="icon is-left">
               <i class="fas fa-search" aria-hidden="true"></i>
             </span>
@@ -22,7 +22,7 @@
         </p>
         {% for id, model in models.items() %}
           <div class="panel-block {% if not model.upstream_present %}has-background-danger-light{% elif model.overrides %}has-background-warning-light{% endif %}"
-               data-category="{% if model.selected %}selected{% endif %}{% if model.capabilities %} {% for cap in model.model_filterable_capabilities %}{{ cap }}{% endfor %}{% endif %}">
+               data-category="{% if model.selected %}selected{% endif %}{% if model.capabilities %} {{ model.model_filterable_capabilities | join(" ") }}{% endif %}">
             <div class="columns is-mobile is-gapless is-multiline is-fullwidth">
               <div class="column is-1">
                 <label class="checkbox">
