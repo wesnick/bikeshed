@@ -113,7 +113,7 @@ async def view_root(root_uri: str, db: AsyncConnection = Depends(get_db)):
 
     return {
         'root': root,
-        'build_file_tree': build_file_tree
+        'tree': build_file_tree(root.files)
     }
 
 

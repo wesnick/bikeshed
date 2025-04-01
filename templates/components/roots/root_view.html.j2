@@ -5,11 +5,9 @@
 {% else %}
 <div class="box">
   <h3 class="title is-5">{{ root.uri }}</h3>
-
   {% if root.files %}
     <div class="tree mt-4">
       {% from "components/roots/file_tree.html.j2" import render_tree_node %}
-      {% set tree = build_file_tree(root.files) %}
       <ul class="tree">
         {{ render_tree_node(tree) }}
       </ul>
