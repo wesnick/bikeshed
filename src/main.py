@@ -14,7 +14,7 @@ from src.core.registry import Registry
 from src.service.broadcast import BroadcastService
 from src.service.logging import logger, setup_logging
 from src.service.shutdown_helper import shutdown_manager
-from src.http.middleware import HTMXRedirectMiddleware
+from src.kernel.middleware import HTMXRedirectMiddleware
 from src.dependencies import get_db, get_jinja, get_registry, get_broadcast_service
 from src.routes import api_router
 from src.repository import session_repository
