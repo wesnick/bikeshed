@@ -16,6 +16,20 @@ import './shutdown-handler';
 import './components/tags';
 
 
+// Function to close the modal
+function closeModal() {
+  const modal = document.getElementById('modal-container');
+  if (modal) {
+    modal.classList.remove('is-active');
+    // Clear content to prevent brief flash of old content
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) {
+      modalContent.innerHTML = '';
+    }
+  }
+  document.documentElement.classList.remove('is-clipped'); // Remove clipping from HTML tag
+}
+
 // Initialize application
 document.addEventListener('DOMContentLoaded', () => {
   console.log('BikeShed application initialized');
@@ -43,6 +57,23 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeTheme();
   setupThemeToggle();
 
+  // Add event listeners for closing the modal
+  const modalContainer = document.getElementById('modal-container');
+  if (modalContainer) {
+    const modalBackground = modalContainer.querySelector('.modal-background');
+    const modalCloseButton = modalContainer.querySelector('.modal-close');
+
+    if (modalBackground) {
+      modalBackground.addEventListener('click', closeModal);
+    }
+    if (modalCloseButton) {
+      modalCloseButton.addEventListener('click', closeModal);
+    }
+  }
+
+  // Add listener for SSE-triggered close
+  document.body.addEventListener('modal.close', closeModal);
+
 });
 
 // Function to initialize theme
@@ -55,6 +86,22 @@ function initializeTheme() {
 
 // Setup theme toggle when navbar is loaded and highlight code blocks
 document.body.addEventListener('htmx:afterSettle', function (event) {
+
+  // Check if the swap target is the modal content area
+  const modalContent = document.getElementById('modal-container')?.querySelector('.modal-content');
+  if (modalContent && event.detail.target === modalContent) {
+    const modal = document.getElementById('modal-container');
+    if (modal) {
+      modal.classList.add('is-active');
+      document.documentElement.classList.add('is-clipped'); // Add clipping to HTML tag
+
+      // Re-initialize dropdowns etc. if they exist within the modal
+      if (modal.querySelector('.dropdown')) {
+        initializeDropdowns(modal.querySelectorAll('.dropdown'));
+      }
+      // Add other component initializations needed within modals here
+    }
+  }
 
   // if (event.detail.elt.querySelector && event.detail.elt.querySelector('#editor')) {
   //   initializeEditor();
