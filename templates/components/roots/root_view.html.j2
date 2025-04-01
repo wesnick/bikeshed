@@ -17,7 +17,7 @@
 
         {% for part in path_parts[:-1] %}
           {% if part not in current %}
-            {% set _ = current.update({part: {'__files__': []}}) %}
+            {% set _ = current.update({part: {}}) %}
           {% endif %}
           {% set current = current[part] %}
         {% endfor %}
@@ -30,34 +30,30 @@
       {% endfor %}
 
       {# Render the tree recursively #}
-      {% macro render_tree(tree, level=0) -%} {#<-- Add hyphen #}
-        {# Create the UL for the current level's items (folders and files) #}
+      {% macro render_tree(tree, level=0) -%}
         <ul class="tree {% if level == 0 %}root-tree{% endif %}">
           {# Render folders first #}
-          {%- for key, value in tree.items() if key != '__files__' -%} {#<-- Add hyphens #}
-            {# Each folder is an LI #}
+          {%- for key, value in tree.items() if key != '__files__' -%}
             <li>
               <details {% if level == 0 %}open{% endif %}>
                 <summary class="folder">{{ key }}</summary>
-                {# Recursively render the contents (which will start with a UL) #}
-                {{- render_tree(value, level + 1) -}} {#<-- Add hyphens #}
+                {{- render_tree(value, level + 1) -}}
               </details>
             </li>
-          {%- endfor -%} {#<-- Add hyphen #}
+          {%- endfor -%}
 
           {# Render files at this level #}
-          {%- if tree['__files__'] -%} {#<-- Add hyphen #}
-            {%- for file in tree['__files__'] -%} {#<-- Add hyphens #}
-              {# Each file is an LI, sibling to folder LIs #}
+          {%- if tree.__contains__('__files__') and tree['__files__'] -%}
+            {%- for file in tree['__files__'] -%}
               <li class="file">
                 <span class="file-name" data-path="{{ file.path }}" data-mime="{{ file.mime_type }}">
-                  {{ file.name }}
+                  {{ file.path.split('/')[-1] }}
                 </span>
               </li>
-            {%- endfor -%} {#<-- Add hyphen #}
-          {%- endif -%} {#<-- Add hyphen #}
+            {%- endfor -%}
+          {%- endif -%}
         </ul>
-      {%- endmacro %} {#<-- Add hyphen #}
+      {%- endmacro -%}
 
       {{- render_tree(path_tree) -}} {#<-- Add hyphens #}
     </div>
