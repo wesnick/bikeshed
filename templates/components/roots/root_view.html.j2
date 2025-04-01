@@ -14,15 +14,18 @@
       {% for file in root.files %}
         {% set path_parts = file.path.split('/') %}
         {% set current = path_tree %}
-
-        {% for part in path_parts[:-1] %}
-          {% if part not in current %}
-            {% set _ = current.update({part: {}}) %}
-          {% endif %}
-          {% set current = current[part] %}
-        {% endfor %}
-
         {% set filename = path_parts[-1] %}
+        
+        {% if path_parts|length > 1 %}
+          {# This file is in a subdirectory #}
+          {% for part in path_parts[:-1] %}
+            {% if part not in current %}
+              {% set _ = current.update({part: {}}) %}
+            {% endif %}
+            {% set current = current[part] %}
+          {% endfor %}
+        {% endif %}
+        
         {% if '__files__' not in current %}
           {% set _ = current.update({'__files__': []}) %}
         {% endif %}
@@ -43,7 +46,7 @@
           {%- endfor -%}
 
           {# Render files at this level #}
-          {%- if tree.__contains__('__files__') and tree['__files__'] -%}
+          {%- if '__files__' in tree and tree['__files__'] -%}
             {%- for file in tree['__files__'] -%}
               <li class="file">
                 <span class="file-name" data-path="{{ file.path }}" data-mime="{{ file.mime_type }}">
@@ -55,7 +58,15 @@
         </ul>
       {%- endmacro -%}
 
-      {{- render_tree(path_tree) -}} {#<-- Add hyphens #}
+      <!-- Debug: Path Tree Structure -->
+      <!-- 
+      {% for key, value in path_tree.items() %}
+        Key: {{ key }}, Has files: {{ '__files__' in value }}, 
+        Subdirs: {{ value.keys()|list|reject('equalto', '__files__')|join(', ') }}
+      {% endfor %}
+      -->
+      
+      {{- render_tree(path_tree) -}}
     </div>
   {% else %}
     <p>No files found in this root.</p>
