@@ -32,8 +32,6 @@ async def lifespan(app: FastAPI):
     # Use the shutdown manager's event
     app.state.shutdown_event = shutdown_manager.shutdown_event
 
-    app.state.selected_root = {}
-
     # Register broadcast service shutdown with the shutdown manager
     shutdown_manager.register_cleanup_hook(broadcast_service.shutdown)
 
