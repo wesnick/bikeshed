@@ -89,6 +89,34 @@ async def select_root(root_select: RootSelectRequest,
 
     return {
         'roots': roots,
+        'roots': roots,
+        'selected_roots': current_selected_roots
+    }
+
+
+@router.post("/root/deselect")
+@jinja.hx('components/navbar/root_selector.html.j2')
+async def deselect_root(root_deselect: RootSelectRequest,
+                        db: AsyncConnection = Depends(get_db),
+                        user_state_service: UserStateService = Depends(get_user_state_service)
+                       ):
+    """Deselect a root from the current working set."""
+    from src.repository.root import RootRepository
+
+    # Get the current list of selected roots
+    current_selected_roots = user_state_service.get('selected_roots', default=[])
+
+    # Remove the root if it exists in the list
+    if root_deselect.root_uri in current_selected_roots:
+        current_selected_roots.remove(root_deselect.root_uri)
+        user_state_service.set('selected_roots', current_selected_roots)
+
+    # Fetch all roots again for the response
+    root_repo = RootRepository()
+    roots = await root_repo.get_all(db)
+
+    return {
+        'roots': roots,
         'selected_roots': current_selected_roots
     }
 

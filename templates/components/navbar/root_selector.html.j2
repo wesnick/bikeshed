@@ -2,15 +2,16 @@
   <div class="dropdown-trigger">
     <button class="button" aria-haspopup="true" aria-controls="root-dropdown-menu">
       <span>
-        {% if selected_root %}
-          {% if selected_root|length == 1 %}
-            {% set root_uri, root_data = selected_root.popitem() %}
+        {% if selected_roots %}
+          {% if selected_roots|length == 1 %}
+            {% set selected_uri = selected_roots[0] %}
+            {# Find the root object corresponding to the selected URI #}
+            {% set selected_root_obj = roots | selectattr('uri', 'equalto', selected_uri) | first %}
             <span class="icon"><i class="fas fa-folder-open"></i></span>
-            <span>{{ root_data.name or root_uri }}</span>
-            {% set selected_root = {root_uri: root_data} %}
+            <span>{{ selected_root_obj.name or selected_uri if selected_root_obj else selected_uri }}</span>
           {% else %}
             <span class="icon"><i class="fas fa-folder-open"></i></span>
-            <span>{{ selected_root|length }} Roots Selected</span>
+            <span>{{ selected_roots|length }} Roots Selected</span>
           {% endif %}
         {% else %}
           <span class="icon"><i class="fas fa-folder"></i></span>
@@ -24,21 +25,44 @@
     <div class="dropdown-content">
       {% if roots %}
         {% for root in roots %}
-          <div class="dropdown-item grid">
-          <a hx-vals='{"root_uri": "{{ root.uri }}"}'
-             hx-post="/root/select"
-             hx-ext="form-json"
-             hx-target="closest .dropdown">
-            <span class="icon"><i class="fas fa-folder"></i></span>
-            <span>{{ root.name or root.uri }}</span>
-          </a>
-          <a hx-get="/root?root_uri={{ root.uri | quote_plus }}"
-             hx-target=".dashboard"
-             hx-push-url="true">
-            <span class="icon has-text-info"><i class="fas fa-eye"></i></span>
-          </a>
-          </div>
+          {% set is_selected = root.uri in selected_roots %}
+          <div class="dropdown-item grid is-flex is-align-items-center"> {# Use flex for alignment #}
+            {# Selection/Deselection Area #}
+            <div class="is-flex-grow-1"> {# Allow text to take available space #}
+              <a hx-vals='{"root_uri": "{{ root.uri }}"}'
+                 hx-post="/root/select"
+                 hx-ext="form-json"
+                 hx-target="closest .dropdown"
+                 class="is-flex is-align-items-center" {# Ensure icon and text align #}
+                 style="text-decoration: none; color: inherit;"> {# Basic styling for link #}
+                {% if is_selected %}
+                  <span class="icon has-text-primary mr-2"><i class="fas fa-check"></i></span>
+                {% else %}
+                  <span class="icon mr-2" style="visibility: hidden;"><i class="fas fa-check"></i></span> {# Placeholder for alignment #}
+                {% endif %}
+                <span>{{ root.name or root.uri }}</span>
+              </a>
+            </div>
 
+            {# Action Icons Area #}
+            <div class="is-flex is-align-items-center ml-2"> {# Group icons #}
+              <a hx-get="/root?root_uri={{ root.uri | quote_plus }}"
+                 hx-target=".dashboard"
+                 hx-push-url="true"
+                 class="icon-link mx-1"> {# Add spacing #}
+                <span class="icon has-text-info"><i class="fas fa-eye"></i></span>
+              </a>
+              {% if is_selected %}
+                <a hx-vals='{"root_uri": "{{ root.uri }}"}'
+                   hx-post="/root/deselect"
+                   hx-ext="form-json"
+                   hx-target="closest .dropdown"
+                   class="icon-link mx-1"> {# Add spacing #}
+                  <span class="icon has-text-danger"><i class="fas fa-times"></i></span>
+                </a>
+              {% endif %}
+            </div>
+          </div>
         {% endfor %}
       {% else %}
         <div class="dropdown-item">No roots available</div>
