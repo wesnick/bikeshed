@@ -1,3 +1,60 @@
+{% macro render_tree_node(node_name, node_content) %}
+  {% if node_content is mapping %} {# It's a directory #}
+    <li>
+      <details open> {# Folders start expanded #}
+        <summary>{{ node_name }}</summary>
+        <ul>
+          {# Sort items alphabetically: folders first, then files #}
+          {% set sorted_items = node_content.items()|sort(attribute=0) %}
+          {% for name, content in sorted_items %}
+            {{ render_tree_node(name, content) }}
+          {% endfor %}
+        </ul>
+      </details>
+    </li>
+  {% else %} {# It's a file #}
+    {# Assuming node_content is the file object, node_name is the filename #}
+    {# You might want to link to the file or add actions here later #}
+    <li>{{ node_name }}</li>
+  {% endif %}
+{% endmacro %}
+
+{% macro build_and_render_file_tree(files, root_label='Root') %}
+  {# 1. Build the tree structure using a namespace for mutability #}
+  {% set tree = namespace(root={}) %}
+  {% for file in files %}
+    {% set parts = file.path.split('/') %}
+    {% set current_level = tree.root %}
+    {% for i in range(parts|length - 1) %}
+      {% set part = parts[i] %}
+      {# Navigate or create directory levels #}
+      {% if part not in current_level %}
+        {% set _ = current_level.update({part: {}}) %}
+      {% endif %}
+      {% set current_level = current_level[part] %}
+    {% endfor %}
+    {% set filename = parts[-1] %}
+    {# Store the file object itself, or just True/None if you only need existence #}
+    {% set _ = current_level.update({filename: file}) %}
+  {% endfor %}
+
+  {# 2. Render the tree structure #}
+  <ul class="tree">
+    <li>
+      <details open>
+        <summary>{{ root_label }}</summary>
+        <ul>
+          {# Sort top-level items alphabetically #}
+          {% set sorted_items = tree.root.items()|sort(attribute=0) %}
+          {% for name, content in sorted_items %}
+            {{ render_tree_node(name, content) }}
+          {% endfor %}
+        </ul>
+      </details>
+    </li>
+  </ul>
+{% endmacro %}
+
 {% if error %}
 <div class="notification is-danger">
   {{ error }}
@@ -7,9 +64,11 @@
   <h3 class="title is-5">{{ root.uri }}</h3>
 
   {% if root.files %}
-    <div class="tree mt-4">
-
+    <div class="mt-4">
+      {{ build_and_render_file_tree(root.files, root.uri) }}
     </div>
+  {% else %}
+    <p class="mt-4">No files found in this root.</p>
   {% endif %}
 </div>
 {% endif %}
