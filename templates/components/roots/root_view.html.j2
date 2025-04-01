@@ -14,21 +14,25 @@
       {% for file in root.files %}
         {% set path_parts = file.path.split('/') %}
         {% set current = path_tree %}
-        {% set filename = path_parts[-1] %}
-
+        
+        {# Handle files in subdirectories #}
         {% if path_parts|length > 1 %}
-          {# This file is in a subdirectory #}
-          {% for part in path_parts[:-1] %}
-            {% if part not in current %}
-              {% set _ = current.update({part: {}}) %}
+          {% for i in range(path_parts|length - 1) %}
+            {% set dir_name = path_parts[i] %}
+            
+            {% if dir_name not in current %}
+              {% set _ = current.update({dir_name: {'__files__': []}}) %}
             {% endif %}
-            {% set current = current[part] %}
+            
+            {% set current = current[dir_name] %}
           {% endfor %}
         {% endif %}
-
+        
+        {# Add file to the current directory level #}
         {% if '__files__' not in current %}
           {% set _ = current.update({'__files__': []}) %}
         {% endif %}
+        
         {% set _ = current['__files__'].append(file) %}
       {% endfor %}
 
@@ -38,7 +42,7 @@
           {# Render folders first #}
           {%- for key, value in tree.items() if key != '__files__' -%}
             <li>
-              <details {% if level == 0 %}open{% endif %}>
+              <details {% if level == 0 or key == 'patterns' %}open{% endif %}>
                 <summary class="folder">{{ key }}</summary>
                 {{- render_tree(value, level + 1) -}}
               </details>
@@ -46,7 +50,7 @@
           {%- endfor -%}
 
           {# Render files at this level #}
-          {%- if '__files__' in tree and tree['__files__'] -%}
+          {%- if tree.__contains__('__files__') and tree['__files__'] -%}
             {%- for file in tree['__files__'] -%}
               <li class="file">
                 <span class="file-name" data-path="{{ file.path }}" data-mime="{{ file.mime_type }}">
@@ -60,10 +64,14 @@
 
       <!-- Debug: Path Tree Structure -->
       <!--
+      <pre>
       {% for key, value in path_tree.items() %}
-        Key: {{ key }}, Has files: {{ '__files__' in value }},
-        Subdirs: {{ value|reject('equalto', '__files__')|join(', ') }}
+        Key: {{ key }}, Type: {{ value|type }}, Keys: {{ value.keys()|list }}
+        {% if '__files__' in value %}
+          Files: {{ value['__files__']|length }}
+        {% endif %}
       {% endfor %}
+      </pre>
       -->
 
       {{- render_tree(path_tree) -}}
