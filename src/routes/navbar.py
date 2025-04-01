@@ -38,11 +38,12 @@ async def root_selector_component(
 
     root_repo = RootRepository()
     roots = await root_repo.get_all(db)
-    selected_root = user_state_service.get('selected_root', default={}) # Change this line
+    # Use 'selected_roots' key and default to an empty list
+    selected_roots = user_state_service.get('selected_roots', default=[])
 
     return {
         'roots': roots,
-        'selected_root': selected_root # Use the variable here
+        'selected_roots': selected_roots # Use the updated variable and key
     }
 
 @router.get("/components/navbar-notifications")
@@ -69,32 +70,38 @@ async def navbar_component(db: AsyncConnection = Depends(get_db)):
 @jinja.hx('components/navbar/root_selector.html.j2')
 async def select_root(root_select: RootSelectRequest,
                       db: AsyncConnection = Depends(get_db),
-                      user_state_service: UserStateService = Depends(get_user_state_service) # Add this dependency
+                      user_state_service: UserStateService = Depends(get_user_state_service)
                      ):
     """Select a root as the current working root."""
-    # Remove this line: from src.main import app
     from src.repository.root import RootRepository
 
     root_repo = RootRepository()
-    # Fetch the selected root object
     selected_root_obj = await root_repo.get_by_uri(db, root_select.root_uri)
 
-    # Store the selected root in user state
+    # Get the current list of selected roots
+    current_selected_roots = user_state_service.get('selected_roots', default=[])
+
     if selected_root_obj:
-        # Use model_dump() for serialization compatible with Redis/JSON
-        user_state_service.set('selected_root', {root_select.root_uri: selected_root_obj.model_dump()})
-    else:
-        # Handle case where root is not found, clear selection
-        user_state_service.delete('selected_root')
+        selected_root_data = selected_root_obj.model_dump()
+        # Check if the root is already selected (by URI)
+        is_already_selected = any(
+            root.get('uri') == selected_root_data.get('uri')
+            for root in current_selected_roots
+        )
+        if not is_already_selected:
+            current_selected_roots.append(selected_root_data)
+            # Save the updated list back to user state
+            user_state_service.set('selected_roots', current_selected_roots)
+    # Removed the else block - this endpoint only adds selections
 
     # Fetch all roots again for the response
     roots = await root_repo.get_all(db)
-    # Get the current selected root from the service for the response
-    current_selected_root = user_state_service.get('selected_root', default={})
+    # Get the potentially updated list from the service for the response
+    current_selected_roots = user_state_service.get('selected_roots', default=[])
 
     return {
         'roots': roots,
-        'selected_root': current_selected_root # Use the value from the service
+        'selected_roots': current_selected_roots # Use the updated variable and key
     }
 
 
