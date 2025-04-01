@@ -1,0 +1,107 @@
+{% extends "layouts/dashboard_content.html.j2" %}
+
+{% block title %}Root Management{% endblock %}
+
+{% block content %}
+<div class="container is-fluid mt-4">
+  <h1 class="title">Root Management</h1>
+
+  <div class="box mb-5">
+    <h2 class="subtitle">Current Roots</h2>
+    {% if roots %}
+      <table class="table is-fullwidth is-hoverable">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Name</th>
+            <th>URI</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for root in roots %}
+            {% set is_selected = root.uri in selected_roots %}
+            <tr>
+              <td>
+                {% if is_selected %}
+                  <span class="icon has-text-primary" title="Selected">
+                    <i class="fas fa-check-circle"></i>
+                  </span>
+                {% else %}
+                  <span class="icon has-text-grey-light" title="Not Selected">
+                    <i class="far fa-circle"></i>
+                  </span>
+                {% endif %}
+              </td>
+              <td>{{ root.name or 'N/A' }}</td>
+              <td>{{ root.uri }}</td>
+              <td>
+                {# Select/Deselect Buttons #}
+                {% if is_selected %}
+                  <button class="button is-small is-danger is-outlined"
+                          hx-post="/root/deselect"
+                          hx-vals='{"root_uri": "{{ root.uri }}"}'
+                          hx-ext="form-json"
+                          hx-target="#root-selector-dropdown"
+                          hx-swap="outerHTML"
+                          title="Deselect Root">
+                    <span class="icon"><i class="fas fa-times"></i></span>
+                  </button>
+                {% else %}
+                  <button class="button is-small is-primary is-outlined"
+                          hx-post="/root/select"
+                          hx-vals='{"root_uri": "{{ root.uri }}"}'
+                          hx-ext="form-json"
+                          hx-target="#root-selector-dropdown"
+                          hx-swap="outerHTML"
+                          title="Select Root">
+                    <span class="icon"><i class="fas fa-check"></i></span>
+                  </button>
+                {% endif %}
+                 {# View Button #}
+                 <button class="button is-small is-info is-outlined"
+                         hx-get="/root?root_uri={{ root.uri | quote_plus }}"
+                         hx-target=".dashboard"
+                         hx-push-url="true"
+                         title="View Root Details">
+                   <span class="icon"><i class="fas fa-eye"></i></span>
+                 </button>
+                 {# TODO: Add Delete Button #}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No roots have been added yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="box">
+    <h2 class="subtitle">Add New Root</h2>
+    <form hx-post="/root/add" hx-target=".dashboard" hx-swap="innerHTML" hx-ext="form-json">
+      <div class="field">
+        <label class="label" for="root-path-uri">Directory Path or Git URI</label>
+        <div class="control">
+          <input class="input" type="text" id="root-path-uri" name="path_or_uri" placeholder="/path/to/your/project or https://github.com/user/repo.git" required>
+        </div>
+        <p class="help">Enter the absolute path to a local directory or a valid Git repository URI.</p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="root-name">Optional Name</label>
+        <div class="control">
+          <input class="input" type="text" id="root-name" name="name" placeholder="My Project">
+        </div>
+        <p class="help">Give this root a friendly name (optional).</p>
+      </div>
+
+      <div class="field">
+        <div class="control">
+          <button class="button is-link" type="submit">Add Root</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -67,13 +67,14 @@
       {% else %}
         <div class="dropdown-item">No roots available</div>
       {% endif %}
-      <hr class="dropdown-divider" />
-      <a class="dropdown-item"
-         hx-get="/components/root-selector/new"
-         hx-target="closest .dropdown">
-        <span class="icon has-text-success"><i class="fas fa-plus"></i></span>
-        <span>Add New Root</span>
-      </a>
+     <hr class="dropdown-divider" />
+     <a class="dropdown-item"
+        hx-get="/root/manage"
+        hx-target=".dashboard"
+        hx-push-url="true"> {# Keep URL in sync #}
+       <span class="icon has-text-success"><i class="fas fa-plus"></i></span>
+       <span>Manage Roots...</span>
+     </a>
     </div>
   </div>
 </div>
