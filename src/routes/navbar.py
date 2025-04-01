@@ -33,17 +33,15 @@ async def root_selector_component(
 ):
     """This route serves the root selector component for htmx requests."""
 
-    # Remove this line: from src.main import app
     from src.repository.root import RootRepository
 
     root_repo = RootRepository()
     roots = await root_repo.get_all(db)
-    # Use 'selected_roots' key and default to an empty list
     selected_roots = user_state_service.get('selected_roots', default=[])
 
     return {
         'roots': roots,
-        'selected_roots': selected_roots # Use the updated variable and key
+        'selected_roots': selected_roots
     }
 
 @router.get("/components/navbar-notifications")
@@ -82,26 +80,16 @@ async def select_root(root_select: RootSelectRequest,
     current_selected_roots = user_state_service.get('selected_roots', default=[])
 
     if selected_root_obj:
-        selected_root_data = selected_root_obj.model_dump()
-        # Check if the root is already selected (by URI)
-        is_already_selected = any(
-            root.get('uri') == selected_root_data.get('uri')
-            for root in current_selected_roots
-        )
-        if not is_already_selected:
-            current_selected_roots.append(selected_root_data)
-            # Save the updated list back to user state
+        if selected_root_obj.uri not in current_selected_roots:
+            current_selected_roots.append(selected_root_obj.uri)
             user_state_service.set('selected_roots', current_selected_roots)
-    # Removed the else block - this endpoint only adds selections
 
     # Fetch all roots again for the response
     roots = await root_repo.get_all(db)
-    # Get the potentially updated list from the service for the response
-    current_selected_roots = user_state_service.get('selected_roots', default=[])
 
     return {
         'roots': roots,
-        'selected_roots': current_selected_roots # Use the updated variable and key
+        'selected_roots': current_selected_roots
     }
 
 
