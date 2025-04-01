@@ -1,0 +1,20 @@
+{% macro render_tree_node(node) %}
+  {% if node.is_dir %}
+    <li>
+      <details {% if loop.first %}open{% endif %}>
+        <summary>{{ node.name }}</summary>
+        <ul>
+          {% for child_name, child_node in node.children.items()|sort %}
+            {{ render_tree_node(child_node) }}
+          {% endfor %}
+        </ul>
+      </details>
+    </li>
+  {% else %}
+    <li>{{ node.name }}</li>
+  {% endif %}
+{% endmacro %}
+
+<ul class="tree">
+  {{ render_tree_node(tree) }}
+</ul>

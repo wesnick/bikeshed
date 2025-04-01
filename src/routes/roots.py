@@ -9,6 +9,7 @@ from src.repository import root_repository
 from src.models.models import Root
 from src.service.user_state import UserStateService
 from src.service.logging import logger
+from src.utils.file_tree import build_file_tree
 
 router = APIRouter(prefix="/root", tags=["roots"])
 jinja = get_jinja()
@@ -111,7 +112,8 @@ async def view_root(root_uri: str, db: AsyncConnection = Depends(get_db)):
         return {"error": "Root not found"}
 
     return {
-        'root': root
+        'root': root,
+        'build_file_tree': build_file_tree
     }
 
 
