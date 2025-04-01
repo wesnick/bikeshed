@@ -1,21 +1,39 @@
 {% macro render_tree_node(node_name, node_content) %}
   {% if node_content is mapping %} {# It's a directory #}
     <li>
-      <details open> {# Folders start expanded #}
+      <details open> {# Folders start expanded by default #}
         <summary>{{ node_name }}</summary>
         <ul>
-          {# Sort items alphabetically: folders first, then files #}
-          {% set sorted_items = node_content.items()|sort(attribute=0) %}
-          {% for name, content in sorted_items %}
+          {# Separate directories and files to sort them correctly #}
+          {% set dirs = namespace(items={}) %}
+          {% set files = namespace(items={}) %}
+          {% for name, content in node_content.items() %}
+            {% if content is mapping %}
+              {% set _ = dirs.items.update({name: content}) %}
+            {% else %}
+              {% set _ = files.items.update({name: content}) %}
+            {% endif %}
+          {% endfor %}
+
+          {# Sort directories alphabetically #}
+          {% set sorted_dirs = dirs.items.items()|sort(attribute=0) %}
+          {# Sort files alphabetically #}
+          {% set sorted_files = files.items.items()|sort(attribute=0) %}
+
+          {# Render sorted directories first #}
+          {% for name, content in sorted_dirs %}
+            {{ render_tree_node(name, content) }}
+          {% endfor %}
+          {# Render sorted files next #}
+          {% for name, content in sorted_files %}
             {{ render_tree_node(name, content) }}
           {% endfor %}
         </ul>
       </details>
     </li>
   {% else %} {# It's a file #}
-    {# Assuming node_content is the file object, node_name is the filename #}
-    {# You might want to link to the file or add actions here later #}
-    <li>{{ node_name }}</li>
+    {# Assuming node_content is the file object itself #}
+    <li>{{ node_name }}</li> {# Display the filename #}
   {% endif %}
 {% endmacro %}
 
