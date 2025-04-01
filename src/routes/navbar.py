@@ -1,7 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
+from fastapi import Depends, HTTPException, UploadFile, File, Request
 from psycopg import AsyncConnection
 from pydantic import BaseModel
 from starlette.responses import Response
+
+# Add these imports
+from src.service.user_state import UserStateService
+from src.dependencies import get_user_state_service
+# Ensure Depends is imported if not already
+from fastapi import Depends
 
 from src.repository import root_repository
 from src.dependencies import get_broadcast_service
@@ -21,18 +28,21 @@ class RootSelectRequest(BaseModel):
 @router.get("/components/root-selector")
 @jinja.hx('components/navbar/root_selector.html.j2')
 async def root_selector_component(
-    db: AsyncConnection = Depends(get_db)):
+    db: AsyncConnection = Depends(get_db),
+    user_state_service: UserStateService = Depends(get_user_state_service) # Add this dependency
+):
     """This route serves the root selector component for htmx requests."""
 
-    from src.main import app
+    # Remove this line: from src.main import app
     from src.repository.root import RootRepository
 
     root_repo = RootRepository()
     roots = await root_repo.get_all(db)
+    selected_root = user_state_service.get('selected_root', default={}) # Change this line
 
     return {
         'roots': roots,
-        'selected_root': app.state.selected_root
+        'selected_root': selected_root # Use the variable here
     }
 
 @router.get("/components/navbar-notifications")
@@ -58,18 +68,33 @@ async def navbar_component(db: AsyncConnection = Depends(get_db)):
 @router.post("/root/select")
 @jinja.hx('components/navbar/root_selector.html.j2')
 async def select_root(root_select: RootSelectRequest,
-                      db: AsyncConnection = Depends(get_db)):
+                      db: AsyncConnection = Depends(get_db),
+                      user_state_service: UserStateService = Depends(get_user_state_service) # Add this dependency
+                     ):
     """Select a root as the current working root."""
-    from src.main import app
+    # Remove this line: from src.main import app
     from src.repository.root import RootRepository
 
     root_repo = RootRepository()
-    app.state.selected_root.update({root_select.root_uri: await root_repo.get_by_uri(db, root_select.root_uri)})
+    # Fetch the selected root object
+    selected_root_obj = await root_repo.get_by_uri(db, root_select.root_uri)
+
+    # Store the selected root in user state
+    if selected_root_obj:
+        # Use model_dump() for serialization compatible with Redis/JSON
+        user_state_service.set('selected_root', {root_select.root_uri: selected_root_obj.model_dump()})
+    else:
+        # Handle case where root is not found, clear selection
+        user_state_service.delete('selected_root')
+
+    # Fetch all roots again for the response
     roots = await root_repo.get_all(db)
+    # Get the current selected root from the service for the response
+    current_selected_root = user_state_service.get('selected_root', default={})
 
     return {
         'roots': roots,
-        'selected_root': app.state.selected_root
+        'selected_root': current_selected_root # Use the value from the service
     }
 
 
