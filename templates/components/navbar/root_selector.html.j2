@@ -3,8 +3,15 @@
     <button class="button" aria-haspopup="true" aria-controls="root-dropdown-menu">
       <span>
         {% if selected_root %}
-          <span class="icon"><i class="fas fa-folder-open"></i></span>
-          <span>{{ selected_root.name or selected_root.uri }}</span>
+          {% if selected_root|length == 1 %}
+            {% set root_uri, root_data = selected_root.popitem() %}
+            <span class="icon"><i class="fas fa-folder-open"></i></span>
+            <span>{{ root_data.name or root_uri }}</span>
+            {% set selected_root = {root_uri: root_data} %}
+          {% else %}
+            <span class="icon"><i class="fas fa-folder-open"></i></span>
+            <span>{{ selected_root|length }} Roots Selected</span>
+          {% endif %}
         {% else %}
           <span class="icon"><i class="fas fa-folder"></i></span>
           <span>Select Root</span>
@@ -17,14 +24,21 @@
     <div class="dropdown-content">
       {% if roots %}
         {% for root in roots %}
-          <a class="dropdown-item"
-             hx-vals='{"root_uri": "{{ root.uri }}"}'
+          <div class="dropdown-item grid">
+          <a hx-vals='{"root_uri": "{{ root.uri }}"}'
              hx-post="/root/select"
              hx-ext="form-json"
              hx-target="closest .dropdown">
             <span class="icon"><i class="fas fa-folder"></i></span>
             <span>{{ root.name or root.uri }}</span>
           </a>
+          <a hx-get="/root?root_uri={{ root.uri | quote_plus }}"
+             hx-target=".dashboard"
+             hx-push-url="true">
+            <span class="icon has-text-info"><i class="fas fa-eye"></i></span>
+          </a>
+          </div>
+
         {% endfor %}
       {% else %}
         <div class="dropdown-item">No roots available</div>
@@ -36,14 +50,6 @@
         <span class="icon has-text-success"><i class="fas fa-plus"></i></span>
         <span>Add New Root</span>
       </a>
-      {% if selected_root %}
-        <a class="dropdown-item"
-           hx-get="/root?root_uri={{ selected_root.uri | quote_plus }}"
-           hx-target=".dashboard">
-          <span class="icon has-text-info"><i class="fas fa-eye"></i></span>
-          <span>View Root Files</span>
-        </a>
-      {% endif %}
     </div>
   </div>
 </div>

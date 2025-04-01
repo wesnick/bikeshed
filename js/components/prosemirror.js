@@ -25,23 +25,23 @@ import {menuBar} from "prosemirror-menu";
 const bsSchema = schema;
 
 const plugins = [
-      buildInputRules(bsSchema),
-      keymap(buildKeymap(bsSchema)),
-      keymap(baseKeymap),
-      dropCursor(),
-      gapCursor(),
+  buildInputRules(bsSchema),
+  keymap(buildKeymap(bsSchema)),
+  keymap(baseKeymap),
+  dropCursor(),
+  gapCursor(),
 
-      history(),
-      menuBar({
-        floating: false,
-        content: buildMenuItems(bsSchema).fullMenu
-      }),
+  history(),
+  menuBar({
+    floating: false,
+    content: buildMenuItems(bsSchema).fullMenu
+  }),
 
 ]
 
 
 export function initializeEditor() {
-    // Create and mount the editor
+  // Create and mount the editor
   const editorElement = document.getElementById('editor');
   const button = document.getElementById('editor-button');
 
@@ -72,8 +72,14 @@ class ProseMirrorView {
   get content() {
     return defaultMarkdownSerializer.serialize(this.view.state.doc)
   }
-  focus() { this.view.focus() }
-  destroy() { this.view.destroy() }
+
+  focus() {
+    this.view.focus()
+  }
+
+  destroy() {
+    this.view.destroy()
+  }
 }
 
 
@@ -90,6 +96,7 @@ class MarkdownView {
   focus() {
     this.textarea.focus()
   }
+
   destroy() {
     this.textarea.remove()
   }

@@ -6,7 +6,6 @@
  * - panel-tabs with data-all and data-target attributes
  * - panel-block items with data-category attributes
  */
-
 export function initializePanelFilters(elements) {
   elements.forEach(panel => {
     const tabs = panel.querySelectorAll('.panel-tabs a');
@@ -40,13 +39,6 @@ export function initializePanelFilters(elements) {
         } else {
           block.classList.add('is-hidden');
         }
-
-
-        // if (categoryMatch && searchMatch) {
-        //   block.classList.remove('is-hidden');
-        // } else {
-        //   block.classList.add('is-hidden');
-        // }
       });
     };
 

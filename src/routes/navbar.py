@@ -13,6 +13,10 @@ router = APIRouter(tags=["navbar"])
 
 jinja = get_jinja()
 
+## Request Models
+class RootSelectRequest(BaseModel):
+    root_uri: str
+
 
 @router.get("/components/root-selector")
 @jinja.hx('components/navbar/root_selector.html.j2')
@@ -51,24 +55,17 @@ async def navbar_component(db: AsyncConnection = Depends(get_db)):
     }
 
 
-class RootSelectRequest(BaseModel):
-    root_uri: str
-
-
 @router.post("/root/select")
 @jinja.hx('components/navbar/root_selector.html.j2')
 async def select_root(root_select: RootSelectRequest,
-                      db: AsyncConnection = Depends(get_db),
-                      broadcast_service: BroadcastService = Depends(get_broadcast_service)):
+                      db: AsyncConnection = Depends(get_db)):
     """Select a root as the current working root."""
     from src.main import app
     from src.repository.root import RootRepository
 
     root_repo = RootRepository()
-    app.state.selected_root = await root_repo.get_by_uri(db, root_select.root_uri)
+    app.state.selected_root.update({root_select.root_uri: await root_repo.get_by_uri(db, root_select.root_uri)})
     roots = await root_repo.get_all(db)
-
-    await broadcast_service.broadcast("root.selected", {"root_uri": root_select.root_uri})
 
     return {
         'roots': roots,
