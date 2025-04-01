@@ -4,6 +4,7 @@ import asyncio
 import json
 
 from arq.connections import ArqRedis, create_pool, RedisSettings
+from fastapi import Depends
 from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
 from psycopg_pool import AsyncConnectionPool
@@ -12,6 +13,8 @@ from psycopg.types.json import set_json_dumps # Re-add
 from pydantic import BaseModel
 
 from src.service.cache import RedisService
+# Add this import
+from src.service.user_state import UserStateService
 from src.service.llm import FakerCompletionService, LiteLLMCompletionService, ChainedCompletionService
 from src.service.mcp_client import MCPClient
 from src.service.broadcast import BroadcastService
@@ -52,6 +55,13 @@ async def get_db() -> AsyncGenerator[AsyncConnection, None]:
 
 async def get_cache() -> AsyncGenerator[RedisService, None]:
     yield RedisService(redis_url=str(settings.redis_url))
+
+# Add this new dependency function
+async def get_user_state_service(cache: RedisService = Depends(get_cache)) -> UserStateService:
+    """Dependency for getting the UserStateService instance."""
+    # Note: This creates a new instance per request, but it operates on the
+    # same underlying Redis key, effectively acting as a singleton state manager.
+    return UserStateService(redis_service=cache)
 
 async def get_arq_redis() -> AsyncGenerator[ArqRedis, None]:
     """Dependency for getting ARQ Redis connection"""
