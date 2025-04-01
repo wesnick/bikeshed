@@ -183,6 +183,20 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
 
     yield _workflow_service
 
+async def enqueue_job(job_name: str, **kwargs):
+    """
+    Enqueue a message processing job with ARQ
+
+    Args:
+        job_name: The name of the job to enqueue
+        kwargs: Keyword arguments to pass to the job
+
+    Returns:
+        The job ID as a string
+    """
+    async for arq_redis in get_arq_redis():
+        job = await arq_redis.enqueue_job(job_name, **kwargs)
+        return job.job_id
 
 # Create the singleton TagRepository instance
 from src.repository import tag_repository as _tag_repository_instance

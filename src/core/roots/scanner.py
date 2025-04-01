@@ -1,28 +1,22 @@
-import logging
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List, Optional
+
 from psycopg import AsyncConnection
-from src.models.models import Root, RootFile
-from src.repository.root import RootRepository
-from src.repository.root_file import RootFileRepository
 import aiofiles
 import aiofiles.os
 import magic
-from typing import Callable, AsyncGenerator, Dict, List, Optional
 
-
-logger = logging.getLogger(__name__)
-
+from src.models.models import Root, RootFile
+from src.repository import root_repository, root_file_repository
+from src.service.logging import logger
 
 class FileScanner:
 
-    def __init__(self,
-                 get_db: Callable[[], AsyncGenerator[AsyncConnection, None]],
-                 root_repo: RootRepository,
-                 root_file_repo: RootFileRepository):
-        self.get_db = get_db
-        self.root_repo = root_repo
-        self.root_file_repo = root_file_repo
+    def __init__(self, conn: AsyncConnection):
+        self.conn = conn
+        self.root_repo = root_repository
+        self.root_file_repo = root_file_repository
 
     async def _scan_file(self, root_uri: str, file_path: Path) -> Optional[RootFile]:
         """Scan a single file and create a RootFile Pydantic model."""
@@ -55,9 +49,9 @@ class FileScanner:
             logger.error(f"Error scanning file {file_path}: {e}", exc_info=True)
             return None
 
-    async def _get_existing_files(self, root_uri: str, conn: AsyncConnection) -> Dict[str, RootFile]:
+    async def _get_existing_files(self, root_uri: str) -> Dict[str, RootFile]:
         """Get all existing files for a root from the database using the repository."""
-        files = await self.root_file_repo.get_files_by_root(conn, root_uri)
+        files = await self.root_file_repo.get_files_by_root(self.conn, root_uri)
         return {file.path: file for file in files}
 
     async def _collect_filesystem_files(self, root: Root) -> Dict[str, Path]:
@@ -84,14 +78,14 @@ class FileScanner:
         await _collect_files_recursive(root_path)
         return filesystem_files
 
-    async def _delete_removed_files(self, root_uri: str, paths_to_delete: List[str], conn: AsyncConnection) -> int:
+    async def _delete_removed_files(self, root_uri: str, paths_to_delete: List[str]) -> int:
         """Delete files using the repository."""
         deleted_count = 0
         if not paths_to_delete:
             return 0
         for path in paths_to_delete:
             try:
-                deleted = await self.root_file_repo.delete(conn, root_uri, path)
+                deleted = await self.root_file_repo.delete(self.conn, root_uri, path)
                 if deleted:
                     deleted_count += 1
             except Exception as e:
@@ -109,83 +103,82 @@ class FileScanner:
         deleted_count = 0
         files_to_upsert: List[RootFile] = []
 
-        async for conn in self.get_db():
-            try:
-                # Get existing files from database via repository
-                existing_files = await self._get_existing_files(root.uri, conn)
-                logger.debug(f"Found {len(existing_files)} existing files in DB for {root.uri}")
+        try:
+            # Get existing files from database via repository
+            existing_files = await self._get_existing_files(root.uri)
+            logger.debug(f"Found {len(existing_files)} existing files in DB for {root.uri}")
 
-                # Get current files from filesystem
-                filesystem_files = await self._collect_filesystem_files(root)
-                logger.debug(f"Found {len(filesystem_files)} files on disk for {root.uri}")
+            # Get current files from filesystem
+            filesystem_files = await self._collect_filesystem_files(root)
+            logger.debug(f"Found {len(filesystem_files)} files on disk for {root.uri}")
 
-                # Find files to update, add, or remove
-                existing_paths = set(existing_files.keys())
-                filesystem_paths = set(filesystem_files.keys())
+            # Find files to update, add, or remove
+            existing_paths = set(existing_files.keys())
+            filesystem_paths = set(filesystem_files.keys())
 
-                paths_to_update = existing_paths.intersection(filesystem_paths)
-                paths_to_add = filesystem_paths - existing_paths
-                paths_to_delete = list(existing_paths - filesystem_paths) # Convert set to list
+            paths_to_update = existing_paths.intersection(filesystem_paths)
+            paths_to_add = filesystem_paths - existing_paths
+            paths_to_delete = list(existing_paths - filesystem_paths) # Convert set to list
 
-                logger.debug(f"Files to add: {len(paths_to_add)}")
-                logger.debug(f"Files to update/check: {len(paths_to_update)}")
-                logger.debug(f"Files to delete: {len(paths_to_delete)}")
+            logger.debug(f"Files to add: {len(paths_to_add)}")
+            logger.debug(f"Files to update/check: {len(paths_to_update)}")
+            logger.debug(f"Files to delete: {len(paths_to_delete)}")
 
-                # Process files to add
-                for path_str in paths_to_add:
-                    file_path = filesystem_files[path_str]
-                    scanned_file = await self._scan_file(root.uri, file_path)
-                    if scanned_file:
-                        files_to_upsert.append(scanned_file)
-                        added_count += 1 # Tentative count
+            # Process files to add
+            for path_str in paths_to_add:
+                file_path = filesystem_files[path_str]
+                scanned_file = await self._scan_file(root.uri, file_path)
+                if scanned_file:
+                    files_to_upsert.append(scanned_file)
+                    added_count += 1 # Tentative count
 
-                # Process files to update
-                for path_str in paths_to_update:
-                    existing_file = existing_files[path_str]
-                    file_path = filesystem_files[path_str]
-                    try:
-                        stat = await aiofiles.os.stat(file_path)
-                        # Check if file changed based on mtime or size
-                        if datetime.fromtimestamp(stat.st_mtime) != existing_file.mtime or stat.st_size != existing_file.size:
-                            scanned_file = await self._scan_file(root.uri, file_path)
-                            if scanned_file:
-                                files_to_upsert.append(scanned_file)
-                                updated_count += 1 # Tentative count
-                    except FileNotFoundError:
-                        logger.warning(f"File {file_path} found in DB but not on disk during update check. Will be deleted.")
-                        # If file disappeared between listing and stat, it will be handled by delete
-                        if path_str not in paths_to_delete:
-                             paths_to_delete.append(path_str)
-                    except Exception as e:
-                        logger.error(f"Error checking file for update {file_path}: {e}", exc_info=True)
-
-
-                async with conn.transaction():
-                    # Bulk insert/update changed/new files
-                    if files_to_upsert:
-                        logger.info(f"Upserting {len(files_to_upsert)} files for root {root.uri}")
-                        # bulk_create handles ON CONFLICT DO UPDATE
-                        results = await self.root_file_repo.bulk_create(conn, files_to_upsert)
-                        # Note: bulk_create returns the upserted models. We could refine counts here if needed.
-                        logger.debug(f"Upsert result count: {len(results)}")
+            # Process files to update
+            for path_str in paths_to_update:
+                existing_file = existing_files[path_str]
+                file_path = filesystem_files[path_str]
+                try:
+                    stat = await aiofiles.os.stat(file_path)
+                    # Check if file changed based on mtime or size
+                    if datetime.fromtimestamp(stat.st_mtime) != existing_file.mtime or stat.st_size != existing_file.size:
+                        scanned_file = await self._scan_file(root.uri, file_path)
+                        if scanned_file:
+                            files_to_upsert.append(scanned_file)
+                            updated_count += 1 # Tentative count
+                except FileNotFoundError:
+                    logger.warning(f"File {file_path} found in DB but not on disk during update check. Will be deleted.")
+                    # If file disappeared between listing and stat, it will be handled by delete
+                    if path_str not in paths_to_delete:
+                         paths_to_delete.append(path_str)
+                except Exception as e:
+                    logger.error(f"Error checking file for update {file_path}: {e}", exc_info=True)
 
 
-                    # Delete removed files
-                    if paths_to_delete:
-                        logger.info(f"Deleting {len(paths_to_delete)} files for root {root.uri}")
-                        deleted_count = await self._delete_removed_files(root.uri, paths_to_delete, conn)
+            async with self.conn.transaction():
+                # Bulk insert/update changed/new files
+                if files_to_upsert:
+                    logger.info(f"Upserting {len(files_to_upsert)} files for root {root.uri}")
+                    # bulk_create handles ON CONFLICT DO UPDATE
+                    results = await self.root_file_repo.bulk_create(self.conn, files_to_upsert)
+                    # Note: bulk_create returns the upserted models. We could refine counts here if needed.
+                    logger.debug(f"Upsert result count: {len(results)}")
 
 
-                # Final logging outside transaction
-                logger.info(f"Sync completed for {root.uri}:")
-                # Note: Counts are based on intent before bulk operations. Actual DB changes might differ slightly on conflict/error.
-                logger.info(f"  - Added/Updated: {len(files_to_upsert)} (approx {added_count} added, {updated_count} updated)")
-                logger.info(f"  - Deleted: {deleted_count}")
+                # Delete removed files
+                if paths_to_delete:
+                    logger.info(f"Deleting {len(paths_to_delete)} files for root {root.uri}")
+                    deleted_count = await self._delete_removed_files(root.uri, paths_to_delete, self.conn)
 
-            except Exception as e:
-                logger.error(f"Error synchronizing directory {root.uri}: {e}", exc_info=True)
-                # Ensure transaction is rolled back if error occurs before commit
-                # (Handled by async context manager and db_operation decorator)
+
+            # Final logging outside transaction
+            logger.info(f"Sync completed for {root.uri}:")
+            # Note: Counts are based on intent before bulk operations. Actual DB changes might differ slightly on conflict/error.
+            logger.info(f"  - Added/Updated: {len(files_to_upsert)} (approx {added_count} added, {updated_count} updated)")
+            logger.info(f"  - Deleted: {deleted_count}")
+
+        except Exception as e:
+            logger.error(f"Error synchronizing directory {root.uri}: {e}", exc_info=True)
+            # Ensure transaction is rolled back if error occurs before commit
+            # (Handled by async context manager and db_operation decorator)
 
     async def create_root_and_scan(self, directory_path: str, sync: bool = False) -> None:
         """
@@ -207,19 +200,18 @@ class FileScanner:
         is_new_root = False
 
         # Check/Create Root using repository
-        async for conn in self.get_db():
-             # Wrap repository calls potentially needing transaction in one block
-            async with conn.transaction():
-                root = await self.root_repo.get_by_uri(conn, path_str)
-                if root is None:
-                    logger.info(f"Root not found for {path_str}, creating new one.")
-                    new_root_model = Root(uri=path_str) # Let DB handle created_at/updated_at
-                    root = await self.root_repo.create(conn, new_root_model)
-                    logger.info(f"Root created: {root.uri}")
-                    is_new_root = True
-                    sync = True # Always sync fully for a new root
-                else:
-                    logger.info(f"Found existing root: {root.uri}")
+         # Wrap repository calls potentially needing transaction in one block
+        async with self.conn.transaction():
+            root = await self.root_repo.get_by_uri(self.conn, path_str)
+            if root is None:
+                logger.info(f"Root not found for {path_str}, creating new one.")
+                new_root_model = Root(uri=path_str) # Let DB handle created_at/updated_at
+                root = await self.root_repo.create(self.conn, new_root_model)
+                logger.info(f"Root created: {root.uri}")
+                is_new_root = True
+                sync = True # Always sync fully for a new root
+            else:
+                logger.info(f"Found existing root: {root.uri}")
 
         if root is None:
              # This should not happen if DB/repo logic is correct, but defensively check

@@ -15,10 +15,8 @@ from src.service.broadcast import BroadcastService
 from src.service.logging import logger, setup_logging
 from src.service.shutdown_helper import shutdown_manager
 from src.http.middleware import HTMXRedirectMiddleware
-from src.dependencies import get_db, get_jinja, get_registry, get_broadcast_service, get_root_repository
+from src.dependencies import get_db, get_jinja, get_registry, get_broadcast_service
 from src.routes import api_router
-# Import the new router
-from src.routes import root_management as root_management_router
 from src.repository import session_repository
 
 
@@ -68,7 +66,6 @@ app.mount("/build", StaticFiles(directory="build"), name="build")
 jinja = get_jinja()
 # Include API routes
 app.include_router(api_router)
-app.include_router(root_management_router.router, prefix="/root") # Add prefix
 
 
 @app.get("/")

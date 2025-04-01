@@ -5,11 +5,11 @@ import uuid
 from src.config import get_config
 from src.service.llm.base import CompletionService
 from src.service.broadcast import BroadcastService
-from src.repository.message import MessageRepository
+from src.repository import message_repository
 from src.dependencies import get_completion_service, get_remote_broadcast_service, db_pool
+from src.service.logging import logger
 
 settings = get_config()
-message_repository = MessageRepository()
 
 async def session_run_workflow_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dict[str, Any]:
     """
@@ -112,12 +112,27 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
 
         return {"success": False, "error": str(e), "session_id": str(session_id)}
 
+async def process_root(ctx: Dict[str, Any], directory_path: str):
+    from src.core.roots.scanner import FileScanner
+
+    async with db_pool.connection() as conn:
+        scanner = FileScanner(conn)
+        try:
+            await scanner.create_root_and_scan(directory_path)
+            logger.info(f"[bold green]Successfully scanned directory '{directory_path}'[/bold green]")
+        except Exception as e:
+            logger.error(f"[bold red]Error:[/bold red] {str(e)}")
+        finally:
+            await db_pool.close()
+
+
 class WorkerSettings:
     """ARQ Worker Settings"""
     redis_settings = RedisSettings.from_dsn(str(settings.redis_url))
     functions = [
         process_message_job,
-        session_run_workflow_job
+        session_run_workflow_job,
+        process_root
     ]
     job_timeout = 300  # 5 minutes
     max_jobs = 10
@@ -133,6 +148,7 @@ class WorkerSettings:
         # Initialize broadcast service for the worker
         broadcast_service = await anext(get_remote_broadcast_service())
         ctx['broadcast_service'] = broadcast_service
+
 
     @staticmethod
     async def on_shutdown(ctx):

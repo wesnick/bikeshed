@@ -315,19 +315,19 @@ def add_root(directory_path: str):
     """Add a directory as a root and scan its contents."""
     import asyncio
     from src.dependencies import get_db, db_pool
-    from src.repository import root_repository, root_file_repository
     from src.core.roots.scanner import FileScanner
 
     async def _add_root(directory_path: str):
-        scanner = FileScanner(get_db, root_repository, root_file_repository)
         await db_pool.open()
-        try:
-            await scanner.create_root_and_scan(directory_path)
-            console.print(f"[bold green]Successfully scanned directory '{directory_path}'[/bold green]")
-        except Exception as e:
-            console.print(f"[bold red]Error:[/bold red] {str(e)}")
-        finally:
-            await db_pool.close()
+        async with get_db() as conn:
+            scanner = FileScanner(conn)
+            try:
+                await scanner.create_root_and_scan(directory_path)
+                console.print(f"[bold green]Successfully scanned directory '{directory_path}'[/bold green]")
+            except Exception as e:
+                console.print(f"[bold red]Error:[/bold red] {str(e)}")
+            finally:
+                await db_pool.close()
 
 
     asyncio.run(_add_root(directory_path))

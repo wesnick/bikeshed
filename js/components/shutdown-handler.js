@@ -5,16 +5,14 @@ export function handleSPARefresh() {
   const urlParams = new URLSearchParams(window.location.search);
   const targetPath = urlParams.get('target_path');
 
+  console.log(targetPath);
   if (targetPath) {
     // Clean up the URL by removing the query parameter
     history.replaceState({}, '', targetPath);
 
     htmx.ajax('GET', targetPath, {
-      target: '.dashboard',   // The CSS selector for the target element
-      // swap: 'innerHTML',     // Optional: Specify the swap style (often defaults are fine)
-      pushUrl: true          // Equivalent to hx-push-url="true"
-      // source: document.body // Optional: Define the source element if needed for context/inheritance
-      // Usually not required for this simple case.
+      target: '.dashboard',
+      pushUrl: true
     });
 
     document.body.dispatchEvent(new Event('route.updated'));
