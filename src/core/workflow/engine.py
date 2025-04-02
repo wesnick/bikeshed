@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from src.core.config_types import Step, SessionTemplate
 from src.core.workflow.visualization import BikeShedState
-from src.models.models import Session, SessionStatus
+from src.core.models import Session, SessionStatus
 from src.service.logging import logger
 
 

@@ -5,7 +5,7 @@ from psycopg import AsyncConnection
 
 from src.core.config_types import SessionTemplate, Step
 from src.core.registry import Registry
-from src.models.models import Session, SessionStatus
+from src.core.models import Session, SessionStatus
 from src.core.workflow.engine import WorkflowEngine, WorkflowTransitionResult
 from src.core.workflow.persistence import DatabasePersistenceProvider
 from src.core.workflow.handlers.message import MessageStepHandler

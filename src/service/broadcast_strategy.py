@@ -3,7 +3,7 @@ from typing import Any, List, Protocol
 from pydantic import BaseModel
 from typing_extensions import TypeVar
 
-from src.models.models import Message, Session, MessageStatus, SessionStatus
+from src.core.models import Message, Session, MessageStatus, SessionStatus
 
 T = TypeVar('T', bound=BaseModel)
 

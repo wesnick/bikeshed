@@ -1,13 +1,13 @@
 import pytest
-from uuid import uuid4, UUID
-from datetime import datetime, timedelta
+from uuid import uuid4
+from datetime import datetime
 
 from psycopg import AsyncConnection
 from psycopg.sql import SQL
 
-from src.models.models import Session, Message, SessionStatus, MessageStatus, WorkflowData
-from src.repository.session import SessionRepository
-from src.repository.message import MessageRepository # Needed to create messages for get_with_messages
+from core.models import Session, Message, SessionStatus, MessageStatus, WorkflowData
+from components.dialog.repository import SessionRepository
+from components.message.repository import MessageRepository # Needed to create messages for get_with_messages
 
 pytestmark = pytest.mark.asyncio
 

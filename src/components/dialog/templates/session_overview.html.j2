@@ -1,0 +1,13 @@
+<div class="box mb-3">
+  <h1 class="title">{{ session.summary or "Untitled Session" }}</h1>
+  {% if session.goal %}<p class="subtitle">Goal: {{ session.goal }}</p>{% endif %}
+  <div class="block">
+    {% if session.template %}
+      {% with session_template=session.template %}
+        {% include 'workflow.html.j2' %}
+      {% endwith %}
+    {% endif %}
+    <p>Status: {{ session.status }}</p>
+    <p>Status: {{ session.current_state }}</p>
+  </div>
+</div>

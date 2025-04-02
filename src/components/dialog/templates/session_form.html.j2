@@ -1,0 +1,51 @@
+<form id="session-form"
+      hx-ext="form-json"
+      hx-post="/session/session-submit"
+      hx-target="#messages-container"
+      hx-on::after-request="this.reset();">
+  <div class="field">
+    <div class="control">
+      <label for="editor">Magic</label>
+      <div class="control">
+        <textarea id="editor"
+                  name="text"
+                  class="textarea"
+                  placeholder="Normal textarea"></textarea>
+      </div>
+      <button id="editor-button">View raw</button>
+    </div>
+  </div>
+  <div class="field is-grouped">
+    <label class="label" for="model">Model</label>
+    <div class="control">
+      <div class="select">
+        <select id="model" name="model">
+            <option value="faker" selected="selected">Faker</option>
+            {% for model in available_models %}
+              <option value="{{ model.id }}">{{ model.name }}</option>
+            {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="control is-expanded"></div>
+    <div class="control">
+      <button type="submit" name="send_button" class="button is-primary">
+        <span class="icon">
+          <i class="fas fa-paper-plane"></i>
+        </span>
+        <span>Generate Completion</span>
+      </button>
+    </div>
+    {% if session.status == 'waiting_for_input' %}
+      <div class="control">
+        <button type="submit" name="continue_button" class="button is-primary">
+          <span class="icon">
+            <i class="fas fa-paper-plane"></i>
+          </span>
+          <span>Continue Workflow</span>
+        </button>
+      </div>
+    {% endif %}
+  </div>
+  <input type="hidden" name="session_id" value="{{ session.id }}">
+</form>

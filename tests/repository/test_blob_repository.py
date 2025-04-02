@@ -1,11 +1,11 @@
 import pytest
-from uuid import uuid4, UUID
+from uuid import uuid4
 from datetime import datetime
 
 from psycopg import AsyncConnection
 
-from src.models.models import Blob
-from src.repository.blob import BlobRepository
+from core.models import Blob
+from components.blob.repository import BlobRepository
 
 pytestmark = pytest.mark.asyncio
 
@@ -90,7 +90,7 @@ async def test_update_blob(db_conn_clean: AsyncConnection, blob_repo: BlobReposi
     # Add a small delay to ensure timestamps can be different
     import asyncio
     await asyncio.sleep(0.1)
-    
+
     update_data = {"name": "updated_name", "metadata": {"source": "updated_test"}}
     updated_blob = await blob_repo.update(db_conn_clean, created_blob.id, update_data)
 

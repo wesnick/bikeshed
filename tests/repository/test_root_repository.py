@@ -5,8 +5,8 @@ from datetime import datetime
 from psycopg import AsyncConnection
 from psycopg.sql import SQL
 
-from src.models.models import Root, RootFile
-from src.repository.root import RootRepository
+from core.models import Root
+from components.root.repository import RootRepository
 
 pytestmark = pytest.mark.asyncio
 

@@ -4,7 +4,7 @@ import uuid
 from src.core.registry import Registry
 from src.core.workflow.engine import StepHandler
 from src.core.config_types import MessageStep, Step
-from src.models.models import Session, Message, MessageStatus, SessionStatus
+from src.core.models import Session, Message, MessageStatus, SessionStatus
 
 
 class MessageStepHandler(StepHandler):
@@ -13,7 +13,7 @@ class MessageStepHandler(StepHandler):
     def __init__(self, registry: Registry):
         """
         Initialize the MessageStepHandler
-        
+
         Args:
             registry: Registry instance
         """

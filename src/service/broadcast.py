@@ -10,7 +10,7 @@ from src.service.broadcast_strategy import (
     SessionBroadcastStrategy
 )
 from src.service.logging import logger
-from src.models.models import Message, Session
+from src.core.models import Message, Session
 
 
 class BroadcastService:
@@ -24,7 +24,7 @@ class BroadcastService:
         # Register default strategies
         self.register_strategy(Message, MessageBroadcastStrategy())
         self.register_strategy(Session, SessionBroadcastStrategy())
-        
+
         # Redis pub/sub setup
         self.redis_client = redis.from_url(redis_url)
         self.pubsub = None
@@ -51,7 +51,7 @@ class BroadcastService:
                 if self.pubsub:
                     await self.pubsub.unsubscribe()
                     await self.pubsub.close()
-                
+
                 # Cancel any existing subscription task
                 if self.subscription_task:
                     self.subscription_task.cancel()
@@ -59,22 +59,22 @@ class BroadcastService:
                         await self.subscription_task
                     except asyncio.CancelledError:
                         pass
-                
+
                 # Create a new pubsub connection
                 self.pubsub = self.redis_client.pubsub()
                 await self.pubsub.subscribe("broadcast_channel")
-                
+
                 # Start listening in background
                 self.subscription_task = asyncio.create_task(self._listen_for_redis_messages())
                 logger.info("Redis pub/sub initialized for broadcast service")
             except Exception as e:
                 logger.error(f"Failed to initialize Redis pub/sub: {e}")
-    
+
     async def _listen_for_redis_messages(self):
         """Listen for messages from Redis and broadcast locally"""
         # Flag to track if we're currently processing a message
         processing = False
-        
+
         try:
             while True:
                 try:
@@ -92,15 +92,15 @@ class BroadcastService:
                                 logger.error(f"Error processing Redis message: {e}")
                             finally:
                                 processing = False
-                    
+
                     # Always have a small delay to prevent CPU spinning
                     await asyncio.sleep(0.01)
-                    
+
                 except redis.RedisError as e:
                     logger.error(f"Redis error in subscription: {e}")
                     # Wait before trying again
                     await asyncio.sleep(1)
-                    
+
         except asyncio.CancelledError:
             logger.info("Redis subscription task cancelled")
         except Exception as e:
@@ -117,10 +117,10 @@ class BroadcastService:
         """
         if self.pubsub is not None:
             await self._local_broadcast(event_name, data)
-        
+
         if self.pubsub is None:
             await self.publish_to_redis(event_name, data)
-    
+
     async def _local_broadcast(self, event_name: str, data: Any) -> None:
         """Send an event to all locally connected SSE clients"""
         if not self.active_clients:
@@ -149,24 +149,24 @@ class BroadcastService:
                 logger.error(f"Error broadcasting to client {client_id}: {e}")
                 # If we can't send to this client, remove it
                 self.unregister_client(client_id)
-    
+
     async def publish_to_redis(self, event_name: str, data: Any) -> None:
         """Publish an event to Redis for cross-process broadcasting"""
         if not self.redis_client:
             return
-            
+
         try:
             # Prepare the message
             if isinstance(data, (dict, list)):
                 data_str = json.dumps(data)
             else:
                 data_str = str(data)
-                
+
             message = json.dumps({
                 'event': event_name,
                 'data': data_str
             })
-            
+
             # Publish to Redis
             await self.redis_client.publish("broadcast_channel", message)
             logger.debug(f"Published {event_name} to Redis broadcast channel")
@@ -227,7 +227,7 @@ class BroadcastService:
             client_count = len(self.active_clients)
             self.active_clients.clear()
             logger.info(f"Cleared {client_count} SSE connections during shutdown")
-            
+
         # Clean up Redis resources
         if self.subscription_task:
             self.subscription_task.cancel()
@@ -235,10 +235,10 @@ class BroadcastService:
                 await self.subscription_task
             except asyncio.CancelledError:
                 pass
-                
+
         if self.pubsub:
             await self.pubsub.unsubscribe()
             await self.pubsub.close()
-            
+
         if self.redis_client:
             await self.redis_client.close()

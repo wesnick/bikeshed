@@ -3,7 +3,7 @@ import uuid
 
 from src.core.workflow.engine import StepHandler
 from src.core.config_types import UserInputStep, Step
-from src.models.models import Session, Message, SessionStatus, MessageStatus
+from src.core.models import Session, Message, SessionStatus, MessageStatus
 
 
 class UserInputStepHandler(StepHandler):
@@ -13,7 +13,7 @@ class UserInputStepHandler(StepHandler):
         """Check if the step can be handled"""
         if not isinstance(step, UserInputStep):
             return False
-            
+
         # Check if user_input exists in workflow_data
         has_user_input = session.workflow_data.user_input is not None
 
@@ -30,15 +30,15 @@ class UserInputStepHandler(StepHandler):
         """Handle a user_input step"""
         if not isinstance(step, UserInputStep):
             raise TypeError(f"Expected UserInputStep but got {type(step)}")
-            
+
         # Get the user input from workflow data
         user_input = session.workflow_data.get('user_input')
-        
+
         if not user_input:
             # If no user input is available, set status to waiting and exit
             session.status = SessionStatus.WAITING_FOR_INPUT
             return {'completed': False, 'waiting_for_input': True}
-        
+
         # Create a message for the user input
         message = Message(
             id=uuid.uuid4(),
@@ -52,7 +52,7 @@ class UserInputStepHandler(StepHandler):
 
         # Clear the user_input after processing
         session.workflow_data.pop('user_input', None)
-        
+
         # Update status to running
         session.status = SessionStatus.RUNNING
 

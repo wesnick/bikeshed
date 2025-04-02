@@ -5,7 +5,7 @@ import uuid
 from src.config import get_config
 from src.service.llm.base import CompletionService
 from src.service.broadcast import BroadcastService
-from src.repository import message_repository
+from src.components.repositories import message_repository
 from src.dependencies import get_completion_service, get_remote_broadcast_service, db_pool
 from src.service.logging import logger
 
@@ -64,7 +64,7 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
     """
 
     # Get the session from the database
-    from src.repository.session import SessionRepository
+    from src.components.dialog.repository import SessionRepository
     session_repo = SessionRepository()
 
     async with ctx['db_pool'].connection() as db:

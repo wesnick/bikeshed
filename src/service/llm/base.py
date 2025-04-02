@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Callable, Awaitable, List
-from src.models.models import Session, Message
+from src.core.models import Session, Message
 
 class LLMException(Exception):
     """Base exception for LLM service errors"""
@@ -15,24 +15,24 @@ class CompletionService(ABC):
     ) -> Message:
         """
         Process a conversation session and generate a completion.
-        
+
         Args:
             session: The session with conversation history
             broadcast: Optional callback for streaming updates
-            
+
         Returns:
             The assistant Message with completion
         """
         pass
-    
+
     @abstractmethod
     def supports(self, session: Session) -> bool:
         """
         Determine if this completion service supports the given session.
-        
+
         Args:
             session: The session to check
-            
+
         Returns:
             True if this service can handle the session, False otherwise
         """
@@ -49,20 +49,20 @@ class ChainedCompletionService(CompletionService):
     """
     A completion service that chains multiple services together and uses the first one that supports the session.
     """
-    
+
     def __init__(self, services: List[CompletionService]):
         """
         Initialize with a list of completion services to try in order.
-        
+
         Args:
             services: List of CompletionService implementations to try
         """
         self.services = services
-    
+
     def supports(self, session: Session) -> bool:
         """Always returns True as long as there's at least one service"""
         return len(self.services) > 0
-    
+
     async def complete(
         self,
         session: Session,
@@ -70,19 +70,19 @@ class ChainedCompletionService(CompletionService):
     ) -> Message:
         """
         Find the first service that supports the session and use it to complete.
-        
+
         Args:
             session: The session with conversation history
             broadcast: Optional callback for streaming updates
-            
+
         Returns:
             The assistant Message with completion
-            
+
         Raises:
             LLMException: If no service supports the session
         """
         for service in self.services:
             if service.supports(session):
                 return await service.complete(session, broadcast)
-        
+
         raise LLMException("No completion service supports this session")

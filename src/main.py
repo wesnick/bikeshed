@@ -4,20 +4,16 @@ import asyncio
 import uuid
 
 from fastapi import FastAPI, Request, Depends
-from psycopg import AsyncConnection
 from starlette.staticfiles import StaticFiles
 from starlette.responses import Response
 from sse_starlette.sse import EventSourceResponse
 
-
-from src.core.registry import Registry
 from src.service.broadcast import BroadcastService
 from src.service.logging import logger, setup_logging
 from src.service.shutdown_helper import shutdown_manager
-from src.kernel.middleware import HTMXRedirectMiddleware
-from src.dependencies import get_db, get_jinja, get_registry, get_broadcast_service
-from src.routes import api_router
-from src.repository import session_repository
+from src.core.fastapi.middleware import HTMXRedirectMiddleware
+from src.dependencies import get_jinja, get_registry, get_broadcast_service
+from src.components import api_router
 
 
 @asynccontextmanager
@@ -75,83 +71,6 @@ def index(response: Response) -> dict:
     # Return empty data to ensure all components are properly initialized
     response.headers['HX-Trigger-After-Swap'] = 'drawer.updated'
     return {}
-
-@app.get("/settings")
-@jinja.hx('components/settings.html.j2')
-async def settings_component() -> dict:
-    """This route serves just the settings component for htmx requests."""
-    return {}
-
-
-@app.get("/components/left-sidebar")
-@jinja.hx('components/left_sidebar.html.j2')
-async def left_sidebar_component(db: AsyncConnection = Depends(get_db), registry: Registry = Depends(get_registry)) -> dict:
-    """This route serves the left sidebar component for htmx requests."""
-    sessions = await session_repository.get_recent_sessions(db)
-
-    session_templates = registry.session_templates
-
-    return {
-        "flows": [],
-        "sessions": sessions,
-        "tools": [],
-        "prompts": [],
-        "session_templates": session_templates,
-    }
-
-
-class PathBasedTemplateSelector:
-
-    @staticmethod
-    def parse_request_parts(request: Request):
-        from urllib.parse import urlparse
-        return urlparse(request.headers.get('hx-current-url')).path.strip('/').split('/')
-
-    def get_component(self, request: Request, error: Exception | None) -> str:
-        from urllib.parse import urlparse
-        url_parts = urlparse(request.headers.get('hx-current-url')).path.strip('/').split('/')
-
-        from src.service.logging import logger
-        logger.warning(f"Url parts: {url_parts}")
-
-        if len(url_parts) < 2:
-            return 'components/drawer/empty.html.j2'
-
-        # switch statement
-        match url_parts[0]:
-            case 'session':
-                # test if uuid
-                try:
-                    uuid.UUID(url_parts[1])
-                    return 'components/drawer/session_context.html.j2'
-                except ValueError:
-                    pass
-
-        return 'components/drawer/empty.html.j2'
-
-@app.get("/components/drawer")
-@jinja.hx(PathBasedTemplateSelector())
-async def right_drawer_component(request: Request, db: AsyncConnection = Depends(get_db)):
-    """This route serves the right drawer component for htmx requests."""
-    url_parts = PathBasedTemplateSelector.parse_request_parts(request)
-
-    match url_parts:
-        case ['session', session_id]:
-            from src.repository.session import SessionRepository
-            session_repo = SessionRepository()
-            session = await session_repo.get_by_id(db, session_id)
-            return {
-                'entity_id': session.id,
-                'entity_type': 'session'
-            }
-
-            from src.service.logging import logger
-            logger.warning(f"session_id: {session.id}")
-
-    return {
-        'data': f"Url parts: {url_parts} \n\n"
-    }
-
 
 @app.get("/kitchen-sink")
 @jinja.hx('components/kitchen_sink.html.j2', no_data=True)

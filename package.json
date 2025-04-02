@@ -1,9 +1,9 @@
 {
   "scripts": {
-    "build-bulma": "sass --load-path=node_modules style/app.scss build/css/app.css",
+    "build-bulma": "sass --load-path=node_modules frontend/css/app.scss build/css/app.css",
     "build-js": "vite build",
-    "dev": "concurrently --names \"sass,vite\" --timestamp-format \"HH:mm:ss\" --prefix \"[{time} {name}]\" \"sass --load-path=node_modules style/app.scss build/css/app.css --watch\" \"vite build --watch\"",
-    "build": "sass --load-path=node_modules style/app.scss build/css/app.css && vite build",
+    "dev": "concurrently --names \"sass,vite\" --timestamp-format \"HH:mm:ss\" --prefix \"[{time} {name}]\" \"sass --load-path=node_modules frontend/css/app.scss build/css/app.css --watch\" \"vite build --watch\"",
+    "build": "sass --load-path=node_modules frontend/css/app.scss build/css/app.css && vite build",
     "start": "npm run dev"
   },
   "devDependencies": {

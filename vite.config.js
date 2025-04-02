@@ -9,7 +9,7 @@ export default defineConfig({
     emptyOutDir: false, // Don't empty the entire build directory
     rollupOptions: {
       input: {
-        app: 'js/app.js'
+        app: 'frontend/js/app.js'
       },
       output: {
         entryFileNames: `[name].js`,
@@ -64,7 +64,7 @@ export default defineConfig({
       apply: 'build',
       closeBundle: () => {
         // Define source and destination paths
-        const srcDir = resolve(__dirname, 'style');
+        const srcDir = resolve(__dirname, 'frontend/css');
         const destDir = resolve(__dirname, 'build');
         const srcIco = resolve(srcDir, 'favicon.ico');
         const destIco = resolve(destDir, 'favicon.ico');

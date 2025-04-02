@@ -1,0 +1,75 @@
+@use 'variables' as vars;
+
+@use "../../node_modules/bulma/sass/index" with (
+  $family-primary: '"Atkinson Hyperlegible Next", sans-serif',
+  $primary: vars.$primary,
+  //$primary: iv.$turquoise !default,
+
+  //$info: iv.$cyan !default,
+  //$success: iv.$green !default,
+  //$warning: iv.$yellow !default,
+  //$danger: iv.$red !default,
+  //$light: iv.$white-ter !default,
+  //$dark: iv.$grey-darker !default,
+  //// Link colors
+  $link: vars.$link,
+  //$link: iv.$blue !default,
+);
+
+// Bulma steps
+@use '../../node_modules/bulma-o-steps/bulma-steps.css';
+
+@use 'root_tree';
+
+// Fancy editor stuff
+@use 'highlight.js/styles/atom-one-dark.min.css';
+@use 'prosemirror-view/style/prosemirror.css';
+@use 'prosemirror-menu/style/menu.css';
+@use 'prosemirror-example-setup/style/style.css';
+
+
+// Import the Google Font
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,200..800;1,200..800&display=swap');
+
+:root {
+  // Shadow variables - changing to sharp, offset shadows
+  --bulma-shadow-h: 0; // hue
+  --bulma-shadow-s: 0%; // saturation
+  --bulma-shadow-l: 0%; // lightness
+
+  // Override the shadow property with a brutalist box shadow
+  --bulma-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1), 0 0 0 2px rgba(0, 0, 0, 1);
+
+  // Border radius - removing all rounded corners
+  --bulma-radius: 0;
+  --bulma-radius-small: 0;
+  --bulma-radius-large: 0;
+
+}
+
+
+
+.dashboard-container {
+    display: grid;
+    grid-template-areas:
+        "header header header"
+        "sidebar main drawer";
+    grid-template-columns: 240px 1fr 300px;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+}
+.header { grid-area: header; }
+.sidebar { grid-area: sidebar; }
+.dashboard {
+  grid-area: main;
+  border-left: 1px var(--bulma-primary-on-scheme) solid;
+  border-right: 1px var(--bulma-primary-on-scheme) solid;
+}
+.drawer-container { grid-area: drawer; }
+
+.dashboard-dock {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  z-index: 10;
+}

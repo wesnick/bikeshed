@@ -9,7 +9,7 @@ app_config = get_config()
 class InterceptHandler(logging.Handler):
     """
     Intercept standard logging messages and redirect them to loguru
-    
+
     This allows us to capture logs from libraries like uvicorn and route them through loguru
     """
     def emit(self, record):
@@ -32,13 +32,13 @@ class InterceptHandler(logging.Handler):
 def setup_logging(config: Dict[str, Any] = None) -> None:
     """
     Configure loguru logger with standard settings
-    
+
     Args:
         config: Optional configuration dictionary to override defaults
     """
     # Remove default handler
     logger.remove()
-    
+
 
     # Configure console output
     logger.add(
@@ -47,7 +47,7 @@ def setup_logging(config: Dict[str, Any] = None) -> None:
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
         colorize=True,
     )
-    
+
     # Add file logging if LOG_FILE is specified in environment
     log_file = app_config.log_file
     if log_file:
@@ -59,22 +59,22 @@ def setup_logging(config: Dict[str, Any] = None) -> None:
             level=app_config.log_level,
             format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
         )
-    
+
     # Apply any custom configuration
     if config:
         if "extra_handlers" in config:
             for handler in config["extra_handlers"]:
                 logger.add(**handler)
-    
+
     # Intercept standard logging
     logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
-    
+
     # Explicitly intercept uvicorn and FastAPI logs
     for logger_name in ["uvicorn", "uvicorn.error", "uvicorn.access", "fastapi"]:
         logging_logger = logging.getLogger(logger_name)
         logging_logger.handlers = [InterceptHandler()]
         logging_logger.propagate = False
-    
+
     logger.info("Logging configured with level: {}", app_config.log_level)
 
 # Export logger for use in other modules

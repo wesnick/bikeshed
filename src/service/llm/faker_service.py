@@ -1,7 +1,7 @@
 import asyncio
 from faker import Faker
 from typing import Optional, Callable, Awaitable
-from src.models.models import Session, Message, MessageStatus
+from src.core.models import Session, Message, MessageStatus
 from .base import CompletionService
 
 class FakerLLMConfig:
@@ -14,15 +14,15 @@ class FakerCompletionService(CompletionService):
         self.faker = Faker()
         self.config = config or FakerLLMConfig()
         self.broadcast_service = broadcast_service
-    
+
     def supports(self, session: Session) -> bool:
         """
         Check if this service supports the given session.
         Supports sessions with 'faker' as model or test sessions.
-        
+
         Args:
             session: The session to check
-            
+
         Returns:
             True if this service can handle the session
         """
@@ -41,7 +41,7 @@ class FakerCompletionService(CompletionService):
         broadcast: Optional[Callable[[Message], Awaitable[None]]] = None
     ) -> Message:
         assistant_msg = session.messages[-1]
-        
+
         # Broadcast that we're starting LLM processing
         if self.broadcast_service:
             await self.broadcast_service.broadcast("llm_update", {
@@ -49,26 +49,26 @@ class FakerCompletionService(CompletionService):
                 "status": "processing",
                 "message_id": str(assistant_msg.id)
             })
-        
+
         if self.config.fake_stream:
             for i in range(50):
                 await asyncio.sleep(self.config.response_delay)
                 assistant_msg.text = assistant_msg.text + f" {self.faker.bs()}"
-                
+
                 # Use both the provided broadcast callback and our broadcast service
                 if broadcast:
                     await broadcast(assistant_msg)
-                
+
                 # Also broadcast via SSE if available
                 if self.broadcast_service:
                     await self.broadcast_service.broadcast("message-stream-" + str(assistant_msg.id), assistant_msg.text)
         else:
             await asyncio.sleep(self.config.response_delay)
             assistant_msg.text = self.faker.paragraph(nb_sentences=10)
-            
+
             if broadcast:
                 await broadcast(assistant_msg)
-                
+
             if self.broadcast_service:
                 await self.broadcast_service.broadcast("message_update", {
                     "session_id": str(session.id),
@@ -76,9 +76,9 @@ class FakerCompletionService(CompletionService):
                     "content": assistant_msg.text,
                     "status": "complete"
                 })
-        
+
         assistant_msg.status = MessageStatus.DELIVERED
-        
+
         # Broadcast completion
         if self.broadcast_service:
             await self.broadcast_service.broadcast("llm_update", {
@@ -86,5 +86,5 @@ class FakerCompletionService(CompletionService):
                 "status": "completed",
                 "message_id": str(assistant_msg.id)
             })
-            
+
         return assistant_msg

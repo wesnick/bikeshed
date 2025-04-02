@@ -21,8 +21,7 @@ from src.service.broadcast import BroadcastService
 from src.config import get_config
 from src.core.registry import Registry
 from src.core.registry_loader import RegistryBuilder
-from src.core.workflow.service import WorkflowService
-from src.repository.tag import TagRepository
+
 
 settings = get_config()
 
@@ -73,10 +72,10 @@ async def get_arq_redis() -> AsyncGenerator[ArqRedis, None]:
 
 
 @lru_cache
-def get_jinja() -> Jinja:
-    from src.jinja_extensions import markdown2html, quote_plus, format_file_size, get_file_icon, format_text_length, format_cost_per_million, model_select
+def get_jinja(directory: str = "templates") -> Jinja:
+    from src.jinja_extensions import markdown2html, quote_plus, format_file_size, get_file_icon, format_text_length, format_cost_per_million
 
-    jinja_templates = Jinja2Templates(directory="templates")
+    jinja_templates = Jinja2Templates(directory=directory)
     jinja_templates.env.filters['markdown2html'] = markdown2html
     jinja_templates.env.filters['format_file_size'] = format_file_size
     jinja_templates.env.filters['file_icon'] = get_file_icon
@@ -84,7 +83,6 @@ def get_jinja() -> Jinja:
     jinja_templates.env.filters['format_cost_per_million'] = format_cost_per_million
     jinja_templates.env.filters['quote_plus'] = quote_plus
 
-    jinja_templates.env.globals.update({'model_select': model_select})
 
     return Jinja(jinja_templates)
 
@@ -154,7 +152,7 @@ async def get_completion_service() -> AsyncGenerator[ChainedCompletionService, N
 
     yield completion_service
 
-async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
+async def get_workflow_service():
     """Dependency for getting the singleton WorkflowService instance"""
     global _workflow_service
 
@@ -174,6 +172,7 @@ async def get_workflow_service() -> AsyncGenerator[WorkflowService, None]:
                 completion_service = cs
 
             # Create the WorkflowService instance with the actual registry
+            from src.core.workflow.service import WorkflowService
             _workflow_service = WorkflowService(
                 get_db=get_db,
                 registry=registry_instance,
@@ -197,12 +196,3 @@ async def enqueue_job(job_name: str, **kwargs):
     async for arq_redis in get_arq_redis():
         job = await arq_redis.enqueue_job(job_name, **kwargs)
         return job.job_id
-
-# Create the singleton TagRepository instance
-from src.repository import tag_repository as _tag_repository_instance
-
-async def get_tag_repository() -> AsyncGenerator[TagRepository, None]:
-    """Dependency for getting the singleton TagRepository instance"""
-    yield _tag_repository_instance
-
-

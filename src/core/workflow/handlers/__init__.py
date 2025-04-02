@@ -10,12 +10,12 @@ from src.core.config_types import Step, MessageStep, PromptStep, UserInputStep, 
 
 class HandlerFactory:
     """Factory for creating step handlers"""
-    
+
     def __init__(self, registry, completion_service):
         self.registry_provider = registry
         self.completion_service = completion_service
         self._handlers = None
-        
+
     async def get_handlers(self) -> Dict[str, StepHandler]:
         """Get all handlers"""
 
@@ -27,11 +27,11 @@ class HandlerFactory:
                 'invoke': InvokeStepHandler()
             }
         return self._handlers
-    
+
     async def get_handler_for_step(self, step: Step) -> StepHandler:
         """Get the appropriate handler for a step"""
         handlers = await self.get_handlers()
-        
+
         if isinstance(step, MessageStep):
             return handlers['message']
         elif isinstance(step, PromptStep):

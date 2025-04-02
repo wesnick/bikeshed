@@ -7,7 +7,7 @@ import aiofiles
 import aiofiles.os
 import magic
 
-from src.models.models import Root, RootFile
+from src.core.models import Root, RootFile
 from src.repository import root_repository, root_file_repository
 from src.service.logging import logger
 

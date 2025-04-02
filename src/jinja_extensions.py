@@ -34,13 +34,6 @@ def format_cost_per_million(cost_param: int) -> str:
 
     return f"{(cost_param * 1000):.4f}"
 
-def model_select():
-    from src.main import app
-    registry = app.state.registry
-    models = registry.list_models(True)
-
-    return models
-
 def quote_plus(url: str) -> str:
     from urllib.parse import quote_plus
 

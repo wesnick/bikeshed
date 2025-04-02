@@ -1,14 +1,12 @@
-import asyncio
-
 import pytest
-from uuid import uuid4, UUID
+from uuid import uuid4
 from datetime import datetime
 
 from psycopg import AsyncConnection
 from psycopg.sql import SQL
 
-from src.models.models import Stash, StashItem
-from src.repository.stash import StashRepository
+from core.models import Stash, StashItem
+from components.stash.repository import StashRepository
 
 pytestmark = pytest.mark.asyncio
 

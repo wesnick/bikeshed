@@ -6,19 +6,19 @@ from src.service.logging import logger
 
 class RedisService:
     """Service for Redis caching operations"""
-    
+
     def __init__(self, redis_url: str = None):
         """Initialize Redis service
-        
+
         Args:
             redis_url: Redis connection URL
         """
         self.redis = redis.Redis.from_url(redis_url, decode_responses=True)
         self.default_ttl = 3600  # Default TTL: 1 hour
-    
+
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
         """Set a value in Redis with optional TTL
-        
+
         Args:
             key: Redis key
             value: Value to store (will be JSON serialized)
@@ -32,13 +32,13 @@ class RedisService:
             )
         except Exception as e:
             logger.error(f"Error setting Redis key {key}: {e}")
-    
+
     def get(self, key: str) -> Optional[Any]:
         """Get a value from Redis
-        
+
         Args:
             key: Redis key
-            
+
         Returns:
             Deserialized value if found, None otherwise
         """
@@ -49,10 +49,10 @@ class RedisService:
         except Exception as e:
             logger.error(f"Error getting Redis key {key}: {e}")
         return None
-    
+
     def set_default_ttl(self, ttl_seconds: int) -> None:
         """Set the default TTL (Time To Live) in seconds
-        
+
         Args:
             ttl_seconds: TTL in seconds
         """

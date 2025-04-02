@@ -2,7 +2,7 @@ import json
 
 import litellm
 from typing import Optional, Callable, Awaitable
-from src.models.models import Session, Message, MessageStatus
+from src.core.models import Session, Message, MessageStatus
 from .base import CompletionService, LLMException
 
 

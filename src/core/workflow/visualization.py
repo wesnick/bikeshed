@@ -4,7 +4,7 @@ from typing import Optional
 from transitions.extensions.asyncio import AsyncState
 
 from src.core.config_types import Step
-from src.models.models import Session
+from src.core.models import Session
 from src.service.logging import logger
 
 
@@ -26,19 +26,19 @@ class WorkflowVisualizer:
     def create_state_label(step: Step) -> str:
         """
         Create a readable label for a state based on step data
-        
+
         Args:
             step: The step configuration
-            
+
         Returns:
             A formatted label string
         """
         if not step:
             return "Unknown"
-            
+
         step_type = step.type.capitalize()
         step_name = step.name
-        
+
         # Add more specific details based on step type
         details = ""
         if step.type == "prompt":
@@ -55,33 +55,33 @@ class WorkflowVisualizer:
         elif step.type == "user_input":
             if step.prompt:
                 details = f"\nPrompt: {step.prompt}"
-                
+
         return f"{step_name}\n({step_type}){details}"
 
     @staticmethod
     def create_transition_label(step: Step) -> str:
         """
         Create a readable label for a transition based on step data
-        
+
         Args:
             step: The step configuration
-            
+
         Returns:
             A formatted label string
         """
         if not step:
             return "next"
-            
+
         return f"run {step.type}"
 
     @staticmethod
     async def create_graph(session: Session) -> Optional[str]:
         """
         Create an SVG graph visualization of the workflow
-        
+
         Args:
             session: The session containing the workflow state machine
-            
+
         Returns:
             SVG representation of the workflow graph
         """
@@ -99,7 +99,7 @@ class WorkflowVisualizer:
         """Clean SVG content for web display"""
         if not svg_content:
             return ""
-            
+
         # Remove XML declaration
         svg_content = re.sub(r'<\?xml.*?\?>', '', svg_content)
 

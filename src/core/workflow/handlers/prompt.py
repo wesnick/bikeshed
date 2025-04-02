@@ -5,8 +5,8 @@ from mcp.server.fastmcp.prompts.base import Message as MCPMessage
 
 from src.core.config_types import PromptStep, Step
 from src.core.registry import Registry, TemplatePrompt
-from src.models import Message
-from src.models.models import Session, SessionStatus, MessageStatus
+from src.core.models import Message
+from src.core.models import Session, SessionStatus, MessageStatus
 from src.core.workflow.engine import StepHandler
 from src.service.llm import CompletionService
 

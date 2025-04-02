@@ -1,15 +1,13 @@
-import asyncio
-
 import pytest
-from uuid import uuid4, UUID
-from datetime import datetime, timedelta
+from uuid import uuid4
+from datetime import datetime
 
 from psycopg import AsyncConnection
 from psycopg.sql import SQL
 
-from src.models.models import Message, MessageStatus, Session, SessionStatus, WorkflowData
-from src.repository.message import MessageRepository
-from src.repository.session import SessionRepository
+from core.models import Message, MessageStatus, Session, SessionStatus, WorkflowData
+from components.message.repository import MessageRepository
+from components.dialog.repository import SessionRepository
 
 pytestmark = pytest.mark.asyncio
 
@@ -169,7 +167,7 @@ async def test_get_by_session(db_conn_clean: AsyncConnection, message_repo: Mess
         workflow_data=WorkflowData()
     )
     created_session2 = await session_repo.create(db_conn_clean, session2)
-    
+
     # Create messages for session 1
     message1_data = _create_message_data(sample_message_data, text="session1_message1")
     message2_data = _create_message_data(sample_message_data, text="session1_message2")
@@ -177,24 +175,24 @@ async def test_get_by_session(db_conn_clean: AsyncConnection, message_repo: Mess
     message2 = Message(**message2_data)
     await message_repo.create(db_conn_clean, message1)
     await message_repo.create(db_conn_clean, message2)
-    
+
     # Create message for session 2
     message3_data = _create_message_data(sample_message_data, session_id=created_session2.id, text="session2_message")
     message3 = Message(**message3_data)
     await message_repo.create(db_conn_clean, message3)
-    
+
     # Get messages for session 1
     session1_messages = await message_repo.get_by_session(db_conn_clean, test_session.id)
-    
+
     assert len(session1_messages) >= 2  # There might be other messages from other tests
     message_texts = {m.text for m in session1_messages}
     assert "session1_message1" in message_texts
     assert "session1_message2" in message_texts
     assert "session2_message" not in message_texts
-    
+
     # Get messages for session 2
     session2_messages = await message_repo.get_by_session(db_conn_clean, created_session2.id)
-    
+
     assert len(session2_messages) == 1
     assert session2_messages[0].text == "session2_message"
 
@@ -204,27 +202,27 @@ async def test_get_thread(db_conn_clean: AsyncConnection, message_repo: MessageR
     parent_data = _create_message_data(sample_message_data, text="parent_message")
     parent = Message(**parent_data)
     created_parent = await message_repo.create(db_conn_clean, parent)
-    
+
     # Create child messages
-    child1_data = _create_message_data(sample_message_data, 
-                                      text="child_message_1", 
+    child1_data = _create_message_data(sample_message_data,
+                                      text="child_message_1",
                                       parent_id=created_parent.id)
-    child2_data = _create_message_data(sample_message_data, 
-                                      text="child_message_2", 
+    child2_data = _create_message_data(sample_message_data,
+                                      text="child_message_2",
                                       parent_id=created_parent.id)
-    
+
     child1 = Message(**child1_data)
     child2 = Message(**child2_data)
     await message_repo.create(db_conn_clean, child1)
     await message_repo.create(db_conn_clean, child2)
-    
+
     # Get the thread
     thread = await message_repo.get_thread(db_conn_clean, created_parent.id)
-    
+
     assert len(thread) == 3
     assert thread[0].id == created_parent.id
     assert thread[0].text == "parent_message"
-    
+
     # Check that children are included
     child_texts = {thread[1].text, thread[2].text}
     assert "child_message_1" in child_texts
@@ -242,20 +240,20 @@ async def test_message_timestamp_ordering(db_conn_clean: AsyncConnection, messag
     message1_data = _create_message_data(sample_message_data, text="older_message")
     message1 = Message(**message1_data)
     created_message1 = await message_repo.create(db_conn_clean, message1)
-    
+
     # Simulate time passing
     await db_conn_clean.execute(
-        SQL("UPDATE messages SET timestamp = NOW() - INTERVAL '1 minute' WHERE id = %s"), 
+        SQL("UPDATE messages SET timestamp = NOW() - INTERVAL '1 minute' WHERE id = %s"),
         (str(created_message1.id),)
     )
-    
+
     message2_data = _create_message_data(sample_message_data, text="newer_message")
     message2 = Message(**message2_data)
     created_message2 = await message_repo.create(db_conn_clean, message2)
-    
+
     # Get messages by session, should be ordered by timestamp
     session_messages = await message_repo.get_by_session(db_conn_clean, test_session.id)
-    
+
     # Filter to just our test messages
     test_messages = [m for m in session_messages if m.text in ["older_message", "newer_message"]]
     assert len(test_messages) == 2
@@ -268,7 +266,7 @@ async def test_create_message_with_model(db_conn_clean: AsyncConnection, message
     assistant_data = _create_message_data(sample_message_data, role="assistant", model="gpt-4", text="Assistant response")
     assistant_message = Message(**assistant_data)
     created_message = await message_repo.create(db_conn_clean, assistant_message)
-    
+
     assert created_message is not None
     assert created_message.role == "assistant"
     assert created_message.model == "gpt-4"
@@ -277,7 +275,7 @@ async def test_create_message_with_model(db_conn_clean: AsyncConnection, message
 async def test_create_assistant_message_without_model_fails(db_conn_clean: AsyncConnection, message_repo: MessageRepository, sample_message_data: dict):
     # Assistant messages without model should fail validation
     assistant_data = _create_message_data(sample_message_data, role="assistant", model=None, text="Assistant response")
-    
+
     with pytest.raises(ValueError, match="Model must be set for assistant messages"):
         Message(**assistant_data)
 
@@ -288,6 +286,6 @@ async def test_message_with_extra_data(db_conn_clean: AsyncConnection, message_r
     message_data = _create_message_data(sample_message_data, extra=extra_data)
     message = Message(**message_data)
     created_message = await message_repo.create(db_conn_clean, message)
-    
+
     fetched_message = await message_repo.get_by_id(db_conn_clean, created_message.id)
     assert fetched_message.extra == extra_data
