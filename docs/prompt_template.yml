@@ -1,8 +1,8 @@
-session_structure:
+dialog_structure:
   metadata: # metadata will be persisted on executions
     tags: list of tags
     ...additional: any other fields
-  description: Describes the purpose of the session
+  description: Describes the purpose of the dialog
   model: Default model to use
   temperature: Default temperature to use, optional
   tools: List of tools to use, optional

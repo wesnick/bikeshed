@@ -1,0 +1,13 @@
+<div class="box mb-3">
+  <h1 class="title">{{ dialog.summary or "Untitled Dialog" }}</h1>
+  {% if dialog.goal %}<p class="subtitle">Goal: {{ dialog.goal }}</p>{% endif %}
+  <div class="block">
+    {% if dialog.template %}
+      {% with dialog_template=dialog.template %}
+        {% include 'workflow.html.j2' %}
+      {% endwith %}
+    {% endif %}
+    <p>Status: {{ dialog.status }}</p>
+    <p>Status: {{ dialog.current_state }}</p>
+  </div>
+</div>

@@ -3,7 +3,7 @@ from typing import Any, List, Protocol
 from pydantic import BaseModel
 from typing_extensions import TypeVar
 
-from src.core.models import Message, Session, MessageStatus, SessionStatus
+from src.core.models import Message, Dialog, MessageStatus, DialogStatus
 
 T = TypeVar('T', bound=BaseModel)
 
@@ -34,7 +34,7 @@ class MessageBroadcastStrategy:
         # Basic message update event
         events.append(("message_update", {
             "id": str(model.id),
-            "session_id": str(model.session_id),
+            "dialog_id": str(model.dialog_id),
             "status": model.status,
             "role": model.role,
             "text": model.text,
@@ -45,31 +45,31 @@ class MessageBroadcastStrategy:
         if model.status == MessageStatus.DELIVERED and model.role == "assistant":
             events.append(("completion_finished", {
                 "message_id": str(model.id),
-                "session_id": str(model.session_id)
+                "dialog_id": str(model.dialog_id)
             }))
         elif model.status == MessageStatus.FAILED:
             events.append(("message_error", {
                 "message_id": str(model.id),
-                "session_id": str(model.session_id),
+                "dialog_id": str(model.dialog_id),
                 "error": model.extra.get("error", "Unknown error") if model.extra else "Unknown error"
             }))
 
         return events
 
 
-class SessionBroadcastStrategy:
-    """Strategy for broadcasting Session model updates"""
+class DialogBroadcastStrategy:
+    """Strategy for broadcasting Dialog model updates"""
 
-    async def should_broadcast(self, model: Session) -> bool:
-        """Always broadcast session updates"""
+    async def should_broadcast(self, model: Dialog) -> bool:
+        """Always broadcast dialog updates"""
         return True
 
-    async def get_events(self, model: Session) -> List[tuple[str, Any]]:
-        """Get events based on session status"""
+    async def get_events(self, model: Dialog) -> List[tuple[str, Any]]:
+        """Get events based on dialog status"""
         events = []
 
-        # Basic session update event
-        session_data = {
+        # Basic dialog update event
+        dialog_data = {
             "id": str(model.id),
             "status": model.status,
             "current_state": model.current_state,
@@ -77,21 +77,21 @@ class SessionBroadcastStrategy:
             "created_at": model.created_at.isoformat(),
         }
 
-        events.append(("session.update", session_data))
+        events.append(("dialog.update", dialog_data))
 
         # Additional events based on status
-        if model.status == SessionStatus.WAITING_FOR_INPUT:
+        if model.status == DialogStatus.WAITING_FOR_INPUT:
             events.append(("user_input_required", {
-                "session_id": str(model.id),
+                "dialog_id": str(model.id),
                 "prompt": model.get_current_step().prompt if model.get_current_step() else "Input required"
             }))
-        elif model.status == SessionStatus.COMPLETED:
-            events.append(("session_completed", {
-                "session_id": str(model.id)
+        elif model.status == DialogStatus.COMPLETED:
+            events.append(("dialog_completed", {
+                "dialog_id": str(model.id)
             }))
-        elif model.status == SessionStatus.FAILED:
-            events.append(("session_error", {
-                "session_id": str(model.id),
+        elif model.status == DialogStatus.FAILED:
+            events.append(("dialog_error", {
+                "dialog_id": str(model.id),
                 "error": model.error or "Unknown error"
             }))
 

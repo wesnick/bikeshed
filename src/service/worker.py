@@ -11,13 +11,13 @@ from src.service.logging import logger
 
 settings = get_config()
 
-async def session_run_workflow_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dict[str, Any]:
+async def dialog_run_workflow_job(ctx: Dict[str, Any], dialog_id: uuid.UUID) -> Dict[str, Any]:
     """
     ARQ worker function to run a workflow asynchronously.
 
     Args:
         ctx: ARQ context
-        session_id: UUID of the session to process
+        dialog_id: UUID of the dialog to process
 
     Returns:
         Dict with job result information
@@ -30,49 +30,49 @@ async def session_run_workflow_job(ctx: Dict[str, Any], session_id: uuid.UUID) -
     workflow_service: WorkflowService = await anext(get_workflow_service())
 
     try:
-        # Get the session from the database
-        session = await workflow_service.get_session(session_id)
+        # Get the dialog from the database
+        dialog = await workflow_service.get_dialog(dialog_id)
 
-        if not session:
-            return {"success": False, "error": f"Session {session_id} not found"}
+        if not dialog:
+            return {"success": False, "error": f"Dialog {dialog_id} not found"}
 
         # Run the workflow
-        await workflow_service.run_workflow(session)
+        await workflow_service.run_workflow(dialog)
 
         return {
             "success": True,
-            "session_id": str(session_id)
+            "dialog_id": str(dialog_id)
         }
 
     except Exception as e:
         # Log the error and return failure
-        logger.error(f"Error running workflow for session {session_id}: {str(e)}")
+        logger.error(f"Error running workflow for dialog {dialog_id}: {str(e)}")
 
-        return {"success": False, "error": str(e), "session_id": str(session_id)}
+        return {"success": False, "error": str(e), "dialog_id": str(dialog_id)}
 
 
-async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dict[str, Any]:
+async def process_message_job(ctx: Dict[str, Any], dialog_id: uuid.UUID) -> Dict[str, Any]:
     """
     ARQ worker function to process a message asynchronously.
 
     Args:
         ctx: ARQ context
-        session_id: UUID of the session to process
+        dialog_id: UUID of the dialog to process
 
     Returns:
         Dict with job result information
     """
 
-    # Get the session from the database
-    from src.components.dialog.repository import SessionRepository
-    session_repo = SessionRepository()
+    # Get the dialog from the database
+    from src.components.dialog.repository import DialogRepository
+    dialog_repo = DialogRepository()
 
     async with ctx['db_pool'].connection() as db:
-        # Fetch the session from the database
-        session = await session_repo.get_with_messages(db, session_id)
+        # Fetch the dialog from the database
+        dialog = await dialog_repo.get_with_messages(db, dialog_id)
 
-        if not session:
-            return {"success": False, "error": f"Session {session_id} not found"}
+        if not dialog:
+            return {"success": False, "error": f"Dialog {dialog_id} not found"}
 
 
     # Get services
@@ -82,7 +82,7 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
     try:
         # Process with Completion service
         result_message = await completion_service.complete(
-            session,
+            dialog,
             broadcast=None
         )
 
@@ -90,27 +90,27 @@ async def process_message_job(ctx: Dict[str, Any], session_id: uuid.UUID) -> Dic
         async with db_pool.connection() as db:
             await message_repository.upsert(db, result_message, ['id'])
 
-        # Notify all clients to update the session component
-        await broadcast_service.broadcast("session.update", str(session.id))
+        # Notify all clients to update the dialog component
+        await broadcast_service.broadcast("dialog.update", str(dialog.id))
 
         return {
             "success": True,
             "message_id": str(result_message.id),
-            "session_id": str(session_id)
+            "dialog_id": str(dialog_id)
         }
 
     except Exception as e:
         # Log the error and return failure
         from src.service.logging import logger
-        logger.error(f"Error processing message for session {session_id}: {str(e)}")
+        logger.error(f"Error processing message for dialog {dialog_id}: {str(e)}")
 
         # Notify clients about the error
-        await broadcast_service.broadcast("session_error", {
-            "session_id": str(session_id),
+        await broadcast_service.broadcast("dialog_error", {
+            "dialog_id": str(dialog_id),
             "error": str(e)
         })
 
-        return {"success": False, "error": str(e), "session_id": str(session_id)}
+        return {"success": False, "error": str(e), "dialog_id": str(dialog_id)}
 
 async def process_root(ctx: Dict[str, Any], directory_path: str):
     from src.core.roots.scanner import FileScanner
@@ -131,7 +131,7 @@ class WorkerSettings:
     redis_settings = RedisSettings.from_dsn(str(settings.redis_url))
     functions = [
         process_message_job,
-        session_run_workflow_job,
+        dialog_run_workflow_job,
         process_root
     ]
     job_timeout = 300  # 5 minutes

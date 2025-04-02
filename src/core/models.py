@@ -6,7 +6,7 @@ from enum import Enum
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 from transitions.extensions import AsyncGraphMachine
 
-from src.core.config_types import SessionTemplate, Step
+from src.core.config_types import DialogTemplate, Step
 
 
 class MessageStatus(str, Enum):
@@ -16,7 +16,7 @@ class MessageStatus(str, Enum):
     FAILED = "failed"         # Some type of error happened and should be considered incomplete
 
 
-class SessionStatus(str, Enum):
+class DialogStatus(str, Enum):
     PENDING = "pending"
     RUNNING = "running"
     PAUSED = "paused"
@@ -59,7 +59,7 @@ class Message(BaseModel, DBModelMixin):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     parent_id: Optional[uuid.UUID] = None
-    session_id: uuid.UUID
+    dialog_id: uuid.UUID
 
     role: str  # user, assistant, system
     model: Optional[str] = None
@@ -81,8 +81,8 @@ class Message(BaseModel, DBModelMixin):
         return self
 
 
-class Session(BaseModel, DBModelMixin):
-    __db_table__ = "sessions"
+class Dialog(BaseModel, DBModelMixin):
+    __db_table__ = "dialogs"
     __non_persisted_fields__ = {'machine', 'messages', 'created_at', 'updated_at'}
     __unique_fields__ = {'id'}
 
@@ -91,10 +91,10 @@ class Session(BaseModel, DBModelMixin):
     goal: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    template: Optional[SessionTemplate] = None
+    template: Optional[DialogTemplate] = None
 
     # Workflow state fields
-    status: SessionStatus = SessionStatus.PENDING
+    status: DialogStatus = DialogStatus.PENDING
     current_state: str = "start"  # Current state in the workflow
     workflow_data: Optional[WorkflowData] = Field(default_factory=WorkflowData)
     error: Optional[str] = None  # For storing error information
@@ -113,7 +113,7 @@ class Session(BaseModel, DBModelMixin):
 
     @property
     def first_message(self) -> Optional[Message]:
-        """Return the first message in this session"""
+        """Return the first message in this dialog"""
         if not self.messages:
             return None
         return sorted(self.messages, key=lambda m: m.timestamp)[0] if self.messages else None

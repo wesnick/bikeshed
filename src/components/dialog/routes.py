@@ -11,203 +11,203 @@ from src.core.workflow.service import WorkflowService
 from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry, get_broadcast_service, \
     get_arq_redis
 from src.core.models import MessageStatus
-from src.components.repositories import session_repository, message_repository
-from src.core.models import Session, Message
+from src.components.repositories import dialog_repository, message_repository
+from src.core.models import Dialog, Message
 from src.service.broadcast import BroadcastService
-from src.custom_types import SessionTemplateCreationRequest, MessageCreate
+from src.custom_types import DialogTemplateCreationRequest, MessageCreate
 from src.service.logging import logger
 
-router = APIRouter(prefix="/session", tags=["session"])
+router = APIRouter(prefix="/dialog", tags=["dialog"])
 
 jinja = get_jinja("src/components/dialog/templates")
 
 @router.get("/")
 @jinja.hx('list.html.j2')
-async def list_sessions(db: AsyncConnection = Depends(get_db)):
-    """List all sessions"""
-    sessions = await session_repository.get_recent_sessions(db)
-    return {"sessions": sessions}
+async def list_dialogs(db: AsyncConnection = Depends(get_db)):
+    """List all dialogs"""
+    dialogs = await dialog_repository.get_recent_dialogs(db)
+    return {"dialogs": dialogs}
 
 
 @router.post("/")
-@jinja.hx('session.html.j2')
-async def create_session(summary: Optional[str] = None, goal: Optional[str] = None,
+@jinja.hx('dialog.html.j2')
+async def create_dialog(summary: Optional[str] = None, goal: Optional[str] = None,
                         system_prompt: Optional[str] = None, flow_id: Optional[UUID] = None,
                         db: AsyncConnection = Depends(get_db)):
-    """Create a new session"""
-    session_data = {
+    """Create a new dialog"""
+    dialog_data = {
         "summary": summary,
         "goal": goal,
         "system_prompt": system_prompt,
         "flow_id": flow_id
     }
-    session = Session(**session_data)
-    session = await session_repository.create(db, session)
+    dialog = Dialog(**dialog_data)
+    dialog = await dialog_repository.create(db, dialog)
     return {
-        "session": session,
+        "dialog": dialog,
         "messages": [],
-        "message": "Session created successfully"
+        "message": "Dialog created successfully"
     }
 
 
 
-@router.get("/{session_id}")
-@jinja.hx('session.html.j2')
-async def get_session(response: Response,
-                      session_id: UUID):
-    """Container for session mini-dash"""
+@router.get("/{dialog_id}")
+@jinja.hx('view_dash.html.j2')
+async def get_dialog(response: Response,
+                      dialog_id: UUID):
+    """Container for dialog mini-dash"""
 
     response.headers['HX-Trigger-After-Swap'] = "drawer.updated"
 
     return {
-        "session_id": session_id,
+        "dialog_id": dialog_id,
     }
 
-@router.get("/{session_id}/overview")
-@jinja.hx('session_overview.html.j2', no_data=True)
-async def get_session(session_id: UUID,
+@router.get("/{dialog_id}/overview")
+@jinja.hx('overview.html.j2', no_data=True)
+async def get_dialog(dialog_id: UUID,
                       workflow_service: WorkflowService = Depends(get_workflow_service)):
-    """Container for session mini-dash"""
-    session = await workflow_service.get_session(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+    """Container for dialog mini-dash"""
+    dialog = await workflow_service.get_dialog(dialog_id)
+    if not dialog:
+        raise HTTPException(status_code=404, detail="Dialog not found")
 
     return {
-        "session": session,
-        "active_step": session.get_next_step_name(),
+        "dialog": dialog,
+        "active_step": dialog.get_next_step_name(),
     }
 
-@router.get("/{session_id}/messages")
+@router.get("/{dialog_id}/messages")
 @jinja.hx('message_list.html.j2')
-async def get_session_messages(session_id: UUID,
+async def get_dialog_messages(dialog_id: UUID,
                               db: AsyncConnection = Depends(get_db)):
-    """Get a specific session with its messages"""
-    messages = await message_repository.get_by_session(db, session_id)
+    """Get a specific dialog with its messages"""
+    messages = await message_repository.get_by_dialog(db, dialog_id)
 
     return {
         "messages": messages,
     }
 
 
-@router.get("/{session_id}/session-form")
-@jinja.hx('session_form.html.j2')
-async def session_form_component(session_id: UUID,
+@router.get("/{dialog_id}/dialog-form")
+@jinja.hx('dialog_form.html.j2')
+async def dialog_form_component(dialog_id: UUID,
                                  workflow_service: WorkflowService = Depends(get_workflow_service)):
-    """This route serves the session form component for htmx requests."""
-    session = await workflow_service.get_session(session_id)
+    """This route serves the dialog form component for htmx requests."""
+    dialog = await workflow_service.get_dialog(dialog_id)
 
-    if not session:
-        return {"error": "Session not found"}
+    if not dialog:
+        return {"error": "Dialog not found"}
 
-    current_step = session.get_current_step()
+    current_step = dialog.get_current_step()
 
     from src.main import app
     registry = app.state.registry
     models = registry.list_models(True)
 
     return {
-        "session": session,
+        "dialog": dialog,
         "current_step": current_step,
         "available_models": models,
     }
 
 
-@router.post("/session-submit")
+@router.post("/dialog-submit")
 @jinja.hx('message_list.html.j2')
-async def session_submit(response: Response,
+async def dialog_submit(response: Response,
                          message: MessageCreate,
                          workflow_service: WorkflowService = Depends(get_workflow_service),
                          db: AsyncConnection = Depends(get_db),
                          broadcast_service: BroadcastService = Depends(get_broadcast_service)):
-    """This route serves the session form component for htmx requests."""
+    """This route serves the dialog form component for htmx requests."""
 
-    session = await workflow_service.get_session(message.session_id)
+    dialog = await workflow_service.get_dialog(message.dialog_id)
 
     next_action = "continue" if message.button_pressed == "continue" else "send"
     logger.warning(f"{next_action} pressed")
 
     # Workflow continue
     if next_action == "continue":
-        await enqueue_session_run_workflow(session.id)
-        return {"session": session, "current_step": session.get_current_step()}
+        await enqueue_dialog_run_workflow(dialog.id)
+        return {"dialog": dialog, "current_step": dialog.get_current_step()}
 
     user_message = Message(
         id=uuid.uuid4(),
-        session_id=session.id,
+        dialog_id=dialog.id,
         role='user',
         text=message.text,
-        parent_id=session.messages[-1].id if session.messages else None,
+        parent_id=dialog.messages[-1].id if dialog.messages else None,
         status=MessageStatus.PENDING
     )
 
     # Add user message to the database
     await message_repository.create(db, user_message)
 
-    # Add to session for LLM processing
-    session.messages.append(user_message)
+    # Add to dialog for LLM processing
+    dialog.messages.append(user_message)
 
     # Create assistant message placeholder
     assistant_message = Message(
         id=uuid.uuid4(),
-        session_id=session.id,
+        dialog_id=dialog.id,
         role='assistant',
         model=message.model,
         parent_id=user_message.id,
         text="",
         status=MessageStatus.CREATED
     )
-    # Add to database and session
+    # Add to database and dialog
     await message_repository.create(db, assistant_message)
-    session.messages.append(assistant_message)
+    dialog.messages.append(assistant_message)
 
     # Send it to the queue
-    await enqueue_message_processing(session.id)
+    await enqueue_message_processing(dialog.id)
 
     # response.headers['HX-Target'] = "#dashboard"
     # response.headers['HX-Reswap'] = 'outerHTML'
 
     return {
-        "session": session,
-        "messages": session.messages,
-        "current_step": session.get_current_step()
+        "dialog": dialog,
+        "messages": dialog.messages,
+        "current_step": dialog.get_current_step()
     }
 
 
-async def enqueue_message_processing(session_id: uuid.UUID) -> str:
+async def enqueue_message_processing(dialog_id: uuid.UUID) -> str:
     """
     Enqueue a message processing job with ARQ
 
     Args:
-        session_id: The UUID of the session to process
+        dialog_id: The UUID of the dialog to process
         arq_redis: ARQ Redis connection
 
     Returns:
         The job ID as a string
     """
     async for arq_redis in get_arq_redis():
-        job = await arq_redis.enqueue_job('process_message_job', session_id)
+        job = await arq_redis.enqueue_job('process_message_job', dialog_id)
         return job.job_id
 
 
 @router.get("/template-creator/{template_name}")
-@jinja.hx('session_template_form.html.j2')
-async def session_template_form(template_name: str,
+@jinja.hx('dialog_template_form.html.j2')
+async def dialog_template_form(template_name: str,
                                 request: Request,
                                 workflow_service: WorkflowService = Depends(get_workflow_service)):
-    """This route serves the session template form for creating a new session."""
+    """This route serves the dialog template form for creating a new dialog."""
     # Get the template from the registry
-    template = request.app.state.registry.get_session_template(template_name)
+    template = request.app.state.registry.get_dialog_template(template_name)
     if not template:
         return {"error": f"Template {template_name} not found"}
 
-    session = Session()
-    session.template = template
+    dialog = Dialog()
+    dialog.template = template
 
     # Analyze workflow dependencies
     workflow_analysis = await workflow_service.analyze_workflow_dependencies(template)
 
     # @TODO: refactor this to not use engine directly
-    await workflow_service.engine.initialize_session(session)
+    await workflow_service.engine.initialize_dialog(dialog)
 
     return {
         "template": template,
@@ -217,64 +217,64 @@ async def session_template_form(template_name: str,
 
 
 @router.post("/template-creator/{template_name}/create")
-@jinja.hx('session.html.j2')
-async def create_session_from_template_route(
+@jinja.hx('view_dash.html.j2')
+async def create_dialog_from_template_route(
         response: Response,
         template_name: str,
-        session_create: SessionTemplateCreationRequest,
+        dialog_create: DialogTemplateCreationRequest,
         workflow_service: WorkflowService = Depends(get_workflow_service),
         registry: Registry = Depends(get_registry),
 ):
-    """Create a new session from a template and redirect to it."""
-    description = session_create.description
-    goal = session_create.goal
+    """Create a new dialog from a template and redirect to it."""
+    description = dialog_create.description
+    goal = dialog_create.goal
 
     # Extract workflow input variables from form data
     initial_data = {"variables": {}}
 
     # Process all form fields that start with "input_" as workflow variables
-    for key, value in session_create.input.items():
+    for key, value in dialog_create.input.items():
         initial_data["variables"][key] = value
 
     # Get the template from the registry
-    template = registry.get_session_template(template_name)
+    template = registry.get_dialog_template(template_name)
     if not template:
         return {"error": f"Template {template_name} not found"}
 
-    # Create the session with initial data
-    session = await workflow_service.create_session_from_template(
+    # Create the dialog with initial data
+    dialog = await workflow_service.create_dialog_from_template(
         template=template,
         description=description if description else None,
         goal=goal if goal else None,
         initial_data=initial_data
     )
 
-    if not session:
-        return {"error": "Failed to create session"}
+    if not dialog:
+        return {"error": "Failed to create dialog"}
 
 
-    await enqueue_session_run_workflow(session.id)
+    await enqueue_dialog_run_workflow(dialog.id)
 
     # @TODO this might better be HX-Location
-    response.headers['HX-Replace-Url'] = f"/session/{session.id}"
-    response.headers['HX-Trigger'] = 'sse:session.updated'
+    response.headers['HX-Replace-Url'] = f"/dialog/{dialog.id}"
+    response.headers['HX-Trigger'] = 'sse:dialog.updated'
 
     return {
-        "session_id": session.id,
+        "dialog_id": dialog.id,
     }
 
-async def enqueue_session_run_workflow(session_id: uuid.UUID) -> str:
+async def enqueue_dialog_run_workflow(dialog_id: uuid.UUID) -> str:
     """
     Enqueue a message processing job with ARQ
 
     Args:
-        session_id: The UUID of the session to process
+        dialog_id: The UUID of the dialog to process
         arq_redis: ARQ Redis connection
 
     Returns:
         The job ID as a string
     """
     async for arq_redis in get_arq_redis():
-        job = await arq_redis.enqueue_job('session_run_workflow_job', session_id)
+        job = await arq_redis.enqueue_job('dialog_run_workflow_job', dialog_id)
         return job.job_id
 

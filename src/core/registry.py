@@ -3,7 +3,7 @@ from typing import Set
 
 from mcp import StdioServerParameters
 from pydantic import BaseModel, Field
-from src.core.config_types import Model, SessionTemplate
+from src.core.config_types import Model, DialogTemplate
 from mcp.server.fastmcp.prompts import Prompt
 from mcp.server.fastmcp.tools import Tool
 from mcp.server.fastmcp.resources import Resource, ResourceTemplate
@@ -35,7 +35,7 @@ class Registry:
         self.tools: dict[str, Tool] = {}
         self.models: dict[str, Model] = {}
         self.event_registry = event_registry
-        self.session_templates: dict[str, SessionTemplate] = {}
+        self.dialog_templates: dict[str, DialogTemplate] = {}
         self.mcp_servers: dict[str, StdioServerParameters] = {}
         self.warn_on_duplicate_schemas = warn_on_duplicate
         self.active_root_watchers: dict[str, asyncio.Task] = {}
@@ -151,20 +151,20 @@ class Registry:
         return tool
 
 
-    def add_session_template(self, name: str, template: SessionTemplate):
-        """Add a session template to the registry."""
+    def add_dialog_template(self, name: str, template: DialogTemplate):
+        """Add a dialog template to the registry."""
         # Check for duplicates
-        existing = self.session_templates.get(name)
+        existing = self.dialog_templates.get(name)
         if existing:
             if self.warn_on_duplicate_schemas:
-                logger.warning(f"Session template already exists: {name}")
+                logger.warning(f"Dialog template already exists: {name}")
             return existing
 
-        self.session_templates[name] = template
+        self.dialog_templates[name] = template
 
-    def get_session_template(self, name: str):
-        """Get a session template by name."""
-        return self.session_templates.get(name)
+    def get_dialog_template(self, name: str):
+        """Get a dialog template by name."""
+        return self.dialog_templates.get(name)
 
     async def watch_directory(self, directory_path: str):
         """Watch a directory for changes."""

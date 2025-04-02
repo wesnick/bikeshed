@@ -4,7 +4,7 @@ from typing import Optional
 from transitions.extensions.asyncio import AsyncState
 
 from src.core.config_types import Step
-from src.core.models import Session
+from src.core.models import Dialog
 from src.service.logging import logger
 
 
@@ -75,18 +75,18 @@ class WorkflowVisualizer:
         return f"run {step.type}"
 
     @staticmethod
-    async def create_graph(session: Session) -> Optional[str]:
+    async def create_graph(dialog: Dialog) -> Optional[str]:
         """
         Create an SVG graph visualization of the workflow
 
         Args:
-            session: The session containing the workflow state machine
+            dialog: The dialog containing the workflow state machine
 
         Returns:
             SVG representation of the workflow graph
         """
         try:
-            graph = session.get_graph()
+            graph = dialog.get_graph()
             svg = graph.draw(None, prog='dot', format='svg')
             return WorkflowVisualizer._clean_svg_for_web(svg.decode('utf-8'))
 

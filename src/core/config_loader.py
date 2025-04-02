@@ -12,7 +12,7 @@ from pydantic import BaseModel
 import importlib
 
 from src.core.registry import Registry, Schema, TemplatePrompt
-from src.core.config_types import SessionTemplate
+from src.core.config_types import DialogTemplate
 from src.service.logging import logger
 
 
@@ -267,23 +267,23 @@ class TemplateLoader:
 
         return all_prompts
 
-class SessionTemplateLoader:
+class DialogTemplateLoader:
     """
-    Loads session templates from YAML files and hydrates SessionTemplate Pydantic models.
+    Loads dialog templates from YAML files and hydrates DialogTemplate Pydantic models.
     """
 
     def __init__(self, registry: Registry):
         """
-        Initialize the session template loader with a registry.
+        Initialize the dialog template loader with a registry.
 
         Args:
-            registry: The registry to populate with session templates
+            registry: The registry to populate with dialog templates
         """
         self.registry = registry
 
-    def validate_template(self, template_name: str, template_data: Dict[str, Any]) -> tuple[bool, Optional[SessionTemplate], List[str]]:
+    def validate_template(self, template_name: str, template_data: Dict[str, Any]) -> tuple[bool, Optional[DialogTemplate], List[str]]:
         """
-        Validate a session template against the schema.
+        Validate a dialog template against the schema.
 
         Args:
             template_name: Name of the template
@@ -296,9 +296,9 @@ class SessionTemplateLoader:
         template_obj = None
 
         try:
-            # Try to create a SessionTemplate object
+            # Try to create a DialogTemplate object
             template_data['name'] = template_name
-            template_obj = SessionTemplate(**template_data)
+            template_obj = DialogTemplate(**template_data)
             return True, template_obj, []
         except Exception as e:
             # If validation fails, collect all errors
@@ -313,33 +313,33 @@ class SessionTemplateLoader:
 
             return False, None, errors
 
-    def load_from_file(self, file_path: Union[str, Path]) -> Dict[str, SessionTemplate]:
+    def load_from_file(self, file_path: Union[str, Path]) -> Dict[str, DialogTemplate]:
         """
-        Load session templates from a YAML file.
+        Load dialog templates from a YAML file.
 
         Args:
-            file_path: Path to the YAML file containing session templates
+            file_path: Path to the YAML file containing dialog templates
 
         Returns:
-            Dictionary of template name to SessionTemplate objects
+            Dictionary of template name to DialogTemplate objects
         """
         file_path = Path(file_path)
         if not file_path.exists():
-            logger.error(f"Session template file not found: {file_path}")
+            logger.error(f"Dialog template file not found: {file_path}")
             return {}
 
-        logger.info(f"Loading session templates from file: {file_path}")
+        logger.info(f"Loading dialog templates from file: {file_path}")
 
         try:
             # Load the YAML file
             with open(file_path, 'r') as f:
                 yaml_content = yaml.safe_load(f)
 
-            if not yaml_content or 'session_templates' not in yaml_content:
-                logger.warning(f"No session_templates found in {file_path}")
+            if not yaml_content or 'dialog_templates' not in yaml_content:
+                logger.warning(f"No dialog_templates found in {file_path}")
                 return {}
 
-            templates_dict = yaml_content['session_templates']
+            templates_dict = yaml_content['dialog_templates']
             loaded_templates = {}
             validation_errors = {}
 
@@ -349,11 +349,11 @@ class SessionTemplateLoader:
 
                 if is_valid:
                     loaded_templates[template_name] = template_obj
-                    logger.info(f"Loaded session template: {template_name}")
+                    logger.info(f"Loaded dialog template: {template_name}")
                 else:
                     validation_errors[template_name] = errors
                     error_list = "\n  - ".join([""] + errors)
-                    logger.error(f"Failed to validate session template '{template_name}':{error_list}")
+                    logger.error(f"Failed to validate dialog template '{template_name}':{error_list}")
 
             # If there were validation errors, print a summary
             if validation_errors:
@@ -362,28 +362,28 @@ class SessionTemplateLoader:
                     error_list = "\n  - ".join([""] + errors)
                     logger.error(f"Template '{template_name}' has {len(errors)} errors:{error_list}")
 
-            logger.info(f"Loaded {len(loaded_templates)} session templates from {file_path}")
+            logger.info(f"Loaded {len(loaded_templates)} dialog templates from {file_path}")
             return loaded_templates
         except Exception as e:
-            logger.error(f"Failed to load session templates from {file_path}: {str(e)}")
+            logger.error(f"Failed to load dialog templates from {file_path}: {str(e)}")
             return {}
 
-    def load_from_directory(self, directory: Union[str, Path]) -> Dict[str, SessionTemplate]:
+    def load_from_directory(self, directory: Union[str, Path]) -> Dict[str, DialogTemplate]:
         """
-        Load all session templates from YAML files in a directory.
+        Load all dialog templates from YAML files in a directory.
 
         Args:
             directory: Directory path containing YAML files
 
         Returns:
-            Dictionary of template name to SessionTemplate objects
+            Dictionary of template name to DialogTemplate objects
         """
         directory = Path(directory)
         if not directory.is_dir():
             logger.error(f"Directory not found: {directory}")
             return {}
 
-        logger.info(f"Loading session templates from directory: {directory}")
+        logger.info(f"Loading dialog templates from directory: {directory}")
 
         all_templates = {}
         yaml_extensions = ['.yaml', '.yml']
@@ -394,26 +394,26 @@ class SessionTemplateLoader:
                 templates = self.load_from_file(file_path)
                 all_templates.update(templates)
 
-        logger.info(f"Loaded a total of {len(all_templates)} session templates from directory {directory}")
+        logger.info(f"Loaded a total of {len(all_templates)} dialog templates from directory {directory}")
         return all_templates
 
-    def register_templates(self, templates: Dict[str, SessionTemplate]) -> List[str]:
+    def register_templates(self, templates: Dict[str, DialogTemplate]) -> List[str]:
         """
-        Register loaded session templates in the registry.
+        Register loaded dialog templates in the registry.
 
         Args:
-            templates: Dictionary of template name to SessionTemplate objects
+            templates: Dictionary of template name to DialogTemplate objects
 
         Returns:
             List of registered template names
         """
         # This is a placeholder for future registry integration
-        # Currently, the registry doesn't have a dedicated place for session templates
-        # You might want to add a session_template_manager to the Registry class
+        # Currently, the registry doesn't have a dedicated place for dialog templates
+        # You might want to add a dialog_template_manager to the Registry class
 
         registered_names = []
         for name, template in templates.items():
-            # Future: self.registry.session_template_manager.add_template(name, template)
+            # Future: self.registry.dialog_template_manager.add_template(name, template)
             registered_names.append(name)
 
         return registered_names

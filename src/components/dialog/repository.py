@@ -4,63 +4,63 @@ from psycopg import AsyncConnection
 from psycopg.rows import class_row
 from psycopg.sql import SQL, Identifier
 
-from src.core.models import Session, Message
+from src.core.models import Dialog, Message
 from src.components.base_repository import BaseRepository
 
-class SessionRepository(BaseRepository[Session]):
+class DialogRepository(BaseRepository[Dialog]):
     def __init__(self):
-        super().__init__(Session)
-        self.table_name = "sessions"  # Ensure correct table name
+        super().__init__(Dialog)
+        self.table_name = "dialogs"  # Ensure correct table name
 
-    async def get_recent_sessions(self, conn: AsyncConnection, limit: int = 40) -> List[Session]:
-        """Get the most recent sessions"""
+    async def get_recent_dialogs(self, conn: AsyncConnection, limit: int = 40) -> List[Dialog]:
+        """Get the most recent dialogs"""
         query = SQL("""
             SELECT * FROM {}
             ORDER BY created_at DESC
             LIMIT %s
         """).format(Identifier(self.table_name))
 
-        async with conn.cursor(row_factory=class_row(Session)) as cur:
+        async with conn.cursor(row_factory=class_row(Dialog)) as cur:
             await cur.execute(query, (limit,))
             return await cur.fetchall()
 
-    async def get_active_sessions(self, conn: AsyncConnection) -> List[Session]:
-        """Get all active sessions (running or waiting for input)"""
+    async def get_active_dialogs(self, conn: AsyncConnection) -> List[Dialog]:
+        """Get all active dialogs (running or waiting for input)"""
         query = SQL("""
             SELECT * FROM {}
             WHERE status IN ('running', 'waiting_for_input')
             ORDER BY created_at DESC
         """).format(Identifier(self.table_name))
 
-        async with conn.cursor(row_factory=class_row(Session)) as cur:
+        async with conn.cursor(row_factory=class_row(Dialog)) as cur:
             await cur.execute(query)
             return await cur.fetchall()
 
-    async def get_with_messages(self, conn: AsyncConnection, session_id: UUID) -> Optional[Session]:
-        """Get a session with all its messages"""
-        # First get the session
-        session_query = SQL("SELECT * FROM {} WHERE id = %s").format(Identifier(self.table_name))
+    async def get_with_messages(self, conn: AsyncConnection, dialog_id: UUID) -> Optional[Dialog]:
+        """Get a dialog with all its messages"""
+        # First get the dialog
+        dialog_query = SQL("SELECT * FROM {} WHERE id = %s").format(Identifier(self.table_name))
 
-        async with conn.cursor(row_factory=class_row(Session)) as cur:
-            await cur.execute(session_query, (session_id,))
-            session = await cur.fetchone()
+        async with conn.cursor(row_factory=class_row(Dialog)) as cur:
+            await cur.execute(dialog_query, (dialog_id,))
+            dialog = await cur.fetchone()
 
-            if not session:
+            if not dialog:
                 return None
 
-            # Then get all messages for this session
+            # Then get all messages for this dialog
             messages_query = SQL("""
                 SELECT * FROM messages
-                WHERE session_id = %s
+                WHERE dialog_id = %s
                 ORDER BY timestamp
             """)
 
             # Create a new cursor with the Message row factory
             async with conn.cursor(row_factory=class_row(Message)) as msg_cur:
-                await msg_cur.execute(messages_query, (session_id,))
+                await msg_cur.execute(messages_query, (dialog_id,))
                 messages = await msg_cur.fetchall()
 
             # Manually set the messages relationship
-            session.messages = messages
+            dialog.messages = messages
 
-            return session
+            return dialog

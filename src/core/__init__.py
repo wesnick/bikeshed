@@ -1,9 +1,9 @@
 from src.core.models import (
     Message,
-    Session,
+    Dialog,
 )
 
 __all__ = [
     'Message',
-    'Session',
+    'Dialog',
 ]

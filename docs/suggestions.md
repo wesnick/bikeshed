@@ -3,20 +3,20 @@ I have several suggestions for improving your AI workflow app schema:
 
 This would allow you to categorize messages (e.g., "reasoning", "question", "conclusion") and easily retrieve related content.
 
-### 2. Session Dependencies and Sequencing
+### 2. Dialog Dependencies and Sequencing
 
-For Flows with multiple Sessions, you might want to model dependencies between them:
+For Flows with multiple Dialogs, you might want to model dependencies between them:
 
 ```python
-class SessionDependency(Base):
-    __tablename__ = 'session_dependencies'
+class DialogDependency(Base):
+    __tablename__ = 'dialog_dependencies'
     
-    predecessor_id = Column(UUID(as_uuid=True), ForeignKey('sessions.id'), primary_key=True)
-    successor_id = Column(UUID(as_uuid=True), ForeignKey('sessions.id'), primary_key=True)
+    predecessor_id = Column(UUID(as_uuid=True), ForeignKey('dialogs.id'), primary_key=True)
+    successor_id = Column(UUID(as_uuid=True), ForeignKey('dialogs.id'), primary_key=True)
     dependency_type = Column(String(50))  # e.g., "requires", "enhances"
 ```
 
-This would enable more complex flow orchestration where certain sessions must complete before others can begin.
+This would enable more complex flow orchestration where certain dialogs must complete before others can begin.
 
 ### 3. Built-in Prompts Library
 
@@ -34,19 +34,19 @@ class PromptTemplate(Base):
     tags = Column(ARRAY(String))
 ```
 
-This would allow you to build a library of effective prompts that can be quickly applied to new sessions.
+This would allow you to build a library of effective prompts that can be quickly applied to new dialogs.
 
 ### 4. Branching Exploration
 
 Consider adding support for exploring multiple directions from a single point:
 
 ```python
-class SessionBranch(Base):
-    __tablename__ = 'session_branches'
+class DialogBranch(Base):
+    __tablename__ = 'dialog_branches'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    original_session_id = Column(UUID(as_uuid=True), ForeignKey('sessions.id'))
-    branch_session_id = Column(UUID(as_uuid=True), ForeignKey('sessions.id'))
+    original_dialog_id = Column(UUID(as_uuid=True), ForeignKey('dialogs.id'))
+    branch_dialog_id = Column(UUID(as_uuid=True), ForeignKey('dialogs.id'))
     branch_name = Column(String(255))
     branch_point_message_id = Column(UUID(as_uuid=True), ForeignKey('messages.id'))
 ```
@@ -62,7 +62,7 @@ class UsageMetrics(Base):
     __tablename__ = 'usage_metrics'
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    session_id = Column(UUID(as_uuid=True), ForeignKey('sessions.id'))
+    dialog_id = Column(UUID(as_uuid=True), ForeignKey('dialogs.id'))
     model = Column(String(100))
     tokens_input = Column(Integer)
     tokens_output = Column(Integer)
@@ -90,7 +90,7 @@ class MessageEmbedding(Base):
 ```
 
 4. **Microservices Approach**: Break the system into specialized services:
-   - Conversation service (messages, sessions)
+   - Conversation service (messages, dialogs)
    - Flow orchestration service
    - Artifact management service
    - Template management service

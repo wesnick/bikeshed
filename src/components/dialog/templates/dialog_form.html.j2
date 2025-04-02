@@ -1,6 +1,6 @@
-<form id="session-form"
+<form id="dialog-form"
       hx-ext="form-json"
-      hx-post="/session/session-submit"
+      hx-post="/dialog/dialog-submit"
       hx-target="#messages-container"
       hx-on::after-request="this.reset();">
   <div class="field">
@@ -36,7 +36,7 @@
         <span>Generate Completion</span>
       </button>
     </div>
-    {% if session.status == 'waiting_for_input' %}
+    {% if dialog.status == 'waiting_for_input' %}
       <div class="control">
         <button type="submit" name="continue_button" class="button is-primary">
           <span class="icon">
@@ -47,5 +47,5 @@
       </div>
     {% endif %}
   </div>
-  <input type="hidden" name="session_id" value="{{ session.id }}">
+  <input type="hidden" name="dialog_id" value="{{ dialog.id }}">
 </form>

@@ -10,7 +10,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-create table sessions
+create table dialogs
 (
     id            uuid      not null primary key,
     description   text,
@@ -24,16 +24,16 @@ create table sessions
     error         text
 );
 
--- Apply timestamp trigger to sessions table
-CREATE TRIGGER update_timestamp_sessions
-BEFORE UPDATE ON sessions
+-- Apply timestamp trigger to dialogs table
+CREATE TRIGGER update_timestamp_dialogs
+BEFORE UPDATE ON dialogs
 FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
 create table messages
 (
     id         uuid         not null primary key,
     parent_id  uuid references messages,
-    session_id uuid         not null references sessions,
+    dialog_id uuid         not null references dialogs,
     role       varchar(50)  not null,
     model      varchar(100),
     text       text         not null,

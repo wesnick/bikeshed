@@ -1,18 +1,18 @@
 # Schema version for compatibility tracking
 version: "1.0.0"
 
-# Overall session structure definition
-session_prototype:
+# Overall dialog structure definition
+dialog_prototype:
   # Metadata will be persisted on executions (all fields optional)
-  description: string           # Brief description of the session
-  goal: string                  # Desired outcome of the session
+  description: string           # Brief description of the dialog
+  goal: string                  # Desired outcome of the dialog
   metadata:
     tags: list[string]          # List of categorization tags
-    owner: string               # Owner/creator of the session
-    version: string             # Version of this specific session definition
+    owner: string               # Owner/creator of the dialog
+    version: string             # Version of this specific dialog definition
     # Additional arbitrary metadata fields allowed
 
-  # Core session configuration
+  # Core dialog configuration
   model: string                 # Default LLM model to use
   model_extra: dict            # dictionary of model configuration, optional
 
@@ -23,8 +23,8 @@ session_prototype:
   roots: list[string]           # List of root identifiers
 
   # Schema validation (optional)
-  input_schema: string          # Registered schema name for session input
-  output_schema: string         # Registered schema name for session output
+  input_schema: string          # Registered schema name for dialog input
+  output_schema: string         # Registered schema name for dialog output
 
   # Execution behavior
   error_handling:               # Default error handling strategy

@@ -1,9 +1,9 @@
-<!-- Sessions List -->
+<!-- Dialogs List -->
 <div class="container">
-  <h1 class="title">Sessions</h1>
+  <h1 class="title">Dialogs</h1>
   <div class="box">
-    <h2 class="subtitle">Existing Sessions</h2>
-    {% if sessions %}
+    <h2 class="subtitle">Existing Dialogs</h2>
+    {% if dialogs %}
       <div class="table-container">
         <table class="table is-fullwidth">
           <thead>
@@ -15,14 +15,14 @@
             </tr>
           </thead>
           <tbody>
-            {% for session in sessions %}
+            {% for dialog in dialogs %}
               <tr>
-                <td>{{ session.summary or "Untitled Session" }}</td>
-                <td>{{ session.goal or "" }}</td>
-                <td>{{ session.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                <td>{{ dialog.summary or "Untitled Dialog" }}</td>
+                <td>{{ dialog.goal or "" }}</td>
+                <td>{{ dialog.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
                 <td>
                   <a class="button is-small is-info"
-                     hx-get="/session/{{ session.id }}"
+                     hx-get="/dialog/{{ dialog.id }}"
                      hx-target=".dashboard"
                      hx-push-url="true">View</a>
                 </td>
@@ -32,7 +32,7 @@
         </table>
       </div>
     {% else %}
-      <p>No sessions found. Create one to get started!</p>
+      <p>No dialogs found. Create one to get started!</p>
     {% endif %}
   </div>
 </div>

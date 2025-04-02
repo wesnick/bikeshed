@@ -4,7 +4,7 @@
      hx-trigger="refresh from:body">
   <div class="dropdown-trigger">
     <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
-      <span>Sessions
+      <span>Dialogs
         {% if total_running > 0 %}<span class="tag is-rounded is-primary">{{ total_running }}</span>{% endif %}
         {% if total_waiting > 0 %}<span class="tag is-rounded is-warning">{{ total_waiting }}</span>{% endif %}
       </span>
@@ -14,19 +14,19 @@
   <div class="dropdown-menu" id="dropdown-menu" role="menu">
     <div class="dropdown-content">
       {% if total_running == 0 and total_waiting == 0 %}
-        <div class="dropdown-item">No active sessions</div>
+        <div class="dropdown-item">No active dialogs</div>
       {% else %}
         {% if total_running > 0 %}
           <div class="dropdown-item">
             <p class="has-text-weight-bold">Running</p>
           </div>
-          {% for session in running_sessions %}
-            <a hx-get="/session/{{ session.id }}"
+          {% for dialog in running_dialogs %}
+            <a hx-get="/dialog/{{ dialog.id }}"
                hx-target=".dashboard"
                hx-push-url="true"
                class="dropdown-item">
-              {{ session.description or "Session " + session.id|string }}
-              <span class="tag is-primary is-light">{{ session.status }}</span>
+              {{ dialog.description or "Dialog " + dialog.id|string }}
+              <span class="tag is-primary is-light">{{ dialog.status }}</span>
             </a>
           {% endfor %}
         {% endif %}
@@ -35,13 +35,13 @@
           <div class="dropdown-item">
             <p class="has-text-weight-bold">Waiting for Input</p>
           </div>
-          {% for session in waiting_sessions %}
-            <a hx-get="/session/{{ session.id }}"
+          {% for dialog in waiting_dialogs %}
+            <a hx-get="/dialog/{{ dialog.id }}"
                hx-target=".dashboard"
                hx-push-url="true"
                class="dropdown-item">
-              {{ session.description or "Session " + session.id|string }}
-              <span class="tag is-warning is-light">{{ session.status }}</span>
+              {{ dialog.description or "Dialog " + dialog.id|string }}
+              <span class="tag is-warning is-light">{{ dialog.status }}</span>
             </a>
           {% endfor %}
         {% endif %}

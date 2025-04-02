@@ -3,9 +3,9 @@ import uuid
 
 from psycopg import AsyncConnection
 
-from src.core.config_types import SessionTemplate, Step
+from src.core.config_types import DialogTemplate, Step
 from src.core.registry import Registry
-from src.core.models import Session, SessionStatus
+from src.core.models import Dialog, DialogStatus
 from src.core.workflow.engine import WorkflowEngine, WorkflowTransitionResult
 from src.core.workflow.persistence import DatabasePersistenceProvider
 from src.core.workflow.handlers.message import MessageStepHandler
@@ -49,124 +49,124 @@ class WorkflowService:
         self.broadcast_service = broadcast_service
 
 
-    async def create_session_from_template(
+    async def create_dialog_from_template(
             self,
-            template: SessionTemplate,
+            template: DialogTemplate,
             description: Optional[str] = None,
             goal: Optional[str] = None,
             initial_data: Optional[Dict] = None
-    ) -> Session:
-        """Create a new session from a template"""
-        # Create session data
-        session_data = {
+    ) -> Dialog:
+        """Create a new dialog from a template"""
+        # Create dialog data
+        dialog_data = {
             "id": uuid.uuid4(),
             "description": description or template.description,
             "goal": goal or template.goal,
             "template": template,
-            "status": SessionStatus.PENDING,
+            "status": DialogStatus.PENDING,
             "workflow_data": initial_data or {}
         }
 
-        # Create session in database
-        session = await self.persistence.create_session(session_data)
+        # Create dialog in database
+        dialog = await self.persistence.create_dialog(dialog_data)
 
         # Initialize workflow
-        return await self.engine.initialize_session(session)
+        return await self.engine.initialize_dialog(dialog)
 
-    async def get_session(self, session_id: uuid.UUID) -> Optional[Session]:
-        """Get a session by ID and initialize its workflow"""
-        session = await self.persistence.load_session(session_id)
-        if not session:
+    async def get_dialog(self, dialog_id: uuid.UUID) -> Optional[Dialog]:
+        """Get a dialog by ID and initialize its workflow"""
+        dialog = await self.persistence.load_dialog(dialog_id)
+        if not dialog:
             return None
 
-        return await self.engine.initialize_session(session)
+        return await self.engine.initialize_dialog(dialog)
 
-    async def run_workflow(self, session: Session) -> None:
+    async def run_workflow(self, dialog: Dialog) -> None:
         """Run the workflow until completion or waiting for input"""
         while True:
-            # Broadcast session update
-            await self.broadcast_service.broadcast("session.update", str(session.id))
+            # Broadcast dialog update
+            await self.broadcast_service.broadcast("dialog.update", str(dialog.id))
             # Broadcast notification update
             await self.broadcast_service.broadcast("notifications.update", "refresh")
 
-            exec_result = await self.engine.execute_next_step(session)
+            exec_result = await self.engine.execute_next_step(dialog)
 
-            # Broadcast session update
-            await self.broadcast_service.broadcast("session.update", str(session.id))
+            # Broadcast dialog update
+            await self.broadcast_service.broadcast("dialog.update", str(dialog.id))
             # Broadcast notification update
             await self.broadcast_service.broadcast("notifications.update", "refresh")
 
-            if not exec_result.success or session.status == SessionStatus.WAITING_FOR_INPUT:
+            if not exec_result.success or dialog.status == DialogStatus.WAITING_FOR_INPUT:
                 break
 
     async def provide_user_input(
             self,
-            session_id: uuid.UUID,
+            dialog_id: uuid.UUID,
             user_input: Union[str, Dict[str, Any]]
     ) -> WorkflowTransitionResult:
         """Provide user input for a waiting step"""
-        session = await self.get_session(session_id)
-        if not session:
+        dialog = await self.get_dialog(dialog_id)
+        if not dialog:
             return WorkflowTransitionResult(
                 success=False,
                 state="unknown",
-                message=f"Session {session_id} not found"
+                message=f"Dialog {dialog_id} not found"
             )
 
-        if session.status != SessionStatus.WAITING_FOR_INPUT:
+        if dialog.status != DialogStatus.WAITING_FOR_INPUT:
             return WorkflowTransitionResult(
                 success=False,
-                state=session.current_state,
-                message="Session is not waiting for input"
+                state=dialog.current_state,
+                message="Dialog is not waiting for input"
             )
 
         # Handle different input types
-        if session.workflow_data and 'missing_variables' in session.workflow_data.variables:
+        if dialog.workflow_data and 'missing_variables' in dialog.workflow_data.variables:
             # For variable inputs
             if not isinstance(user_input, dict):
                 return WorkflowTransitionResult(
                     success=False,
-                    state=session.current_state,
+                    state=dialog.current_state,
                     message="Expected dictionary for variable inputs"
                 )
 
             # Update variables
-            session.workflow_data.variables.update(user_input)
+            dialog.workflow_data.variables.update(user_input)
 
             # Clear missing variables flag
-            session.workflow_data.variables.pop('missing_variables')
+            dialog.workflow_data.variables.pop('missing_variables')
         else:
             # For user_input steps
-            if session.workflow_data:
-                session.workflow_data.variables['user_input'] = user_input
+            if dialog.workflow_data:
+                dialog.workflow_data.variables['user_input'] = user_input
 
         # Save changes
-        await self.persistence.save_session(session)
+        await self.persistence.save_dialog(dialog)
 
         # Execute next step
-        return await self.engine.execute_next_step(session)
+        return await self.engine.execute_next_step(dialog)
 
-    async def create_workflow_graph(self, session: Session) -> Optional[str]:
+    async def create_workflow_graph(self, dialog: Dialog) -> Optional[str]:
         """Create a visualization of the workflow"""
-        return await WorkflowVisualizer.create_graph(session)
+        return await WorkflowVisualizer.create_graph(dialog)
 
-    async def visualize_workflow(self, session: Session) -> Optional[str]:
+    async def visualize_workflow(self, dialog: Dialog) -> Optional[str]:
         """
         Generate a visual representation of the workflow
 
         Args:
-            session: The session to visualize
+            dialog: The dialog to visualize
 
         Returns:
             SVG representation of the workflow graph
         """
-        # Make sure the session has a state machine
-        if not hasattr(session, 'machine') or session.machine is None:
-            await self.engine.initialize_session(session)
+        # Make sure the dialog has a state machine
+        if not hasattr(dialog, 'machine') or dialog.machine is None:
+            await self.engine.initialize_dialog(dialog)
 
-        return await WorkflowVisualizer.create_graph(session)
+        return await WorkflowVisualizer.create_graph(dialog)
 
-    async def analyze_workflow_dependencies(self, template: SessionTemplate) -> Dict[str, Any]:
+    async def analyze_workflow_dependencies(self, template: DialogTemplate) -> Dict[str, Any]:
         """
         Analyze a workflow template to identify input requirements and output provisions.
 

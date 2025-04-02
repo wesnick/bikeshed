@@ -4,10 +4,10 @@ from psycopg import AsyncConnection
 from src.service.user_state import UserStateService
 from src.dependencies import get_user_state_service
 
-from src.core.models import SessionStatus
+from src.core.models import DialogStatus
 from src.core.registry import Registry
 from src.dependencies import get_db, get_jinja, get_registry
-from src.components.repositories import session_repository
+from src.components.repositories import dialog_repository
 
 import uuid
 
@@ -23,16 +23,16 @@ jinja = get_jinja("src/components/navigation/templates")
 @jinja.hx('left_sidebar.html.j2')
 async def left_sidebar_component(db: AsyncConnection = Depends(get_db), registry: Registry = Depends(get_registry)) -> dict:
     """This route serves the left sidebar component for htmx requests."""
-    sessions = await session_repository.get_recent_sessions(db)
+    dialogs = await dialog_repository.get_recent_dialogs(db)
 
-    session_templates = registry.session_templates
+    dialog_templates = registry.dialog_templates
 
     return {
         "flows": [],
-        "sessions": sessions,
+        "dialogs": dialogs,
         "tools": [],
         "prompts": [],
-        "session_templates": session_templates,
+        "dialog_templates": dialog_templates,
     }
 
 
@@ -55,11 +55,11 @@ class PathBasedTemplateSelector:
 
         # switch statement
         match url_parts[0]:
-            case 'session':
+            case 'dialog':
                 # test if uuid
                 try:
                     uuid.UUID(url_parts[1])
-                    return 'session_context.html.j2'
+                    return 'dialog_context.html.j2'
                 except ValueError:
                     pass
 
@@ -72,13 +72,13 @@ async def right_drawer_component(request: Request, db: AsyncConnection = Depends
     url_parts = PathBasedTemplateSelector.parse_request_parts(request)
 
     match url_parts:
-        case ['session', session_id]:
-            from src.components.dialog.repository import SessionRepository
-            session_repo = SessionRepository()
-            session = await session_repo.get_by_id(db, session_id)
+        case ['dialog', dialog_id]:
+            from src.components.dialog.repository import DialogRepository
+            dialog_repo = DialogRepository()
+            dialog = await dialog_repo.get_by_id(db, dialog_id)
             return {
-                'entity_id': session.id,
-                'entity_type': 'session'
+                'entity_id': dialog.id,
+                'entity_type': 'dialog'
             }
 
     return {
@@ -91,18 +91,18 @@ async def right_drawer_component(request: Request, db: AsyncConnection = Depends
 @jinja.hx('navbar-notifications.html.j2')
 async def navbar_component(db: AsyncConnection = Depends(get_db)):
     """This route serves the navbar component for htmx requests."""
-    from src.components.dialog.repository import SessionRepository
+    from src.components.dialog.repository import DialogRepository
 
-    session_repo = SessionRepository()
-    active_sessions = await session_repo.get_active_sessions(db)
+    dialog_repo = DialogRepository()
+    active_dialogs = await dialog_repo.get_active_dialogs(db)
 
-    running_sessions = [s for s in active_sessions if s.status == SessionStatus.RUNNING]
-    waiting_sessions = [s for s in active_sessions if s.status == SessionStatus.WAITING_FOR_INPUT]
+    running_dialogs = [s for s in active_dialogs if s.status == DialogStatus.RUNNING]
+    waiting_dialogs = [s for s in active_dialogs if s.status == DialogStatus.WAITING_FOR_INPUT]
 
     return {
-        'total_running': len(running_sessions),
-        'total_waiting': len(waiting_sessions),
-        'running_sessions': running_sessions,
-        'waiting_sessions': waiting_sessions
+        'total_running': len(running_dialogs),
+        'total_waiting': len(waiting_dialogs),
+        'running_dialogs': running_dialogs,
+        'waiting_dialogs': waiting_dialogs
     }
 

@@ -2,7 +2,7 @@ import json
 
 import litellm
 from typing import Optional, Callable, Awaitable
-from src.core.models import Session, Message, MessageStatus
+from src.core.models import Dialog, Message, MessageStatus
 from .base import CompletionService, LLMException
 
 
@@ -11,33 +11,33 @@ class LiteLLMCompletionService(CompletionService):
         self.broadcast_service = broadcast_service
         # litellm.suppress_debug_info = True
 
-    def supports(self, session: Session) -> bool:
+    def supports(self, dialog: Dialog) -> bool:
         """
-        Check if this service supports the given session.
-        By default, supports sessions with 'litellm' in metadata or no specific provider.
+        Check if this service supports the given dialog.
+        By default, supports dialogs with 'litellm' in metadata or no specific provider.
 
         Args:
-            session: The session to check
+            dialog: The dialog to check
 
         Returns:
-            True if this service can handle the session
+            True if this service can handle the dialog
         """
-        # If session has metadata specifying the provider
-        step = session.get_current_step()
+        # If dialog has metadata specifying the provider
+        step = dialog.get_current_step()
         if step and step.config_extra:
             if 'model' in step.config_extra:
                 return True
 
-        return session.template.model is not None
+        return dialog.template.model is not None
 
     async def complete(
         self,
-        session: Session,
+        dialog: Dialog,
         broadcast: Optional[Callable[[Message], Awaitable[None]]] = None
     ) -> Message:
         try:
-            messages = self._prepare_messages(session)
-            assistant_msg = session.messages[-1]
+            messages = self._prepare_messages(dialog)
+            assistant_msg = dialog.messages[-1]
             model = assistant_msg.model
 
             from src.service.logging import logger
@@ -47,7 +47,7 @@ class LiteLLMCompletionService(CompletionService):
             # Broadcast that we're starting LLM processing
             if self.broadcast_service:
                 await self.broadcast_service.broadcast("llm_update", {
-                    "session_id": str(session.id),
+                    "dialog_id": str(dialog.id),
                     "status": "processing",
                     "message_id": str(assistant_msg.id)
                 })
@@ -79,7 +79,7 @@ class LiteLLMCompletionService(CompletionService):
             # Broadcast completion
             if self.broadcast_service:
                 await self.broadcast_service.broadcast("llm_update", {
-                    "session_id": str(session.id),
+                    "dialog_id": str(dialog.id),
                     "status": "completed",
                     "message_id": str(assistant_msg.id)
                 })
@@ -92,7 +92,7 @@ class LiteLLMCompletionService(CompletionService):
             # Broadcast error
             if self.broadcast_service:
                 await self.broadcast_service.broadcast("llm_update", {
-                    "session_id": str(session.id),
+                    "dialog_id": str(dialog.id),
                     "status": "error",
                     "message_id": str(assistant_msg.id),
                     "error": str(e)

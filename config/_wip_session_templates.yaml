@@ -1,12 +1,12 @@
 
-session_templates:
+dialog_templates:
   hone_idea:
     description: Hone a business idea, produce high level goal
     metadata:
       tags: ['ideation', 'business']
       owner: wesnick
       version: 0.1
-    model: "ollama_chat/qwq"
+    model: "ollama_chat/qwq:latest"
     steps:
       - name: System setup
         type: message

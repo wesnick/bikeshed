@@ -4,7 +4,7 @@ import uuid
 from src.core.registry import Registry
 from src.core.workflow.engine import StepHandler
 from src.core.config_types import MessageStep, Step
-from src.core.models import Session, Message, MessageStatus, SessionStatus
+from src.core.models import Dialog, Message, MessageStatus, DialogStatus
 
 
 class MessageStepHandler(StepHandler):
@@ -19,31 +19,31 @@ class MessageStepHandler(StepHandler):
         """
         self.registry = registry
 
-    async def can_handle(self, session: Session, step: Step) -> bool:
+    async def can_handle(self, dialog: Dialog, step: Step) -> bool:
         """Check if the step can be handled"""
         return isinstance(step, MessageStep)
 
-    async def handle(self, session: Session, step: Step) -> Dict[str, Any]:
+    async def handle(self, dialog: Dialog, step: Step) -> Dict[str, Any]:
         """Handle a message step"""
         if not isinstance(step, MessageStep):
             raise TypeError(f"Expected MessageStep but got {type(step)}")
 
         # Set status to running
-        session.status = SessionStatus.RUNNING
+        dialog.status = DialogStatus.RUNNING
 
         # Determine the message content based on the step configuration
-        message_content = await self._get_message_content(session, step)
+        message_content = await self._get_message_content(dialog, step)
 
         # Create a message in the database
         message = Message(
             id=uuid.uuid4(),
-            session_id=session.id,
+            dialog_id=dialog.id,
             role=step.role,
             text=message_content,
             status=MessageStatus.CREATED
         )
 
-        session.messages.append(message)
+        dialog.messages.append(message)
 
         # Return step result
         return {
@@ -51,14 +51,14 @@ class MessageStepHandler(StepHandler):
             'content': message_content
         }
 
-    async def _get_message_content(self, session: Session, step: MessageStep) -> str:
+    async def _get_message_content(self, dialog: Dialog, step: MessageStep) -> str:
         """Get the content for a message step"""
         if step.content is not None:
             return step.content
 
         if step.template is not None:
             # Get variables and template args
-            variables = session.workflow_data.variables
+            variables = dialog.workflow_data.variables
             template_args = step.template_args or {}
 
             # Combine variables and template args

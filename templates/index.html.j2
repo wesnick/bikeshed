@@ -52,7 +52,7 @@
           <div class="navbar-end">
             <div class="navbar-item"
                  hx-get="/components/navbar-notifications"
-                 hx-trigger="load, sse:session_update, sse:notifications.update">
+                 hx-trigger="load, sse:dialog_update, sse:notifications.update">
               {% include 'components/skeleton.html.j2' %}
             </div>
             <div class="navbar-item">

@@ -1,4 +1,4 @@
-from src.components.dialog.repository import SessionRepository
+from src.components.dialog.repository import DialogRepository
 from src.components.message.repository import MessageRepository
 from src.components.tag.repository import TagRepository
 from src.components.tag.entity_repository import EntityTagRepository
@@ -10,7 +10,7 @@ from src.components.root.file_repository import RootFileRepository
 
 
 # Create instances for dependency injection
-session_repository = SessionRepository()
+dialog_repository = DialogRepository()
 message_repository = MessageRepository()
 tag_repository = TagRepository()
 entity_tag_repository = EntityTagRepository()

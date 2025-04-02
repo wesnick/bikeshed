@@ -3,21 +3,21 @@ from typing import Any, Dict, List, Literal, Optional, Union, Set
 from pydantic import BaseModel, Field, model_validator
 
 
-## Session Template Configuration classes
+## Dialog Template Configuration classes
 
 class Metadata(BaseModel):
-    """Metadata for session execution."""
+    """Metadata for dialog execution."""
     tags: Optional[List[str]] = Field(
         default=None,
-        description="List of categorization tags for the session"
+        description="List of categorization tags for the dialog"
     )
     owner: Optional[str] = Field(
         default=None,
-        description="Owner or creator of the session"
+        description="Owner or creator of the dialog"
     )
     version: Optional[Union[str, float]] = Field(
         default=None,
-        description="Version of this specific session definition"
+        description="Version of this specific dialog definition"
     )
     # Allow additional fields
     model_config = {
@@ -259,10 +259,10 @@ class InvokeStep(BaseStep):
 Step = Union[MessageStep, PromptStep, UserInputStep, InvokeStep]
 
 
-class SessionTemplate(BaseModel):
-    """Core session configuration."""
+class DialogTemplate(BaseModel):
+    """Core dialog configuration."""
     name: str = Field(
-        description="Unique identifier for the session template"
+        description="Unique identifier for the dialog template"
     )
     model: str = Field(
         description="Default LLM model to use"
@@ -272,15 +272,15 @@ class SessionTemplate(BaseModel):
     )
     description: Optional[str] = Field(
         default=None,
-        description="Brief description of the session"
+        description="Brief description of the dialog"
     )
     goal: Optional[str] = Field(
         default=None,
-        description="Desired outcome of the session"
+        description="Desired outcome of the dialog"
     )
     metadata: Optional[Metadata] = Field(
         default=None,
-        description="Additional metadata for the session"
+        description="Additional metadata for the dialog"
     )
     config_extra: Optional[Dict[str, Any]] = Field(
         default=None,
@@ -300,11 +300,11 @@ class SessionTemplate(BaseModel):
     )
     input_schema: Optional[str] = Field(
         default=None,
-        description="Registered schema name for session input"
+        description="Registered schema name for dialog input"
     )
     output_schema: Optional[str] = Field(
         default=None,
-        description="Registered schema name for session output"
+        description="Registered schema name for dialog output"
     )
     error_handling: Optional[ErrorHandling] = Field(
         default=None,
@@ -312,7 +312,7 @@ class SessionTemplate(BaseModel):
     )
 
     @model_validator(mode='after')
-    def validate_steps(self) -> 'SessionTemplate':
+    def validate_steps(self) -> 'DialogTemplate':
         """Validate that steps are properly configured."""
         if not self.steps:
             raise ValueError("At least one step must be provided")
@@ -327,11 +327,11 @@ class SessionTemplate(BaseModel):
                         f"referenced in step '{step.name}' does not exist"
                     )
 
-        # Check session-level error handling
+        # Check dialog-level error handling
         if self.error_handling and self.error_handling.fallback_step:
             if self.error_handling.fallback_step not in step_names:
                 raise ValueError(
-                    f"Session-level fallback step '{self.error_handling.fallback_step}' does not exist"
+                    f"Dialog-level fallback step '{self.error_handling.fallback_step}' does not exist"
                 )
 
         return self
@@ -397,4 +397,4 @@ class Model(BaseModel):
         return self
 
 
-SessionTemplate.model_json_schema()
+DialogTemplate.model_json_schema()

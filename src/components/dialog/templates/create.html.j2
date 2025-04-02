@@ -1,19 +1,19 @@
 <div class="box">
-  <h2 class="subtitle">Create New Session</h2>
-  <form hx-post="/session/" hx-target=".dashboard">
+  <h2 class="subtitle">Create New Dialog</h2>
+  <form hx-post="/dialog/" hx-target=".dashboard">
     <div class="field">
       <label class="label">Summary</label>
       <div class="control">
         <input class="input"
                type="text"
                name="summary"
-               placeholder="Session summary">
+               placeholder="Dialog summary">
       </div>
     </div>
     <div class="field">
       <label class="label">Goal</label>
       <div class="control">
-        <input class="input" type="text" name="goal" placeholder="Session goal">
+        <input class="input" type="text" name="goal" placeholder="Dialog goal">
       </div>
     </div>
     <div class="field">
@@ -21,12 +21,12 @@
       <div class="control">
         <textarea class="textarea"
                   name="system_prompt"
-                  placeholder="System prompt for this session"></textarea>
+                  placeholder="System prompt for this dialog"></textarea>
       </div>
     </div>
     <div class="field">
       <div class="control">
-        <button class="button is-primary" type="submit">Create Session</button>
+        <button class="button is-primary" type="submit">Create Dialog</button>
       </div>
     </div>
   </form>

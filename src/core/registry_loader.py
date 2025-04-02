@@ -4,7 +4,7 @@ from typing import Dict, List, Any
 from mcp import StdioServerParameters
 
 from src.core.registry import Registry
-from src.core.config_loader import SchemaLoader, TemplateLoader, SessionTemplateLoader
+from src.core.config_loader import SchemaLoader, TemplateLoader, DialogTemplateLoader
 from src.core.config_types import Model
 from src.service.logging import logger
 
@@ -108,22 +108,22 @@ class RegistryBuilder:
             except Exception as e:
                 logger.error(f"Failed to load MCP server configuration for {name}: {str(e)}")
 
-    def _load_session_templates(self, templates_dir: str = "config") -> None:
+    def _load_dialog_templates(self, templates_dir: str = "config") -> None:
         """
-        Load session templates from the specified directory.
+        Load dialog templates from the specified directory.
 
         Args:
-            templates_dir: Directory containing session template YAML files
+            templates_dir: Directory containing dialog template YAML files
         """
-        logger.info(f"Loading session templates from directory: {templates_dir}")
-        template_loader = SessionTemplateLoader(self.registry)
+        logger.info(f"Loading dialog templates from directory: {templates_dir}")
+        template_loader = DialogTemplateLoader(self.registry)
         try:
             templates = template_loader.load_from_directory(templates_dir)
             for name, template in templates.items():
-                self.registry.add_session_template(name, template)
-            logger.info(f"Loaded {len(templates)} session templates")
+                self.registry.add_dialog_template(name, template)
+            logger.info(f"Loaded {len(templates)} dialog templates")
         except Exception as e:
-            logger.error(f"Failed to load session templates from {templates_dir}: {str(e)}")
+            logger.error(f"Failed to load dialog templates from {templates_dir}: {str(e)}")
 
     def _load_models(self) -> None:
         """
@@ -285,9 +285,9 @@ class RegistryBuilder:
         # Connect to MCP servers
         await self.connect_mcp_servers()
 
-        # Load session templates
-        templates_dir = self.config.get('session_templates_dir', 'config')
-        self._load_session_templates(templates_dir)
+        # Load dialog templates
+        templates_dir = self.config.get('dialog_templates_dir', 'config')
+        self._load_dialog_templates(templates_dir)
 
         # Load available LLM models
         self._load_models()

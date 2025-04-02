@@ -184,14 +184,14 @@ def hello():
 # @click.command()
 # @click.argument('files', nargs=-1, required=True)
 # @click.option('--validate-only', is_flag=True, help="Only validate templates without registering them")
-# def load_session_templates(files, validate_only):
-#     """Load session templates from YAML files."""
+# def load_dialog_templates(files, validate_only):
+#     """Load dialog templates from YAML files."""
 #     from src.core.registry import Registry
-#     from src.core.config_loader import SessionTemplateLoader
+#     from src.core.config_loader import DialogTemplateLoader
 #     from rich.table import Table
 #
 #     registry = Registry()
-#     loader = SessionTemplateLoader(registry)
+#     loader = DialogTemplateLoader(registry)
 #
 #     total_templates = {}
 #     for file_path in files:
@@ -199,7 +199,7 @@ def hello():
 #         total_templates.update(templates)
 #
 #     # Create a nice summary table
-#     table = Table(title="Session Template Loading Results")
+#     table = Table(title="Dialog Template Loading Results")
 #     table.add_column("File", style="cyan")
 #     table.add_column("Templates", style="green")
 #     table.add_column("Status", style="yellow")
@@ -240,14 +240,14 @@ def hello():
 #         registry = await get_registry().__anext__()
 #         service = await get_workflow_service().__anext__()
 #
-#         template = registry.get_session_template(template_name)
+#         template = registry.get_dialog_template(template_name)
 #         if not template:
 #             console.print(f"[bold red]Error:[/bold red] Template not found: {template_name}")
 #             return
 #
 #         with (console.status(f"Creating and running workflow from template '{template_name}'...")):
 #             try:
-#                 session = await service.create_session_from_template(
+#                 dialog = await service.create_dialog_from_template(
 #                     template=template,
 #                     initial_data ={
 #                         'variables': {
@@ -256,23 +256,23 @@ def hello():
 #                     }
 #                 )
 #
-#                 await service.run_workflow(session)
+#                 await service.run_workflow(dialog)
 #
 #                 print("Updated diagram saved")
 #
 #                 # # Run the workflow
-#                 # step = session.get_current_step()
+#                 # step = dialog.get_current_step()
 #                 # while step:
-#                 #     await workflow_service.execute_next_step(session)
-#                 #     step = session.get_current_step()
+#                 #     await workflow_service.execute_next_step(dialog)
+#                 #     step = dialog.get_current_step()
 #                 #
 #                 # # Ensure any remaining resources are cleaned up
 #                 # await asyncio.sleep(0.1)  # Small delay to allow async tasks to complete
 #                 #
 #                 console.print("[bold green]Workflow completed successfully![/bold green]")
-#                 console.print(f"[bold]Session ID:[/bold] {session.id}")
-#                 console.print(f"[bold]Status:[/bold] {session.status}")
-#                 console.print(f"[bold]Final state:[/bold] {session.current_state}")
+#                 console.print(f"[bold]Dialog ID:[/bold] {dialog.id}")
+#                 console.print(f"[bold]Status:[/bold] {dialog.status}")
+#                 console.print(f"[bold]Final state:[/bold] {dialog.current_state}")
 #
 #             except Exception as e:
 #                 console.print(f"[bold red]Error:[/bold red] {str(e)}")
@@ -282,27 +282,27 @@ def hello():
 #
 # @click.command()
 # @click.argument('description')
-# @click.option('--goal', '-g', help='Optional goal for the session')
+# @click.option('--goal', '-g', help='Optional goal for the dialog')
 # def create_ad_hoc(description: str, goal: Optional[str] = None):
-#     """Create a new ad-hoc session without a workflow."""
+#     """Create a new ad-hoc dialog without a workflow."""
 #     import asyncio
-#     from src.dependencies import async_session_factory
-#     from src.service.session import SessionService
+#     from src.dependencies import async_dialog_factory
+#     from src.service.dialog import DialogService
 #
 #     async def _create_ad_hoc():
-#         session_service = SessionService()
+#         dialog_service = DialogService()
 #
-#         async with async_session_factory() as db:
-#             with console.status("Creating ad-hoc session..."):
+#         async with async_dialog_factory() as db:
+#             with console.status("Creating ad-hoc dialog..."):
 #                 try:
-#                     session = await session_service.create_ad_hoc_session(db, description, goal)
+#                     dialog = await dialog_service.create_ad_hoc_dialog(db, description, goal)
 #
-#                     # Display session info
-#                     console.print(f"[bold green]Ad-hoc session created:[/bold green] {session.id}")
-#                     console.print(f"[bold]Description:[/bold] {session.description}")
-#                     if session.goal:
-#                         console.print(f"[bold]Goal:[/bold] {session.goal}")
-#                     console.print(f"[bold]Status:[/bold] {session.status}")
+#                     # Display dialog info
+#                     console.print(f"[bold green]Ad-hoc dialog created:[/bold green] {dialog.id}")
+#                     console.print(f"[bold]Description:[/bold] {dialog.description}")
+#                     if dialog.goal:
+#                         console.print(f"[bold]Goal:[/bold] {dialog.goal}")
+#                     console.print(f"[bold]Status:[/bold] {dialog.status}")
 #
 #                 except Exception as e:
 #                     console.print(f"[bold red]Error:[/bold red] {str(e)}")
@@ -415,17 +415,17 @@ def group():
 #     """Send a message to an LLM model and get a response"""
 #     import asyncio
 #     from src.service.llm.litellm_service import LiteLLMCompletionService
-#     from src.models.models import Session, Message, MessageStatus
+#     from src.models.models import Dialog, Message, MessageStatus
 #     import uuid
 #
 #     async def _chat():
 #         service = LiteLLMCompletionService()
 #
-#         # Create a simple session with user message
-#         session_id = uuid.uuid4()
+#         # Create a simple dialog with user message
+#         dialog_id = uuid.uuid4()
 #         user_message = Message(
 #             id=uuid.uuid4(),
-#             session_id=session_id,
+#             dialog_id=dialog_id,
 #             role='user',
 #             text=message,
 #             status=MessageStatus.DELIVERED
@@ -434,16 +434,16 @@ def group():
 #         # Create assistant message that will be filled by the completion
 #         assistant_message = Message(
 #             id=uuid.uuid4(),
-#             session_id=session_id,
+#             dialog_id=dialog_id,
 #             role='assistant',
 #             text="",
 #             status=MessageStatus.PENDING,
 #             model=model
 #         )
 #
-#         # Create a minimal session
-#         session = Session(
-#             id=session_id,
+#         # Create a minimal dialog
+#         dialog = Dialog(
+#             id=dialog_id,
 #             messages=[user_message, assistant_message],
 #             description="CLI chat",
 #             current_state="initial"
@@ -456,7 +456,7 @@ def group():
 #
 #         with console.status(f"Getting response from {model}..."):
 #             try:
-#                 result = await service.complete(session, broadcast=print_progress)
+#                 result = await service.complete(dialog, broadcast=print_progress)
 #                 print("\n\n")  # Add some spacing after the streamed response
 #                 console.print(Panel(result.text, title=f"[bold green]{model} Response[/bold green]",
 #                                    expand=False, border_style="green"))
@@ -921,7 +921,7 @@ group.add_command(hello)
 # group.add_command(search_mcp)
 # group.add_command(load_schemas)
 # group.add_command(load_templates)
-# group.add_command(load_session_templates)
+# group.add_command(load_dialog_templates)
 # group.add_command(run_workflow)
 # group.add_command(create_ad_hoc)
 group.add_command(add_root)

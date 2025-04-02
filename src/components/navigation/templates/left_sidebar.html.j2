@@ -2,30 +2,30 @@
 <div>
   <aside class="menu">
     <h3 class="menu-label">Navigation</h3>
-    {% if sessions %}
+    {% if dialogs %}
       <details>
         <summary class="is-size-5">
-          Sessions
-          [<a hx-get="/session" hx-target=".dashboard" hx-push-url="true">view all</a>]
+          Dialogs
+          [<a hx-get="/dialog" hx-target=".dashboard" hx-push-url="true">view all</a>]
         </summary>
         <ul class="menu-list">
-          {% for session in sessions %}
+          {% for dialog in dialogs %}
             <li>
-              <a hx-get="/session/{{ session.id }}"
+              <a hx-get="/dialog/{{ dialog.id }}"
                  hx-target=".dashboard"
-                 hx-push-url="true">{{ session.summary }}</a>
+                 hx-push-url="true">{{ dialog.summary }}</a>
             </li>
           {% endfor %}
         </ul>
       </details>
     {% endif %}
-    {% if session_templates %}
+    {% if dialog_templates %}
       <details>
         <summary class="is-size-5">Templates</summary>
         <ul class="menu-list">
-          {% for template_name, template in session_templates.items() %}
+          {% for template_name, template in dialog_templates.items() %}
             <li>
-              <a hx-get="/session/template-creator/{{ template_name }}"
+              <a hx-get="/dialog/template-creator/{{ template_name }}"
                  hx-target=".dashboard"
                  hx-push-url="true">{{ template.name }}</a>
             </li>

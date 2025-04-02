@@ -12,16 +12,16 @@ class MessageRepository(BaseRepository[Message]):
         super().__init__(Message)
         self.table_name = "messages"
 
-    async def get_by_session(self, conn: AsyncConnection, session_id: UUID) -> List[Message]:
-        """Get all messages for a session"""
+    async def get_by_dialog(self, conn: AsyncConnection, dialog_id: UUID) -> List[Message]:
+        """Get all messages for a dialog"""
         query = SQL("""
             SELECT * FROM {}
-            WHERE session_id = %s
+            WHERE dialog_id = %s
             ORDER BY timestamp
         """).format(Identifier(self.table_name))
 
         async with conn.cursor(row_factory=class_row(Message)) as cur:
-            await cur.execute(query, (session_id,))
+            await cur.execute(query, (dialog_id,))
             return await cur.fetchall()
 
     async def get_thread(self, conn: AsyncConnection, message_id: UUID) -> List[Message]:

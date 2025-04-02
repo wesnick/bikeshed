@@ -4,23 +4,23 @@ import inspect
 
 from src.core.workflow.engine import StepHandler
 from src.core.config_types import InvokeStep, Step
-from src.core.models import Session
+from src.core.models import Dialog
 
 
 class InvokeStepHandler(StepHandler):
     """Handler for invoke steps"""
 
-    async def can_handle(self, session: Session, step: Step) -> bool:
+    async def can_handle(self, dialog: Dialog, step: Step) -> bool:
         """Check if the step can be handled"""
         return isinstance(step, InvokeStep)
 
-    async def handle(self, session: Session, step: Step) -> Dict[str, Any]:
+    async def handle(self, dialog: Dialog, step: Step) -> Dict[str, Any]:
         """Handle an invoke step"""
         if not isinstance(step, InvokeStep):
             raise TypeError(f"Expected InvokeStep but got {type(step)}")
 
         # Set status to running
-        session.status = 'running'
+        dialog.status = 'running'
 
         # Get the callable function
         func = await self._get_callable(step.callable)
@@ -29,10 +29,10 @@ class InvokeStepHandler(StepHandler):
         args = step.args or []
         kwargs = step.kwargs or {}
 
-        # Add session to kwargs if the function accepts it
+        # Add dialog to kwargs if the function accepts it
         sig = inspect.signature(func)
-        if 'session' in sig.parameters:
-            kwargs['session'] = session
+        if 'dialog' in sig.parameters:
+            kwargs['dialog'] = dialog
 
         # Execute the function
         try:
@@ -49,7 +49,7 @@ class InvokeStepHandler(StepHandler):
         except Exception as e:
             # Handle error
             error_message = f"Error invoking {step.callable}: {str(e)}"
-            session.workflow_data.errors.append(error_message)
+            dialog.workflow_data.errors.append(error_message)
 
             return {
                 'error': error_message,

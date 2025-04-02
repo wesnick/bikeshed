@@ -1,5 +1,5 @@
 <ul class="steps is-small has-content-above">
-  {% for step in session_template.steps %}
+  {% for step in dialog_template.steps %}
     <li class="steps-segment {% if active_step == 'step_' ~ loop.index0 %}is-active{% endif %}">
       <span class="steps-marker"></span>
       <div class="steps-content is-divider-content">

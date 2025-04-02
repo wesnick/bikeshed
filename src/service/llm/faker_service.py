@@ -1,7 +1,7 @@
 import asyncio
 from faker import Faker
 from typing import Optional, Callable, Awaitable
-from src.core.models import Session, Message, MessageStatus
+from src.core.models import Dialog, Message, MessageStatus
 from .base import CompletionService
 
 class FakerLLMConfig:
@@ -15,37 +15,37 @@ class FakerCompletionService(CompletionService):
         self.config = config or FakerLLMConfig()
         self.broadcast_service = broadcast_service
 
-    def supports(self, session: Session) -> bool:
+    def supports(self, dialog: Dialog) -> bool:
         """
-        Check if this service supports the given session.
-        Supports sessions with 'faker' as model or test sessions.
+        Check if this service supports the given dialog.
+        Supports dialogs with 'faker' as model or test dialogs.
 
         Args:
-            session: The session to check
+            dialog: The dialog to check
 
         Returns:
-            True if this service can handle the session
+            True if this service can handle the dialog
         """
-        # Check the last message for the model, then the session for the model
-        if session.messages and session.messages[-1].model:
-            return session.messages[-1].model == 'faker'
+        # Check the last message for the model, then the dialog for the model
+        if dialog.messages and dialog.messages[-1].model:
+            return dialog.messages[-1].model == 'faker'
 
-        if session.template and session.template.model:
-            return session.template.model == 'faker'
+        if dialog.template and dialog.template.model:
+            return dialog.template.model == 'faker'
 
         return False
 
     async def complete(
         self,
-        session: Session,
+        dialog: Dialog,
         broadcast: Optional[Callable[[Message], Awaitable[None]]] = None
     ) -> Message:
-        assistant_msg = session.messages[-1]
+        assistant_msg = dialog.messages[-1]
 
         # Broadcast that we're starting LLM processing
         if self.broadcast_service:
             await self.broadcast_service.broadcast("llm_update", {
-                "session_id": str(session.id),
+                "dialog_id": str(dialog.id),
                 "status": "processing",
                 "message_id": str(assistant_msg.id)
             })
@@ -71,7 +71,7 @@ class FakerCompletionService(CompletionService):
 
             if self.broadcast_service:
                 await self.broadcast_service.broadcast("message_update", {
-                    "session_id": str(session.id),
+                    "dialog_id": str(dialog.id),
                     "message_id": str(assistant_msg.id),
                     "content": assistant_msg.text,
                     "status": "complete"
@@ -82,7 +82,7 @@ class FakerCompletionService(CompletionService):
         # Broadcast completion
         if self.broadcast_service:
             await self.broadcast_service.broadcast("llm_update", {
-                "session_id": str(session.id),
+                "dialog_id": str(dialog.id),
                 "status": "completed",
                 "message_id": str(assistant_msg.id)
             })

@@ -1,5 +1,5 @@
 #
-#session_templates:
+#dialog_templates:
 #  hone_idea:
 #    description: Hone a business idea, produce high level goal
 #    metadata:
@@ -16,8 +16,8 @@
 #    roots: []
 #
 #    # Schema validation (optional)
-##    input_schema: string          # Registered schema name for session input
-##    output_schema: string         # Registered schema name for session output
+##    input_schema: string          # Registered schema name for dialog input
+##    output_schema: string         # Registered schema name for dialog output
 #
 #    # Execution behavior
 ##    error_handling: # Default error handling strategy

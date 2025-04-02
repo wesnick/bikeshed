@@ -7,10 +7,10 @@ from pydantic import BaseModel
 from src.service.broadcast_strategy import (
     BroadcastStrategy,
     MessageBroadcastStrategy,
-    SessionBroadcastStrategy
+    DialogBroadcastStrategy
 )
 from src.service.logging import logger
-from src.core.models import Message, Session
+from src.core.models import Message, Dialog
 
 
 class BroadcastService:
@@ -23,7 +23,7 @@ class BroadcastService:
 
         # Register default strategies
         self.register_strategy(Message, MessageBroadcastStrategy())
-        self.register_strategy(Session, SessionBroadcastStrategy())
+        self.register_strategy(Dialog, DialogBroadcastStrategy())
 
         # Redis pub/sub setup
         self.redis_client = redis.from_url(redis_url)
