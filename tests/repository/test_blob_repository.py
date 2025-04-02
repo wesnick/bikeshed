@@ -4,8 +4,8 @@ from datetime import datetime
 
 from psycopg import AsyncConnection
 
-from core.models import Blob
-from components.blob.repository import BlobRepository
+from src.core.models import Blob
+from src.components.blob.repository import BlobRepository
 
 pytestmark = pytest.mark.asyncio
 

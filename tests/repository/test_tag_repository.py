@@ -4,8 +4,8 @@ from datetime import datetime
 
 from psycopg import AsyncConnection
 
-from core.models import Tag
-from components.tag.repository import TagRepository
+from src.core.models import Tag
+from src.components.tag.repository import TagRepository
 
 pytestmark = pytest.mark.asyncio
 

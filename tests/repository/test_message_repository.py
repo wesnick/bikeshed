@@ -5,9 +5,9 @@ from datetime import datetime
 from psycopg import AsyncConnection
 from psycopg.sql import SQL
 
-from core.models import Message, MessageStatus, Session, SessionStatus, WorkflowData
-from components.message.repository import MessageRepository
-from components.dialog.repository import SessionRepository
+from src.core.models import Message, MessageStatus, Session, SessionStatus, WorkflowData
+from src.components.message.repository import MessageRepository
+from src.components.dialog.repository import SessionRepository
 
 pytestmark = pytest.mark.asyncio
 

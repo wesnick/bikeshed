@@ -5,9 +5,9 @@ from datetime import datetime
 from psycopg import AsyncConnection
 from psycopg.sql import SQL
 
-from core.models import Session, Message, SessionStatus, MessageStatus, WorkflowData
-from components.dialog.repository import SessionRepository
-from components.message.repository import MessageRepository # Needed to create messages for get_with_messages
+from src.core.models import Session, Message, SessionStatus, MessageStatus, WorkflowData
+from src.components.dialog.repository import SessionRepository
+from src.components.message.repository import MessageRepository # Needed to create messages for get_with_messages
 
 pytestmark = pytest.mark.asyncio
 
