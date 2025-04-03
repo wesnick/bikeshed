@@ -60,7 +60,7 @@ setup-test-db:
 
 # Fix formatting on html templates
 lint-html:
-    uvx djlint templates/ --reformat --extension=html.j2 --indent 2
+    uvx djlint . --reformat --extension=html.j2
 
 # View a specific root in the browser
 view-root uri:

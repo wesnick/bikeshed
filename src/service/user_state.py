@@ -1,10 +1,8 @@
 import json
-import logging
 from typing import Any, Dict, Optional
 
-from src.service.cache import RedisService
-
-logger = logging.getLogger(__name__)
+from .cache import RedisService
+from .logging import logger
 
 class UserStateService:
     """

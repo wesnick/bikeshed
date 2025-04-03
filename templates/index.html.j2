@@ -30,11 +30,11 @@
             <a class="navbar-item text-weight-bold is-size-4" href="/">
               {% block branding %}BikeShed{% endblock %}
             </a>
-          <span class="icon is-large"><i class="fas fas-2x fa-bicycle"></i></span>
+            <span class="icon is-large"><i class="fas fas-2x fa-bicycle"></i></span>
           </div>
-        <div class="navbar-divider"></div>
-        <div class="navbar-content">
-          <div class="navbar-item"
+          <div class="navbar-divider"></div>
+          <div class="navbar-content">
+            <div class="navbar-item"
                  hx-get="/root-selector"
                  hx-trigger="load, sse:root.selected, sse:root.updated">
               <div class="buttons">
@@ -44,11 +44,9 @@
                 </button>
               </div>
             </div>
-          <!-- Notification Section -->
-          <div id="notification-area" class="navbar-notification"></div>
-        </div>
-
-
+            <!-- Notification Section -->
+            <div id="notification-area" class="navbar-notification"></div>
+          </div>
           <div class="navbar-end">
             <div class="navbar-item"
                  hx-get="/components/navbar-notifications"
@@ -84,7 +82,6 @@
              hx-trigger="load, route.updated from:body">{% include 'components/skeleton.html.j2' %}</div>
       </aside>
     </div>
-
     <!-- Modal Container -->
     <div id="modal-container" class="modal">
       <div class="modal-background"></div>
@@ -94,6 +91,5 @@
       <!-- Close button can be added here or within loaded content -->
       <button class="modal-close is-large"></button>
     </div>
-
   </body>
 </html>

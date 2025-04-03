@@ -4,9 +4,7 @@
       <details {% if default_open %}open{% endif %}>
         <summary>{{ node.name }}</summary>
         <ul>
-          {% for child_name, child_node in node.children.items()|sort %}
-            {{ render_tree_node(child_node, False) }}
-          {% endfor %}
+          {% for child_name, child_node in node.children.items()|sort %}{{ render_tree_node(child_node, False) }}{% endfor %}
         </ul>
       </details>
     </li>

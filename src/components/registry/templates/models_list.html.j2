@@ -6,7 +6,10 @@
         <p class="panel-heading">Models</p>
         <div class="panel-block">
           <p class="control has-icons-left">
-            <input class="input" id="model-search-input" type="text" placeholder="Search models">
+            <input class="input"
+                   id="model-search-input"
+                   type="text"
+                   placeholder="Search models">
             <span class="icon is-left">
               <i class="fas fa-search" aria-hidden="true"></i>
             </span>
@@ -21,8 +24,8 @@
           <a data-target="embedding">Embedding</a>
         </p>
         {% for id, model in models.items() %}
-          <div class="panel-block {% if not model.upstream_present %}has-background-danger-light{% elif model.overrides %}has-background-warning-light{% endif %}"
-               data-category="{% if model.selected %}selected{% endif %}{% if model.capabilities %} {{ model.model_filterable_capabilities | join(" ") }}{% endif %}">
+          <div class="panel-block {% if not model.upstream_present %} has-background-danger-light{% elif model.overrides %}has-background-warning-light{% endif %}"
+               data-category="{% if model.selected %} selected{% endif %}{% if model.capabilities %} {{ model.model_filterable_capabilities | join(" ") }}{% endif %}">
             <div class="columns is-mobile is-gapless is-multiline is-fullwidth">
               <div class="column is-1">
                 <label class="checkbox">
@@ -42,10 +45,10 @@
                 {{ model.context_length | format_text_length if model.context_length is not none else 'N/A' }}
               </div>
               <div class="column is-2">
-                <div class="{% if 'input_cost' in model.overrides %}has-text-weight-bold{% endif %}">
+                <div class="{% if 'input_cost' in model.overrides %} has-text-weight-bold{% endif %}">
                   In: {{ model.input_cost | format_cost_per_million if model.input_cost is not none else 'N/A' }}
                 </div>
-                <div class="{% if 'output_cost' in model.overrides %}has-text-weight-bold{% endif %}">
+                <div class="{% if 'output_cost' in model.overrides %} has-text-weight-bold{% endif %}">
                   Out: {{ model.output_cost | format_cost_per_million if model.output_cost is not none else 'N/A' }}
                 </div>
               </div>

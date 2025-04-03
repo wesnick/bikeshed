@@ -1,6 +1,5 @@
 <div class="container is-fluid mt-4">
   <h1 class="title">Root Management</h1>
-
   <div class="box mb-5">
     <h2 class="subtitle">Current Roots</h2>
     {% if roots %}
@@ -53,15 +52,15 @@
                     <span class="icon"><i class="fas fa-check"></i></span>
                   </button>
                 {% endif %}
-                 {# View Button #}
-                 <button class="button is-small is-info is-outlined"
-                         hx-get="/root?root_uri={{ root.uri | quote_plus }}"
-                         hx-target=".dashboard"
-                         hx-push-url="true"
-                         title="View Root Details">
-                   <span class="icon"><i class="fas fa-eye"></i></span>
-                 </button>
-                 {# TODO: Add Delete Button #}
+                {# View Button #}
+                <button class="button is-small is-info is-outlined"
+                        hx-get="/root?root_uri={{ root.uri | quote_plus }}"
+                        hx-target=".dashboard"
+                        hx-push-url="true"
+                        title="View Root Details">
+                  <span class="icon"><i class="fas fa-eye"></i></span>
+                </button>
+                {# TODO: Add Delete Button #}
               </td>
             </tr>
           {% endfor %}
@@ -71,30 +70,35 @@
       <p>No roots have been added yet.</p>
     {% endif %}
   </div>
-
   <div class="box">
     <h2 class="subtitle">Add New Root</h2>
-    <form
-      hx-post="/root/add"
-      hx-target=".dashboard"
-      hx-swap="innerHTML"
-      hx-ext="form-json">
+    <form hx-post="/root/add"
+          hx-target=".dashboard"
+          hx-swap="innerHTML"
+          hx-ext="form-json">
       <div class="field">
         <label class="label" for="root-path-uri">Directory Path or Git URI</label>
         <div class="control">
-          <input class="input" type="text" id="root-path-uri" name="path_or_uri" placeholder="/path/to/your/project or https://github.com/user/repo.git" required>
+          <input class="input"
+                 type="text"
+                 id="root-path-uri"
+                 name="path_or_uri"
+                 placeholder="/path/to/your/project or https://github.com/user/repo.git"
+                 required>
         </div>
         <p class="help">Enter the absolute path to a local directory or a valid Git repository URI.</p>
       </div>
-
       <div class="field">
         <label class="label" for="root-name">Optional Name</label>
         <div class="control">
-          <input class="input" type="text" id="root-name" name="name" placeholder="My Project">
+          <input class="input"
+                 type="text"
+                 id="root-name"
+                 name="name"
+                 placeholder="My Project">
         </div>
         <p class="help">Give this root a friendly name (optional).</p>
       </div>
-
       <div class="field">
         <div class="control">
           <button class="button is-link" type="submit">Add Root</button>

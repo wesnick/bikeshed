@@ -17,7 +17,7 @@
               <code>{{ server.command }} {{ server.args | join(" ") }}</code>
             </td>
             <td>
-              <span class="tag {% if server_status and server_status.get(name) %}is-success{% else %}is-danger{% endif %}">
+              <span class="tag {% if server_status and server_status.get(name) %} is-success{% else %}is-danger{% endif %}">
                 {% if server_status and server_status.get(name) %}
                   Connected
                 {% else %}
