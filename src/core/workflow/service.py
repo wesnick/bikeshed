@@ -102,7 +102,7 @@ class WorkflowService:
     async def provide_user_input(
             self,
             dialog_id: uuid.UUID,
-            user_input: Union[str, Dict[str, Any]]
+            user_input: str
     ) -> WorkflowTransitionResult:
         """Provide user input for a waiting step"""
         dialog = await self.get_dialog(dialog_id)
@@ -121,7 +121,7 @@ class WorkflowService:
             )
 
         # Handle different input types
-        if dialog.workflow_data and 'missing_variables' in dialog.workflow_data.variables:
+        if dialog.workflow_data.has_missing_variables():
             # For variable inputs
             if not isinstance(user_input, dict):
                 return WorkflowTransitionResult(

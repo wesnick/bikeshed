@@ -6,8 +6,7 @@ from psycopg import AsyncConnection
 
 from src.core.workflow.engine import PersistenceProvider
 from src.core.models import Dialog, WorkflowData
-from src.components.dialog.repository import DialogRepository
-from src.components.message.repository import MessageRepository
+from src.components.repositories import dialog_repository, message_repository
 from src.service.logging import logger
 
 
@@ -22,8 +21,6 @@ class DatabasePersistenceProvider(PersistenceProvider):
             get_db: Factory function that returns a database connection
         """
         self.get_db = get_db
-        self.dialog_repo = DialogRepository()
-        self.message_repo = MessageRepository()
         self._lock = asyncio.Lock()  # Lock to prevent concurrent writes to the same dialog
 
     async def save_dialog(self, dialog: Dialog) -> None:
@@ -47,7 +44,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
                         "error": dialog.error
                     }
 
-                    await self.dialog_repo.update(conn, dialog.id, dialog_data)
+                    await dialog_repository.update(conn, dialog.id, dialog_data)
 
                     # Save any messages that need to be persisted
                     for i, message in enumerate(dialog.messages):
@@ -55,7 +52,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
                         if i > 0:
                             message.parent_id = dialog.messages[i-1].id
 
-                        await self.message_repo.upsert(conn, message, ['id'])
+                        await message_repository.upsert(conn, message, ['id'])
 
                     # Commit the transaction
                     await conn.commit()
@@ -82,7 +79,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
         try:
             async for conn in self.get_db():
                 # Load the dialog with its messages
-                dialog = await self.dialog_repo.get_with_messages(conn, dialog_id)
+                dialog = await dialog_repository.get_with_messages(conn, dialog_id)
 
                 if not dialog:
                     logger.warning(f"Dialog {dialog_id} not found")
@@ -119,7 +116,7 @@ class DatabasePersistenceProvider(PersistenceProvider):
         try:
             async for conn in self.get_db():
 
-                created_dialog = await self.dialog_repo.create(conn, dialog)
+                created_dialog = await dialog_repository.create(conn, dialog)
 
                 # Commit the transaction
                 await conn.commit()

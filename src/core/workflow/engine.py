@@ -119,36 +119,36 @@ class WorkflowEngine:
     async def _can_execute_step(self, event):
         """Check if a step can be executed"""
         dialog = event.model
-        next_step = await self.get_current_step(dialog)
+        current_workflow_step = await dialog.get_current_workflow_step()
 
-        if not next_step:
+        if not current_workflow_step:
             return False
 
-        handler = self.handlers.get(next_step.type)
+        handler = self.handlers.get(current_workflow_step.step.type)
         if not handler:
             return False
 
-        return await handler.can_handle(dialog, next_step)
+        return await handler.can_handle(dialog, current_workflow_step.step)
 
     async def _execute_step(self, event):
         """Execute the current step"""
         dialog = event.model
-        next_step = await self.get_current_step(dialog)
+        current_workflow_step = await dialog.get_current_workflow_step()
 
-        if not next_step:
+        if not current_workflow_step:
             return
 
-        handler = self.handlers.get(next_step.type)
+        handler = self.handlers.get(current_workflow_step.step.type)
         if not handler:
-            dialog.workflow_data.errors.append(f"No handler for step type: {next_step.type}")
+            dialog.workflow_data.errors.append(f"No handler for step type: {current_workflow_step.step.type}")
             return
 
         try:
-            result = await handler.handle(dialog, next_step)
+            result = await handler.handle(dialog, current_workflow_step.step)
 
             # Update workflow data
             dialog.workflow_data.current_step_index += 1
-            dialog.workflow_data.step_results[next_step.name] = {
+            dialog.workflow_data.step_results[current_workflow_step.name] = {
                 'completed': True,
                 **result
             }
@@ -163,22 +163,10 @@ class WorkflowEngine:
         dialog = event.model
         dialog.status = 'completed'
 
-    async def get_current_step(self, dialog: Dialog) -> Optional[Step]:
-        """Get the current step to execute"""
-        if not dialog.template:
-            return None
-
-        enabled_steps = [step for step in dialog.template.steps if step.enabled]
-        current_index = dialog.workflow_data.current_step_index
-
-        if current_index < len(enabled_steps):
-            return enabled_steps[current_index]
-        return None
-
     async def execute_next_step(self, dialog: Dialog) -> WorkflowTransitionResult:
         """Execute the next step in the workflow"""
-        next_step = await self.get_current_step(dialog)
-        if not next_step:
+        current_workflow_step = dialog.get_current_workflow_step()
+        if not current_workflow_step:
             # No more steps to execute
             result = WorkflowTransitionResult(
                 success=False,
@@ -190,7 +178,7 @@ class WorkflowEngine:
             return result
 
         # Find the trigger for this step
-        trigger_name = f'run_step_{dialog.workflow_data.current_step_index}'
+        trigger_name = current_workflow_step.trigger
 
         # Check if the trigger exists
         if hasattr(dialog, trigger_name):

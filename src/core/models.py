@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any, TypeVar, ClassVar, Set
 from enum import Enum
+from dataclasses import dataclass
 
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 from transitions.extensions import AsyncGraphMachine
@@ -24,6 +25,12 @@ class DialogStatus(str, Enum):
     FAILED = "failed"
     WAITING_FOR_INPUT = "waiting_for_input"
 
+@dataclass
+class WorkflowStep:
+    state: str
+    next_state: str
+    trigger: str
+    step: Optional[Step]
 
 class WorkflowData(BaseModel):
     current_step_index: int = 0
@@ -31,7 +38,19 @@ class WorkflowData(BaseModel):
     variables: Dict[str, Any] = Field(default_factory=dict)
     errors: List[str] = Field(default_factory=list)
     missing_variables: List[str] = Field(default_factory=list)
-    user_input: Optional[str] = None
+
+    def add_variable(self, key: str, value: Any):
+        self.variables[key] = value
+        # remove key from missing_variables
+        if key in self.missing_variables:
+            self.missing_variables.remove(key)
+
+    def has_missing_variables(self):
+        return len(self.missing_variables) > 0
+
+
+    def needs_user_input(self):
+        return 'user_input' in self.missing_variables
 
 
 # Define a TypeVar for the mixin
@@ -94,9 +113,9 @@ class Dialog(BaseModel, DBModelMixin):
     template: Optional[DialogTemplate] = None
 
     # Workflow state fields
-    status: DialogStatus = DialogStatus.PENDING
-    current_state: str = "start"  # Current state in the workflow
-    workflow_data: Optional[WorkflowData] = Field(default_factory=WorkflowData)
+    status: DialogStatus = Field(default=DialogStatus.PENDING, description="Current status of the dialog, interesting for the user to see")
+    current_state: str = Field(default="start", description="Current state in the workflow, corresponds to a transition state name")
+    workflow_data: WorkflowData = Field(default_factory=WorkflowData)
     error: Optional[str] = None  # For storing error information
 
     # Relationships
@@ -118,40 +137,52 @@ class Dialog(BaseModel, DBModelMixin):
             return None
         return sorted(self.messages, key=lambda m: m.timestamp)[0] if self.messages else None
 
+    def get_workflow_steps(self) -> list[WorkflowStep]:
+        if not self.template:
+            return []
+        steps = []
+
+        states_index = list(self.machine.states.keys())
+        for i, transition_name in enumerate(self.machine.events.keys()):
+            state_name = states_index[i]
+            if i < len(states_index) - 1:
+                state = self.machine.states[states_index[i + 1]]
+                next_state = states_index[i + 1]
+            else:
+                state = None
+                next_state = 'end'
+
+            steps.append(WorkflowStep(
+                state=state_name,
+                next_state=next_state,
+                trigger=transition_name,
+                step=state.step_data if hasattr(state, 'step_data') else None
+            ))
+
+        return steps
+
+    def get_current_workflow_step(self) -> Optional[WorkflowStep]:
+        steps = self.get_workflow_steps()
+        for step in steps:
+            if step.state == self.current_state:
+                return step
+        return None
+
+
     def get_current_step(self) -> Optional[Step]:
         """Get the current step from the template based on workflow data"""
-        if not self.template or not self.workflow_data:
+        step = self.get_current_workflow_step()
+        if not step:
             return None
-
-        current_index = self.workflow_data.current_step_index
-        enabled_steps = [step for step in self.template.steps if step.enabled]
-
-        if current_index < len(enabled_steps):
-            return enabled_steps[current_index]
-        return None
+        return step.step
 
     def get_next_step_name(self) -> Optional[str]:
         """Get the next step from the template based on workflow data"""
-        if not self.template or not self.workflow_data:
+        steps = self.get_current_workflow_step()
+        if not steps:
             return None
 
-        current_index = self.workflow_data.current_step_index
-        enabled_steps = [step for step in self.template.steps if step.enabled]
-
-        if current_index + 1 < len(enabled_steps):
-            return f"step_{current_index + 1}"
-        return None
-
-
-    def is_complete(self) -> bool:
-        """Check if the workflow is complete"""
-        if not self.template or not self.workflow_data:
-            return False
-
-        current_index = self.workflow_data.current_step_index
-        enabled_steps = [step for step in self.template.steps if step.enabled]
-
-        return current_index >= len(enabled_steps)
+        return steps.next_state
 
     def get_step_result(self, step_name: str) -> Optional[Dict[str, Any]]:
         """Get the result of a specific step"""

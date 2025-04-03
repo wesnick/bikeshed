@@ -5,7 +5,7 @@ from datetime import datetime
 from psycopg import AsyncConnection
 from psycopg.sql import SQL
 
-from src.core.models import Message, MessageStatus, Dialog, DialogStatus, WorkflowData
+from src.core.models import Message, MessageStatus, Dialog, DialogStatus
 from src.components.message.repository import MessageRepository
 from src.components.dialog.repository import DialogRepository
 
@@ -29,7 +29,6 @@ async def test_dialog(db_conn_clean: AsyncConnection, dialog_repo: DialogReposit
         description="Test dialog",
         status=DialogStatus.PENDING,
         current_state="start",
-        workflow_data=WorkflowData()
     )
     created_dialog = await dialog_repo.create(db_conn_clean, dialog)
     return created_dialog
@@ -164,7 +163,6 @@ async def test_get_by_dialog(db_conn_clean: AsyncConnection, message_repo: Messa
         description="Test dialog 2",
         status=DialogStatus.PENDING,
         current_state="start",
-        workflow_data=WorkflowData()
     )
     created_dialog2 = await dialog_repo.create(db_conn_clean, dialog2)
 
