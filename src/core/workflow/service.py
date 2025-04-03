@@ -15,7 +15,7 @@ from src.core.workflow.handlers.invoke import InvokeStepHandler
 from src.core.workflow.visualization import WorkflowVisualizer
 from src.service.broadcast import BroadcastService
 from src.service.llm import CompletionService
-
+from src.service.logging import logger
 
 class WorkflowService:
     """Service for managing workflow state machines"""
@@ -39,7 +39,7 @@ class WorkflowService:
         self.handlers = {
             'message': MessageStepHandler(registry=registry),
             'prompt': PromptStepHandler(registry=registry, completion_service=completion_service),
-            'user_input': UserInputStepHandler(),
+            'user_input': UserInputStepHandler(completion_service=completion_service),
             'invoke': InvokeStepHandler()
         }
 
@@ -99,19 +99,12 @@ class WorkflowService:
             if not exec_result.success or dialog.status == DialogStatus.WAITING_FOR_INPUT:
                 break
 
-    async def provide_user_input(
+    async def provide_missing_variables(
             self,
-            dialog_id: uuid.UUID,
-            user_input: str
+            dialog: Dialog,
+            input_variables: dict[str, Any]
     ) -> WorkflowTransitionResult:
         """Provide user input for a waiting step"""
-        dialog = await self.get_dialog(dialog_id)
-        if not dialog:
-            return WorkflowTransitionResult(
-                success=False,
-                state="unknown",
-                message=f"Dialog {dialog_id} not found"
-            )
 
         if dialog.status != DialogStatus.WAITING_FOR_INPUT:
             return WorkflowTransitionResult(
@@ -120,31 +113,41 @@ class WorkflowService:
                 message="Dialog is not waiting for input"
             )
 
-        # Handle different input types
-        if dialog.workflow_data.has_missing_variables():
-            # For variable inputs
-            if not isinstance(user_input, dict):
-                return WorkflowTransitionResult(
-                    success=False,
-                    state=dialog.current_state,
-                    message="Expected dictionary for variable inputs"
-                )
+        for key, value in input_variables.items():
+            dialog.workflow_data.add_variable(key, value)
 
-            # Update variables
-            dialog.workflow_data.variables.update(user_input)
-
-            # Clear missing variables flag
-            dialog.workflow_data.variables.pop('missing_variables')
+        # Change status if we still have missing variables
+        if dialog.workflow_data.missing_variables:
+            dialog.status = DialogStatus.WAITING_FOR_INPUT
+            logger.warning(f"Still needed inputs: {dialog.workflow_data.missing_variables}")
         else:
-            # For user_input steps
-            if dialog.workflow_data:
-                dialog.workflow_data.variables['user_input'] = user_input
+            dialog.status = DialogStatus.PAUSED
 
         # Save changes
         await self.persistence.save_dialog(dialog)
 
-        # Execute next step
-        return await self.engine.execute_next_step(dialog)
+        if dialog.status == DialogStatus.WAITING_FOR_INPUT:
+            return WorkflowTransitionResult(
+                success=False,
+                state=dialog.current_state,
+                message="Dialog is waiting for input"
+            )
+
+        return WorkflowTransitionResult(
+            success=True,
+            state=dialog.status,
+            message=f"Saved data to dialog"
+        )
+
+
+    async def provide_user_input(
+            self,
+            dialog: Dialog,
+            user_input: str
+    ) -> WorkflowTransitionResult:
+        """Provide user input for a waiting step"""
+        return await self.provide_missing_variables(dialog, {'user_input': user_input})
+
 
     async def create_workflow_graph(self, dialog: Dialog) -> Optional[str]:
         """Create a visualization of the workflow"""

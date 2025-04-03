@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from functools import lru_cache
 from typing import Optional, List, Dict, Any, TypeVar, ClassVar, Set
 from enum import Enum
 from dataclasses import dataclass
@@ -33,7 +34,6 @@ class WorkflowStep:
     step: Optional[Step]
 
 class WorkflowData(BaseModel):
-    current_step_index: int = 0
     step_results: Dict[str, Any] = Field(default_factory=dict)
     variables: Dict[str, Any] = Field(default_factory=dict)
     errors: List[str] = Field(default_factory=list)
@@ -45,11 +45,13 @@ class WorkflowData(BaseModel):
         if key in self.missing_variables:
             self.missing_variables.remove(key)
 
-    def has_missing_variables(self):
+    def get_variables(self):
+        return self.variables
+
+    def has_missing_variables(self) -> bool:
         return len(self.missing_variables) > 0
 
-
-    def needs_user_input(self):
+    def needs_user_input(self) -> bool:
         return 'user_input' in self.missing_variables
 
 
@@ -137,7 +139,7 @@ class Dialog(BaseModel, DBModelMixin):
             return None
         return sorted(self.messages, key=lambda m: m.timestamp)[0] if self.messages else None
 
-    def get_workflow_steps(self) -> list[WorkflowStep]:
+    def _get_workflow_steps(self) -> list[WorkflowStep]:
         if not self.template:
             return []
         steps = []
@@ -162,7 +164,7 @@ class Dialog(BaseModel, DBModelMixin):
         return steps
 
     def get_current_workflow_step(self) -> Optional[WorkflowStep]:
-        steps = self.get_workflow_steps()
+        steps = self._get_workflow_steps()
         for step in steps:
             if step.state == self.current_state:
                 return step
@@ -184,12 +186,6 @@ class Dialog(BaseModel, DBModelMixin):
 
         return steps.next_state
 
-    def get_step_result(self, step_name: str) -> Optional[Dict[str, Any]]:
-        """Get the result of a specific step"""
-        if not self.workflow_data:
-            return None
-
-        return self.workflow_data.step_results.get(step_name)
 
 class Root(BaseModel, DBModelMixin):
     __db_table__ = "roots"

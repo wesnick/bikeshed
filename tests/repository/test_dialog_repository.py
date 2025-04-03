@@ -111,7 +111,7 @@ async def test_update_dialog(db_conn_clean: AsyncConnection, dialog_repo: Dialog
         "goal": "Updated goal",
         "status": DialogStatus.RUNNING,
         "current_state": "step_1",
-        "workflow_data": WorkflowData(current_step_index=1, variables={"key": "value"}),
+        "workflow_data": WorkflowData(variables={"key": "value"}),
         "error": "An error occurred"
     }
     updated = await dialog_repo.update(db_conn_clean, created_dialog.id, update_data)
@@ -122,7 +122,6 @@ async def test_update_dialog(db_conn_clean: AsyncConnection, dialog_repo: Dialog
     assert updated.goal == "Updated goal"
     assert updated.status == DialogStatus.RUNNING
     assert updated.current_state == "step_1"
-    assert updated.workflow_data.current_step_index == 1
     assert updated.workflow_data.variables == {"key": "value"}
     assert updated.error == "An error occurred"
     # tests run too fast for this to be true, we verify the db trigger in other places

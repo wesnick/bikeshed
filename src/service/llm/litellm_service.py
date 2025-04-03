@@ -64,7 +64,6 @@ class LiteLLMCompletionService(CompletionService):
                 if delta:
                     content += delta
                     assistant_msg.text = content
-                    logger.warning(f"LiteLLM messages: {content}")
                     # Use both the provided broadcast callback and our broadcast service
                     if broadcast:
                         await broadcast(assistant_msg)

@@ -119,7 +119,7 @@ class WorkflowEngine:
     async def _can_execute_step(self, event):
         """Check if a step can be executed"""
         dialog = event.model
-        current_workflow_step = await dialog.get_current_workflow_step()
+        current_workflow_step = dialog.get_current_workflow_step()
 
         if not current_workflow_step:
             return False
@@ -128,12 +128,14 @@ class WorkflowEngine:
         if not handler:
             return False
 
+        logger.debug(f"[workflow] Checking if step {current_workflow_step.step.name} can be executed")
+
         return await handler.can_handle(dialog, current_workflow_step.step)
 
     async def _execute_step(self, event):
         """Execute the current step"""
         dialog = event.model
-        current_workflow_step = await dialog.get_current_workflow_step()
+        current_workflow_step = dialog.get_current_workflow_step()
 
         if not current_workflow_step:
             return
@@ -146,9 +148,11 @@ class WorkflowEngine:
         try:
             result = await handler.handle(dialog, current_workflow_step.step)
 
+            logger.debug(f"[workflow] Step {current_workflow_step.step.name} executed successfully: {result}")
+
             # Update workflow data
-            dialog.workflow_data.current_step_index += 1
-            dialog.workflow_data.step_results[current_workflow_step.name] = {
+            # @TODO: transition with a method, update dialog state
+            dialog.workflow_data.step_results[current_workflow_step.step.name] = {
                 'completed': True,
                 **result
             }

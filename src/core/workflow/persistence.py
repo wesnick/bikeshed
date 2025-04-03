@@ -90,7 +90,8 @@ class DatabasePersistenceProvider(PersistenceProvider):
                     dialog.workflow_data = WorkflowData(**dialog.workflow_data)
 
                 logger.info(f"Successfully loaded dialog {dialog_id} with state {dialog.current_state} and message count {len(dialog.messages)}")
-                return dialog
+
+            return dialog
 
         except Exception as e:
             logger.error(f"Error loading dialog {dialog_id}: {e}")
