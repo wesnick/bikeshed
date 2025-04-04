@@ -1,24 +1,13 @@
-from typing import Any, Dict
-import uuid
-
-from src.core.workflow.engine import StepHandler
-from src.core.workflow.step_result import StepResult
+from src.core.workflow.handlers import BaseStepHandler
+from src.core.workflow.engine import StepResult
 from src.core.config_types import UserInputStep, Step
 from src.core.models import Dialog, Message, DialogStatus, MessageStatus, WorkflowData
 from src.service.llm import CompletionService
 from src.service.logging import logger
 
-class UserInputStepHandler(StepHandler):
+class UserInputStepHandler(BaseStepHandler):
     """Handler for user_input steps"""
 
-    def __init__(self, completion_service: CompletionService):
-        """
-        Initialize the UserInputStepHandler
-
-        Args:
-            completion_service: Optional CompletionService instance
-        """
-        self.completion_service = completion_service
     async def can_handle(self, dialog: Dialog, step: Step) -> bool:
         """Check if the step can be handled"""
         if not isinstance(step, UserInputStep):
@@ -50,25 +39,14 @@ class UserInputStepHandler(StepHandler):
             )
 
         # Create a message for the user input using helper method
-        message = self.create_message(
-            dialog=dialog,
-            role="user",
-            text=user_input,
-            status=MessageStatus.CREATED
-        )
+        dialog.create_user_message(user_input)
 
         # Clear the user_input after processing
         del workflow_data.variables['user_input']
 
         model = step.config_extra.get('model') or dialog.template.model
         # Create a placeholder for the assistant response using helper method
-        assistant_message = self.create_message(
-            dialog=dialog,
-            role="assistant",
-            text="",
-            model=model,
-            status=MessageStatus.CREATED
-        )
+        dialog.create_stub_assistant_message(model)
 
         # Process with LLM service
         result_message = await self.completion_service.complete(

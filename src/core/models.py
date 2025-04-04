@@ -186,6 +186,65 @@ class Dialog(BaseModel, DBModelMixin):
 
         return steps.next_state
 
+    def create_message(self, role: str, text: str, model: Optional[str] = None,
+                       status: MessageStatus = MessageStatus.CREATED) -> Message:
+        """
+        Create a new message for the dialog.
+
+        Args:
+            role: The role of the message (user, assistant, system)
+            text: The text content of the message
+            model: The model used (required for assistant messages)
+            status: The status of the message
+
+        Returns:
+            The created message
+        """
+        message = Message(
+            id=uuid.uuid4(),
+            dialog_id=self.id,
+            parent_id=self.messages[-1].id if self.messages else None,
+            role=role,
+            model=model if role == 'assistant' else None,
+            text=text,
+            status=status
+        )
+
+        # Add the message to the dialog
+        self.messages.append(message)
+
+        return message
+
+    def create_user_message(self, text: str) -> Message:
+        """
+        Create a new user message for the dialog.
+
+        Args:
+            text: The text content of the message
+
+        Returns:
+            The created message
+        """
+        return self.create_message(
+            role='user',
+            text=text,
+            status=MessageStatus.PENDING
+        )
+
+    def create_stub_assistant_message(self, model: str) -> Message:
+        """
+        Create a new stub assistant message for the dialog.
+
+        Returns:
+            The created message
+        """
+        return self.create_message(
+            role='assistant',
+            text='',
+            model=model,
+            status=MessageStatus.CREATED
+        )
+
 
 class Root(BaseModel, DBModelMixin):
     __db_table__ = "roots"

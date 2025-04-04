@@ -1,32 +1,11 @@
-import uuid
-from typing import Dict, Any
-
-from mcp.server.fastmcp.prompts.base import Message as MCPMessage
-
 from src.core.config_types import PromptStep, Step
-from src.core.registry import Registry, TemplatePrompt
-from src.core.models import Message
 from src.core.models import Dialog, DialogStatus, MessageStatus
-from src.core.workflow.engine import StepHandler
-from src.core.workflow.step_result import StepResult
-from src.service.llm import CompletionService
+from src.core.workflow.handlers import BaseStepHandler
+from src.core.workflow.engine import StepResult
 
 
-class PromptStepHandler(StepHandler):
+class PromptStepHandler(BaseStepHandler):
     """Handler for prompt steps"""
-
-    def __init__(self, registry: Registry,
-                 completion_service: CompletionService):
-        """
-        Initialize the PromptStepHandler
-
-        Args:
-            registry: Registry instance
-            completion_service: Optional CompletionService instance
-        """
-        self.registry = registry
-        self.completion_service = completion_service
-
 
     async def can_handle(self, dialog: Dialog, step: Step) -> bool:
         """Check if the step can be handled"""
@@ -38,8 +17,7 @@ class PromptStepHandler(StepHandler):
             return True
 
         # Check all required variables
-        variables = dialog.workflow_data.variables
-        template_args = step.template_args or {}
+        existing_vars = await self.prepare_arguments(dialog, step)
 
         # Get prompt from registry
         prompt = self.registry.get_prompt(step.template)
@@ -47,12 +25,10 @@ class PromptStepHandler(StepHandler):
         if not prompt:
             raise ValueError(f"Prompt template '{step.template}' not found")
 
-        # Get required variables not in template_args
-        required_vars = [arg.name for arg in prompt.arguments
-                         if arg.name not in template_args]
+        required_vars = [arg.name for arg in prompt.arguments]
 
         # Check if all variables exist
-        missing_vars = [var for var in required_vars if var not in variables]
+        missing_vars = [var for var in required_vars if var not in existing_vars.keys()]
 
         if missing_vars:
             # Mark dialog as waiting for input
@@ -64,46 +40,27 @@ class PromptStepHandler(StepHandler):
 
     async def handle(self, dialog: Dialog, step: Step) -> StepResult:
         """Handle a prompt step"""
-        if not isinstance(step, PromptStep):
-            raise TypeError(f"Expected PromptStep but got {type(step)}")
+        await self.validate_step_type(step, PromptStep)
 
         # Get prompt content
-        prompt_content = await self._get_prompt_content(dialog, step)
+        prompt_content = await self.prepare_prompt_content(dialog, step)
         model = step.config_extra.get('model') or dialog.template.model
-
-        step_messages = []
 
         if isinstance(prompt_content, str):
             # Create a message using the helper method
-            user_message = self.create_message(
-                dialog=dialog,
-                role='user',
-                text=prompt_content,
-                status=MessageStatus.PENDING
-            )
-        
-            step_messages.append(user_message)
+            user_message = dialog.create_user_message(prompt_content)
 
         elif isinstance(prompt_content, list):
             for prompt in prompt_content:
-                message = self.create_message(
-                    dialog=dialog,
+                dialog.create_message(
                     role=prompt.role,
                     text=prompt.content.text,
                     model=model if prompt.role == 'assistant' else None,
                     status=MessageStatus.PENDING
                 )
-                
-                step_messages.append(message)
 
         # Create a placeholder for the assistant response
-        assistant_message = self.create_message(
-            dialog=dialog,
-            role="assistant",
-            text="",
-            model=model,
-            status=MessageStatus.CREATED
-        )
+        dialog.create_stub_assistant_message(model)
 
         # Process with LLM service
         result_message = await self.completion_service.complete(
@@ -115,33 +72,10 @@ class PromptStepHandler(StepHandler):
         return StepResult.success_result(
             state=dialog.current_state,
             data={
-                'prompt': step_messages,
                 'response': result_message
             }
         )
 
 
-    async def _get_prompt_content(self, dialog: Dialog, step: PromptStep) -> str | list[MCPMessage]:
-        """Get the content for a prompt step"""
-        if step.content is not None:
-            return step.content
 
-        if step.template is not None:
-            # Get variables using helper method
-            args = self.get_variables(dialog, step)
-            
-            # Get prompt from registry
-            prompt = self.registry.get_prompt(step.template)
-
-            if not prompt:
-                raise ValueError(f"Prompt template '{step.template}' not found")
-
-            if isinstance(prompt, TemplatePrompt):
-                # Add template_content to args
-                args['template_raw'] = prompt.template_content
-                args['template_path'] = prompt.template_path
-
-            return await prompt.render(args)
-
-        return ""
 

@@ -131,34 +131,12 @@ async def dialog_submit(response: Response,
         await enqueue_dialog_run_workflow(dialog.id)
         return {"dialog": dialog, "current_step": dialog.get_current_step()}
 
-    user_message = Message(
-        id=uuid.uuid4(),
-        dialog_id=dialog.id,
-        role='user',
-        text=message.text,
-        parent_id=dialog.messages[-1].id if dialog.messages else None,
-        status=MessageStatus.PENDING
-    )
-
-    # Add user message to the database
-    await message_repository.create(db, user_message)
-
-    # Add to dialog for LLM processing
-    dialog.messages.append(user_message)
-
+    dialog.create_user_message(message.text)
     # Create assistant message placeholder
-    assistant_message = Message(
-        id=uuid.uuid4(),
-        dialog_id=dialog.id,
-        role='assistant',
-        model=message.model,
-        parent_id=user_message.id,
-        text="",
-        status=MessageStatus.CREATED
-    )
+    assistant_message = dialog.create_stub_assistant_message(dialog.model)
+
     # Add to database and dialog
     await message_repository.create(db, assistant_message)
-    dialog.messages.append(assistant_message)
 
     # Send it to the queue
     await enqueue_message_processing(dialog.id)

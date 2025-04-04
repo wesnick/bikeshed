@@ -12,7 +12,7 @@ class HandlerFactory:
     """Factory for creating step handlers"""
 
     def __init__(self, registry, completion_service):
-        self.registry_provider = registry
+        self.registry = registry
         self.completion_service = completion_service
         self._handlers = None
 
@@ -21,10 +21,10 @@ class HandlerFactory:
 
         if self._handlers is None:
             self._handlers = {
-                'message': MessageStepHandler(self.registry_provider),
-                'prompt': PromptStepHandler(self.registry_provider, self.completion_service),
-                'user_input': UserInputStepHandler(),
-                'invoke': InvokeStepHandler()
+                'message': MessageStepHandler(self.registry, self.completion_service),
+                'prompt': PromptStepHandler(self.registry, self.completion_service),
+                'user_input': UserInputStepHandler(self.registry, self.completion_service),
+                'invoke': InvokeStepHandler(self.registry, self.completion_service)
             }
         return self._handlers
 

@@ -155,10 +155,6 @@ class PromptStep(BaseStep):
         default=None,
         description="Arguments to pass to the template"
     )
-    input_schema: Optional[str] = Field(
-        default=None,
-        description="Schema to validate template_args"
-    )
     output_schema: Optional[str] = Field(
         default=None,
         description="Schema to validate LLM response"
@@ -177,8 +173,6 @@ class PromptStep(BaseStep):
             raise ValueError("Either 'content' or 'template' must be provided")
         if self.template_args is not None and self.template is None:
             raise ValueError("'template_args' can only be provided when 'template' is specified")
-        if self.input_schema is not None and self.template is None:
-            raise ValueError("'input_schema' can only be provided when 'template' is specified")
         return self
 
 class UserInputStep(BaseStep):
@@ -201,11 +195,7 @@ class UserInputStep(BaseStep):
     )
     template_args: Optional[Dict[str, Any]] = Field(
         default=None,
-        description="Arguments to pass to the template"
-    )
-    input_schema: Optional[str] = Field(
-        default=None,
-        description="Schema to validate user input"
+        description="Arguments to pass to the template, as defaults, they will be overridden by context"
     )
     output_schema: Optional[str] = Field(
         default=None,
@@ -232,14 +222,6 @@ class InvokeStep(BaseStep):
     callable: str = Field(
         description="Function identifier to call, use '@' for tool lookup"
     )
-    args: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Arguments to pass to function"
-    )
-    input_schema: Optional[str] = Field(
-        default=None,
-        description="Schema to validate args"
-    )
     output_schema: Optional[str] = Field(
         default=None,
         description="Schema to validate function result"
@@ -250,8 +232,6 @@ class InvokeStep(BaseStep):
         """Validate that callable is provided and properly formatted."""
         if not self.callable:
             raise ValueError("'callable' must be provided for invoke steps")
-        if self.input_schema is not None and self.args is None:
-            raise ValueError("'input_schema' can only be provided when 'args' is specified")
         return self
 
 
@@ -297,10 +277,6 @@ class DialogTemplate(BaseModel):
     roots: Optional[List[str]] = Field(
         default=None,
         description="List of root identifiers"
-    )
-    input_schema: Optional[str] = Field(
-        default=None,
-        description="Registered schema name for dialog input"
     )
     output_schema: Optional[str] = Field(
         default=None,

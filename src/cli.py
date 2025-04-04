@@ -163,13 +163,17 @@ def display_server_details(server: MCPServer):
 def run_workflow(template_name: str, description: Optional[str] = None, goal: Optional[str] = None, verbose: bool = False):
     """Create and interactively run a workflow from a template."""
     import asyncio
-    from src.dependencies import get_workflow_service, get_registry, db_pool
-    from src.core.workflow.service import WorkflowService # Import WorkflowService for type hint
+    from src.dependencies import get_workflow_service, db_pool
+    from src.core.workflow.service import WorkflowService
+    from src.core.workflow.handlers import UserInputStep
+
 
     async def _run_workflow():
         await db_pool.open() # Ensure pool is open
-        registry = await get_registry().__anext__()
-        service: WorkflowService = await get_workflow_service().__anext__() # Type hint service
+
+        service: WorkflowService = await anext(get_workflow_service())
+
+        registry = service.registry
 
         template = registry.get_dialog_template(template_name)
         if not template:
@@ -198,45 +202,41 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
 
             # --- Interactive Execution Loop ---
             while True:
-                # Reload dialog state for latest status and data
-                dialog = await service.get_dialog(dialog.id)
-                if not dialog:
-                    console.print("[bold red]Error:[/bold red] Dialog disappeared unexpectedly.")
+
+                step = dialog.get_current_workflow_step()
+                current_step = step.step
+                console.rule(
+                    f"[bold]Current State: {dialog.current_state} | Status: {dialog.status} | Next Step: {current_step.name} | Request prams: {dialog.workflow_data.missing_variables}[/]")
+
+                await service.run_workflow(dialog)
+
+                if dialog.status == DialogStatus.COMPLETED:
                     break
 
-                current_step = dialog.get_current_step()
-                step_name = current_step.name if current_step else "None (End)"
-                console.rule(f"[bold]Current State: {dialog.current_state} | Status: {dialog.status} | Next Step: {step_name}[/]")
+                step = dialog.get_current_workflow_step()
+                current_step = step.step
+                console.rule(
+                    f"[bold]Current State: {dialog.current_state} | Status: {dialog.status} | Next Step: {current_step.name}[/]")
 
                 if dialog.status == DialogStatus.WAITING_FOR_INPUT:
                     console.print("[yellow]Workflow waiting for input...[/]")
                     user_input_data = {}
                     missing_vars = dialog.workflow_data.missing_variables or []
 
-                    if 'user_input' in missing_vars:
+                    if dialog.workflow_data.needs_user_input():
                         # General user_input step
                         prompt_text = "Please provide input:"
-                        # Try to get prompt text from the current step if it's a UserInputStep
-                        if current_step and isinstance(current_step, UserInputStep):
-                             # Render prompt template if available
-                            if current_step.template:
-                                try:
-                                    prompt_template = registry.get_prompt(current_step.template)
-                                    if prompt_template:
-                                        # Combine dialog variables and step results for rendering context
-                                        render_context = {**dialog.workflow_data.variables, **dialog.workflow_data.step_results}
-                                        prompt_text = await prompt_template.render(render_context)
-                                    else:
-                                        prompt_text = current_step.prompt or prompt_text # Fallback to static prompt
-                                except Exception as e:
-                                    logger.warning(f"Could not render prompt template {current_step.template}: {e}")
-                                    prompt_text = current_step.prompt or prompt_text # Fallback
-                            else:
-                                prompt_text = current_step.prompt or prompt_text
 
                         user_input_data = Prompt.ask(f"[bold yellow]Input required[/]: {prompt_text}")
-                        # Clear only 'user_input' from missing vars if that's what we prompted for
-                        dialog.workflow_data.missing_variables = [v for v in missing_vars if v != 'user_input']
+
+                        console.print(f"Received input: {user_input_data}")
+
+                        result = await service.provide_user_input(dialog=dialog, user_input=user_input_data)
+
+                        if not result.success:
+                            console.print(f"[bold red]Input Submission Error:[/bold red] {result.message}")
+                            break
+
 
                     elif missing_vars:
                         # Specific variables needed (e.g., for prompt template)
@@ -253,12 +253,14 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
                         # Clear the variables we just prompted for
                         dialog.workflow_data.missing_variables = [] # Assume we got all needed now
 
-                    # Provide the input back to the workflow service
-                    console.print("[cyan]Submitting input to workflow...[/]")
-                    await service.provide_user_input(dialog.id, user_input_data)
-                    # Loop continues, will re-fetch dialog state
+                        # Provide the input back to the workflow service
+                        console.print(f"[cyan]Submitting input to workflow..{user_input_data}.[/]")
+                        result = await service.provide_missing_variables(dialog, user_input_data)
 
-                elif dialog.is_complete() or dialog.current_state == 'end':
+                        if not result.success:
+                            console.print(f"[bold red]Input Submission Error:[/bold red] {result.message}")
+                            break
+                elif dialog.current_state == 'end':
                     console.print("[bold green]Workflow finished.[/]")
                     break
                 elif dialog.status == DialogStatus.FAILED:
@@ -270,40 +272,6 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
                          for err in dialog.workflow_data.errors:
                              console.print(f"- {err}")
                      break
-                else:
-                    # Execute the next step
-                    if current_step:
-                        console.print(f"[cyan]Executing step:[/cyan] '{current_step.name}' ({current_step.type})")
-                    else:
-                         console.print("[yellow]No current step found, attempting to finalize...[/]") # Should ideally transition to end
-
-                    exec_result = await service.engine.execute_next_step(dialog)
-
-                    if verbose:
-                        console.print(f"[grey]Step Result:[/grey] {exec_result}")
-
-                    if not exec_result.success and exec_result.message:
-                         console.print(f"[bold red]Step Execution Error:[/bold red] {exec_result.message}")
-                         # The loop will continue and check the dialog status (likely FAILED)
-
-                    # --- Display new messages ---
-                    # Fetch the latest dialog state again to show messages added by the step
-                    updated_dialog = await service.get_dialog(dialog.id)
-                    if updated_dialog:
-                        # Determine messages added since the last iteration (simple approach)
-                        # A more robust way would track message IDs seen
-                        num_messages_before = len(dialog.messages)
-                        new_messages = updated_dialog.messages[num_messages_before:]
-                        if new_messages:
-                            console.print("[bold cyan]New Messages:[/]")
-                            for msg in new_messages:
-                                display_message(msg)
-                        dialog = updated_dialog # Use the updated dialog for the next iteration
-                    else:
-                        console.print("[bold red]Error:[/bold red] Failed to fetch updated dialog state after step execution.")
-                        break
-
-                    await asyncio.sleep(0.1) # Small delay
 
             console.rule("[bold]Workflow Summary[/]")
             final_dialog = await service.get_dialog(dialog.id) # Get final state

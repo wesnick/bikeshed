@@ -6,8 +6,7 @@ from psycopg import AsyncConnection
 from src.core.config_types import DialogTemplate, Step
 from src.core.registry import Registry
 from src.core.models import Dialog, DialogStatus
-from src.core.workflow.engine import WorkflowEngine
-from src.core.workflow.step_result import StepResult
+from src.core.workflow.engine import WorkflowEngine, StepResult
 from src.core.workflow.persistence import DatabasePersistenceProvider
 from src.core.workflow.handlers.message import MessageStepHandler
 from src.core.workflow.handlers.prompt import PromptStepHandler
@@ -38,10 +37,10 @@ class WorkflowService:
 
         # Create step handlers
         self.handlers = {
-            'message': MessageStepHandler(registry=registry),
+            'message': MessageStepHandler(registry=registry, completion_service=completion_service),
             'prompt': PromptStepHandler(registry=registry, completion_service=completion_service),
-            'user_input': UserInputStepHandler(completion_service=completion_service),
-            'invoke': InvokeStepHandler()
+            'user_input': UserInputStepHandler(registry=registry, completion_service=completion_service),
+            'invoke': InvokeStepHandler(registry=registry, completion_service=completion_service)
         }
 
         # Create workflow engine

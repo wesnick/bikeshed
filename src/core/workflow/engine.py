@@ -1,13 +1,14 @@
 from typing import Dict, List, Optional, Protocol, Any, Tuple
 import uuid
+
+from pydantic import BaseModel
 from transitions.extensions import AsyncGraphMachine
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from src.core.config_types import Step, DialogTemplate
 from src.core.workflow.visualization import BikeShedState
 from src.core.models import Dialog, DialogStatus
 from src.service.logging import logger
-from src.core.workflow.step_result import StepResult
 
 
 class StepHandler(Protocol):
@@ -97,7 +98,6 @@ class WorkflowEngine:
                     'source': state_name,
                     'dest': 'end',
                     'before': self._finalize_workflow,
-                    # 'label': 'Complete'
                 })
 
         return states, transitions
@@ -213,3 +213,60 @@ class WorkflowEngine:
         # Ensure dialog is saved even when trigger is not found
         await self.persistence.save_dialog(dialog)
         return result
+
+
+@dataclass
+class StepResult:
+    """
+    Unified result class for workflow steps and transitions.
+    Provides a consistent interface and context sharing between steps.
+    """
+    success: bool
+    state: str
+    message: Optional[str] = None
+    data: Dict[str, Any] = field(default_factory=dict)
+
+    @staticmethod
+    def handle_data(output: Any) -> Dict[str, Any]:
+        data = {}
+        if isinstance(output, (str, int, float, bool)):
+            data['output'] = output
+        elif isinstance(output, dict):
+            data.update(output)
+        elif isinstance(output, BaseModel):
+            data.update(output.model_dump())
+        elif output is None:
+            pass
+        else:
+            data['output'] = str(output)
+
+        return data
+
+
+    @classmethod
+    def success_result(cls, state: str, message: Optional[str] = None, data: Optional[Any] = None) -> 'StepResult':
+        """Factory method for creating a successful result"""
+        return cls(
+            success=True,
+            state=state,
+            message=message or "Step executed successfully",
+            data=StepResult.handle_data(data)
+        )
+
+    @classmethod
+    def failure_result(cls, state: str, message: Optional[str] = None) -> 'StepResult':
+        """Factory method for creating a failure result"""
+        return cls(
+            success=False,
+            state=state,
+            message=message or "Step execution failed"
+        )
+
+    @classmethod
+    def waiting_result(cls, state: str, required_variables: List[str]) -> 'StepResult':
+        """Factory method for creating a waiting for input result"""
+        return cls(
+            success=False,
+            state=state,
+            message=f"Waiting for input: {required_variables}"
+        )

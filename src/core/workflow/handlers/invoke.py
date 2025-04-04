@@ -2,13 +2,13 @@ from typing import Any, Dict, Callable
 import importlib
 import inspect
 
-from src.core.workflow.engine import StepHandler
-from src.core.workflow.step_result import StepResult
+from src.core.workflow.handlers import BaseStepHandler
+from src.core.workflow.engine import StepResult
 from src.core.config_types import InvokeStep, Step
-from src.core.models import Dialog
+from src.core.models import Dialog, DialogStatus
 
 
-class InvokeStepHandler(StepHandler):
+class InvokeStepHandler(BaseStepHandler):
     """Handler for invoke steps"""
 
     async def can_handle(self, dialog: Dialog, step: Step) -> bool:
@@ -17,37 +17,34 @@ class InvokeStepHandler(StepHandler):
 
     async def handle(self, dialog: Dialog, step: Step) -> StepResult:
         """Handle an invoke step"""
-        if not isinstance(step, InvokeStep):
-            raise TypeError(f"Expected InvokeStep but got {type(step)}")
+        await self.validate_step_type(step, InvokeStep)
 
         # Set status to running
-        dialog.status = 'running'
+        dialog.status = DialogStatus.RUNNING
 
         # Get the callable function
         func = await self._get_callable(step.callable)
 
         # Prepare arguments
-        args = step.args or []
-        kwargs = step.kwargs or {}
+        args = await self.prepare_arguments(dialog, step)
 
         # Add dialog to kwargs if the function accepts it
         sig = inspect.signature(func)
-        if 'dialog' in sig.parameters:
-            kwargs['dialog'] = dialog
+        valid_params = sig.parameters.keys()
+
+        filtered_args = {k: v for k, v in args.items() if k in valid_params}
 
         # Execute the function
         try:
             if inspect.iscoroutinefunction(func):
-                result = await func(*args, **kwargs)
+                result = await func(**filtered_args)
             else:
-                result = func(*args, **kwargs)
+                result = func(**filtered_args)
 
             # Return step result
             return StepResult.success_result(
                 state=dialog.current_state,
-                data={
-                    'result': result
-                }
+                data=result,
             )
         except Exception as e:
             # Handle error
