@@ -71,7 +71,9 @@ class WorkflowService:
         dialog = await self.persistence.create_dialog(dialog_data)
 
         # Initialize workflow
-        return await self.engine.initialize_dialog(dialog)
+        await self.engine.initialize_dialog(dialog)
+
+        return dialog
 
     async def get_dialog(self, dialog_id: uuid.UUID) -> Optional[Dialog]:
         """Get a dialog by ID and initialize its workflow"""
@@ -140,10 +142,16 @@ class WorkflowService:
     async def provide_user_input(
             self,
             dialog: Dialog,
-            user_input: str
+            user_input: str,
+            request_completion: bool,
+            resume_workflow: bool,
     ) -> StepResult:
         """Provide user input for a waiting step"""
-        return await self.provide_missing_variables(dialog, {'user_input': user_input})
+        return await self.provide_missing_variables(dialog, {
+            'user_input': user_input,
+            'request_completion': request_completion,
+            'resume_workflow': resume_workflow,
+        })
 
 
     async def create_workflow_graph(self, dialog: Dialog) -> Optional[str]:
@@ -178,41 +186,43 @@ class WorkflowService:
         required_inputs = {}
         provided_outputs = {}
         missing_inputs = {}
-        
+
         # Create a mock dialog for requirements analysis
         mock_dialog = Dialog(
-            id=uuid.uuid4(),
             description="Mock dialog for analysis",
-            template=template,
-            status=DialogStatus.PENDING,
-            workflow_data={}
+            template=template
         )
+        await self.engine.initialize_dialog(mock_dialog)
 
         # Analyze each step for inputs and outputs
-        for i, step in enumerate(template.steps):
+        for i, workflow_step in enumerate(mock_dialog._get_workflow_steps()):
+            step = workflow_step.step
+            if not step:
+                continue
+
             step_id = step.name
-            
+
             # Get the handler for this step type
             handler = self.handlers.get(step.type)
             if not handler:
                 continue
-                
+
             # Get requirements for this step
             requirements = await handler.get_step_requirements(mock_dialog, step)
-            
+
             # Add required inputs
             if requirements.required_variables:
                 required_inputs[step_id] = requirements.required_variables
-                
+
                 # Check if these inputs are satisfied by previous steps
                 unsatisfied_inputs = {}
                 for input_name, input_info in requirements.required_variables.items():
                     if not any(input_name in outputs for outputs in list(provided_outputs.values())):
                         unsatisfied_inputs[input_name] = input_info
-                        
+
                 if unsatisfied_inputs:
                     missing_inputs[step_id] = unsatisfied_inputs
-                    
+
             # Add provided outputs
             if requirements.provided_outputs:
                 provided_outputs[step_id] = requirements.provided_outputs

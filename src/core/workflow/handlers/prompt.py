@@ -1,53 +1,40 @@
 from src.core.config_types import PromptStep, Step
 from src.core.models import Dialog, DialogStatus, MessageStatus
-from src.core.workflow.handlers import BaseStepHandler
-from src.core.workflow.engine import StepResult
+from src.core.workflow.handlers.base import StepHandler, StepResult, StepRequirements
 
 
-class PromptStepHandler(BaseStepHandler):
+class PromptStepHandler(StepHandler):
     """Handler for prompt steps"""
 
     async def get_step_requirements(self, dialog: Dialog, step: Step) -> StepRequirements:
         """Get the requirements for a prompt step"""
         requirements = StepRequirements()
-        
+
         if not isinstance(step, PromptStep):
             return requirements
-            
+
         # If no template, no variables needed
         if not step.template:
-            # Add standard output
-            requirements.add_provided_output(
-                "result", 
-                f"Output from prompt step: {step.name}", 
-                step.name
-            )
             return requirements
-            
+
         # Get prompt from registry
         prompt = self.registry.get_prompt(step.template)
-        
+
         if not prompt:
             raise ValueError(f"Prompt template '{step.template}' not found")
-            
+
         # Add required variables from prompt arguments
         for arg in prompt.arguments:
             # Check if this argument is overridden in template_args
             is_overridden = step.template_args and arg.name in step.template_args
-            
+
             requirements.add_required_variable(
                 arg.name,
                 arg.description,
-                required=arg.required and not is_overridden
+                required=arg.required and not is_overridden,
+                datatype=str
             )
-            
-        # Add standard output
-        requirements.add_provided_output(
-            "result", 
-            f"Output from prompt step: {step.name}", 
-            step.name
-        )
-            
+
         return requirements
 
     async def handle(self, dialog: Dialog, step: Step) -> StepResult:

@@ -6,7 +6,7 @@ import os
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.prompt import Prompt, FloatPrompt, IntPrompt
+from rich.prompt import Prompt, FloatPrompt, IntPrompt, Confirm
 from rich.syntax import Syntax
 
 from src.core.models import DialogStatus, Dialog
@@ -165,7 +165,7 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
     import asyncio
     from src.dependencies import get_workflow_service, db_pool
     from src.core.workflow.service import WorkflowService
-    from src.core.workflow.handlers import UserInputStep
+    from src.core.workflow.handlers.user_input import UserInputStep
 
 
     async def _run_workflow():
@@ -181,14 +181,13 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
             await db_pool.close()
             return
 
+        deps = await service.analyze_workflow_dependencies(template)
+
         console.print(f"[bold cyan]Starting workflow:[/bold cyan] {template_name}")
         console.print(f"[cyan]Description:[/cyan] {template.description or 'N/A'}")
+        console.print(f"[cyan]Deps:[/cyan] {deps or 'N/A'}")
 
-        # --- Initial Variable Prompting (Optional - based on analysis) ---
-        # This part is complex as it depends on knowing *which* variables are needed *before* the first step.
-        # The current engine design handles this by setting WAITING_FOR_INPUT during step execution.
-        # We will rely on that mechanism for now.
-        initial_data = {} # Start with empty initial data
+        initial_data = {}
 
         try:
             # Create the dialog instance
@@ -219,19 +218,27 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
                     f"[bold]Current State: {dialog.current_state} | Status: {dialog.status} | Next Step: {current_step.name}[/]")
 
                 if dialog.status == DialogStatus.WAITING_FOR_INPUT:
-                    console.print("[yellow]Workflow waiting for input...[/]")
                     user_input_data = {}
                     missing_vars = dialog.workflow_data.missing_variables or []
-
+                    console.print(f"[yellow]Workflow waiting for input (need: {missing_vars})...[/]")
                     if dialog.workflow_data.needs_user_input():
+
                         # General user_input step
                         prompt_text = "Please provide input:"
 
                         user_input_data = Prompt.ask(f"[bold yellow]Input required[/]: {prompt_text}")
 
-                        console.print(f"Received input: {user_input_data}")
+                        request_completion = Confirm.ask(
+                            "Request a completion from the LLM after receiving the response?")
+                        resume_workflow = Confirm.ask(
+                            "Do you want to resume the workflow after providing the input?")
 
-                        result = await service.provide_user_input(dialog=dialog, user_input=user_input_data)
+                        result = await service.provide_user_input(
+                            dialog=dialog,
+                            user_input=user_input_data,
+                            request_completion=request_completion,
+                            resume_workflow=resume_workflow
+                        )
 
                         if not result.success:
                             console.print(f"[bold red]Input Submission Error:[/bold red] {result.message}")

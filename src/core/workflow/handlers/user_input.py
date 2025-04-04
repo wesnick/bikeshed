@@ -1,36 +1,39 @@
-from src.core.workflow.handlers import BaseStepHandler
-from src.core.workflow.engine import StepResult
+from src.core.workflow.handlers.base import StepHandler, StepResult, StepRequirements
 from src.core.config_types import UserInputStep, Step
 from src.core.models import Dialog, Message, DialogStatus, MessageStatus, WorkflowData
 from src.service.llm import CompletionService
 from src.service.logging import logger
 
-class UserInputStepHandler(BaseStepHandler):
+class UserInputStepHandler(StepHandler):
     """Handler for user_input steps"""
 
     async def get_step_requirements(self, dialog: Dialog, step: Step) -> StepRequirements:
         """Get the requirements for a user input step"""
         requirements = StepRequirements()
-        
+
         if not isinstance(step, UserInputStep):
             return requirements
-            
-        # Check if we need user input
-        if dialog.workflow_data.needs_user_input():
-            # Add the user_input as a required variable
-            requirements.add_required_variable(
-                "user_input",
-                "User input required for this step",
-                True
-            )
-        
-        # User input steps provide the user_input variable
-        requirements.add_provided_output(
+
+        # Add the user_input as a required variable
+        requirements.add_required_variable(
             "user_input",
-            f"User provided input from step: {step.name}",
-            step.name
+            "User input required for this step",
+            True,
+            str,
         )
-            
+        requirements.add_required_variable(
+            "resume_workflow",
+            "Whether to continue the workflow",
+            True,
+            bool
+        )
+        requirements.add_required_variable(
+            "request_completion",
+            "Whether to request a completion from an LLM after for the given user input",
+            True,
+            bool
+        )
+
         return requirements
 
 

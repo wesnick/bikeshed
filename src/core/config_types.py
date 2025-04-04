@@ -194,7 +194,7 @@ class UserInputStep(BaseStep):
         description="Template to format user input"
     )
     template_args: Optional[Dict[str, Any]] = Field(
-        default=None,
+        default={},
         description="Arguments to pass to the template, as defaults, they will be overridden by context"
     )
     output_schema: Optional[str] = Field(
@@ -202,14 +202,14 @@ class UserInputStep(BaseStep):
         description="Schema to validate processed input"
     )
     config_extra: Optional[Dict[str, Any]] = Field(
-        default=None,
+        default={},
         description="Step-specific model configuration"
     )
 
     @model_validator(mode='after')
     def validate_template_args(self) -> 'UserInputStep':
         """Validate that template_args is only provided with template."""
-        if self.template_args is not None and self.template is None:
+        if len(self.template_args) > 0 and self.template is None:
             raise ValueError("'template_args' can only be provided when 'template' is specified")
         return self
 

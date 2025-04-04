@@ -6,75 +6,11 @@ from transitions.extensions import AsyncGraphMachine
 from dataclasses import dataclass, field
 
 from src.core.config_types import Step, DialogTemplate
+from src.core.workflow.handlers.base import StepHandler, StepResult
 
 from src.core.workflow.visualization import BikeShedState
 from src.core.models import Dialog, DialogStatus, WorkflowData
 from src.service.logging import logger
-
-
-@dataclass
-class StepResult:
-    """
-    Unified result class for workflow steps and transitions.
-    Provides a consistent interface and context sharing between steps.
-    """
-    success: bool
-    state: str
-    message: Optional[str] = None
-    data: Dict[str, Any] = field(default_factory=dict)
-
-    @staticmethod
-    def handle_data(output: Any) -> Dict[str, Any]:
-        data = {}
-        if isinstance(output, (str, int, float, bool)):
-            data['output'] = output
-        elif isinstance(output, dict):
-            data.update(output)
-        elif isinstance(output, BaseModel):
-            data.update(output.model_dump())
-        elif output is None:
-            pass
-        else:
-            data['output'] = str(output)
-
-        return data
-
-
-    @classmethod
-    def success_result(cls, state: str, message: Optional[str] = None, data: Optional[Any] = None) -> 'StepResult':
-        """Factory method for creating a successful result"""
-        return cls(
-            success=True,
-            state=state,
-            message=message or "Step executed successfully",
-            data=StepResult.handle_data(data)
-        )
-
-    @classmethod
-    def failure_result(cls, state: str, message: Optional[str] = None) -> 'StepResult':
-        """Factory method for creating a failure result"""
-        return cls(
-            success=False,
-            state=state,
-            message=message or "Step execution failed"
-        )
-
-    @classmethod
-    def waiting_result(cls, state: str, required_variables: List[str]) -> 'StepResult':
-        """Factory method for creating a waiting for input result"""
-        return cls(
-            success=False,
-            state=state,
-            message=f"Waiting for input: {required_variables}"
-        )
-
-
-from src.core.workflow.requirements import StepRequirements
-
-class StepHandler(Protocol):
-    """Protocol defining the interface for step handlers"""
-    async def get_step_requirements(self, dialog: Dialog, step: Step) -> StepRequirements: ...
-    async def handle(self, dialog: Dialog, step: Step) -> StepResult: ...
 
 class PersistenceProvider(Protocol):
     """Protocol defining the interface for persistence providers"""
@@ -92,10 +28,10 @@ class WorkflowEngine:
         self.persistence = persistence_provider
         self.handlers = handlers
 
-    async def initialize_dialog(self, dialog: Dialog) -> Dialog:
+    async def initialize_dialog(self, dialog: Dialog):
         """Initialize a state machine for a dialog"""
         if isinstance(dialog.machine, AsyncGraphMachine):
-            return dialog
+            return
 
         if not dialog.template:
             raise ValueError("Dialog must have a template")
@@ -117,10 +53,7 @@ class WorkflowEngine:
         for transition in transitions:
             machine.add_transition(**transition)
 
-
         dialog.machine = machine
-
-        return dialog
 
     def _build_state_machine_config(self, template: DialogTemplate) -> Tuple[List, List]:
         """Build states and transitions config for state machine"""
@@ -177,21 +110,24 @@ class WorkflowEngine:
 
         handler = self.handlers.get(current_workflow_step.step.type)
         if not handler:
+            dialog.workflow_data.errors.append(f"No handler for step type: {current_workflow_step.step.type}")
+            # @TODO check where this is persisted
             return False
 
         logger.debug(f"[workflow] Checking if step {current_workflow_step.step.name} can be executed")
 
         # Get step requirements
         requirements = await handler.get_step_requirements(dialog, current_workflow_step.step)
-        
+
         # Check if step can run with current variables
-        can_run = requirements.can_run(dialog.workflow_data.variables)
-        
+        can_run = requirements.can_run(await handler.prepare_arguments(dialog, current_workflow_step.step))
+
         if not can_run:
             # Update missing variables in workflow data
             dialog.workflow_data.missing_variables = requirements.get_missing_variables()
             dialog.status = DialogStatus.WAITING_FOR_INPUT
-            
+            # @TODO check where this is persisted
+
         return can_run
 
     async def _execute_step(self, event):
@@ -244,12 +180,16 @@ class WorkflowEngine:
         # Find the trigger for this step
         trigger_name = current_workflow_step.trigger
 
+        logger.debug(f"[workflow] Executing step {trigger_name}")
+
         # Check if the trigger exists
         if hasattr(dialog, trigger_name):
             trigger_method = getattr(dialog, trigger_name)
 
             try:
                 await trigger_method()
+
+                logger.debug(f"[workflow] Executing step {trigger_name}")
 
                 # Check if we're waiting for input
                 if dialog.status == 'waiting_for_input':

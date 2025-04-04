@@ -1,4 +1,6 @@
 from typing import Any, Dict, Optional, Type, List
+from dataclasses import dataclass, field
+
 from abc import ABC, abstractmethod
 
 from pydantic import BaseModel
@@ -6,13 +8,130 @@ from mcp.server.fastmcp.prompts.base import Message as MCPMessage
 
 from src.core.config_types import Step, PromptStep
 from src.core.models import Dialog, Message, MessageStatus
-from src.core.workflow.engine import StepHandler, StepResult
 from src.core.registry import Registry, TemplatePrompt
 from src.service.llm import CompletionService
-from src.core.workflow.requirements import StepRequirements
 
 
-class BaseStepHandler(ABC, StepHandler):
+@dataclass
+class StepResult:
+    """
+    Unified result class for workflow steps and transitions.
+    Provides a consistent interface and context sharing between steps.
+    """
+    success: bool
+    state: str
+    message: Optional[str] = None
+    data: Dict[str, Any] = field(default_factory=dict)
+
+    @staticmethod
+    def handle_data(output: Any) -> Dict[str, Any]:
+        data = {}
+        if isinstance(output, (str, int, float, bool)):
+            data['output'] = output
+        elif isinstance(output, dict):
+            data.update(output)
+        elif isinstance(output, BaseModel):
+            data.update(output.model_dump())
+        elif output is None:
+            pass
+        else:
+            data['output'] = str(output)
+
+        return data
+
+
+    @classmethod
+    def success_result(cls, state: str, message: Optional[str] = None, data: Optional[Any] = None) -> 'StepResult':
+        """Factory method for creating a successful result"""
+        return cls(
+            success=True,
+            state=state,
+            message=message or "Step executed successfully",
+            data=StepResult.handle_data(data)
+        )
+
+    @classmethod
+    def failure_result(cls, state: str, message: Optional[str] = None) -> 'StepResult':
+        """Factory method for creating a failure result"""
+        return cls(
+            success=False,
+            state=state,
+            message=message or "Step execution failed"
+        )
+
+    @classmethod
+    def waiting_result(cls, state: str, required_variables: List[str]) -> 'StepResult':
+        """Factory method for creating a waiting for input result"""
+        return cls(
+            success=False,
+            state=state,
+            message=f"Waiting for input: {required_variables}"
+        )
+
+class StepRequirements:
+    """
+    Represents the requirements for a workflow step to run.
+
+    This class tracks required variables, provided outputs, and determines
+    if a step can run based on available variables.
+    """
+
+    def __init__(self):
+        self.required_variables: Dict[str, Dict[str, Any]] = {}
+        self.provided_outputs: Dict[str, Dict[str, Any]] = {}
+        self.missing_variables: List[str] = []
+
+    def add_required_variable(self, name: str, description: str = "", required: bool = True, datatype: Optional[Type] = None):
+        """Add a required variable to the requirements"""
+        self.required_variables[name] = {
+            "description": description,
+            "required": required,
+            "type": datatype
+        }
+
+    def add_provided_output(self, name: str, description: str = "", source_step: str = ""):
+        """Add a provided output to the requirements"""
+        self.provided_outputs[name] = {
+            "description": description,
+            "source_step": source_step
+        }
+
+    def check_against_available(self, available_variables: Dict[str, Any]) -> bool:
+        """
+        Check if all required variables are available.
+
+        Args:
+            available_variables: Dictionary of available variables
+
+        Returns:
+            True if all required variables are available, False otherwise
+        """
+        self.missing_variables = []
+
+        for var_name, var_info in self.required_variables.items():
+            if var_info["required"] and var_name not in available_variables:
+                self.missing_variables.append(var_name)
+
+        return len(self.missing_variables) == 0
+
+    def can_run(self, available_variables: Dict[str, Any]) -> bool:
+        """
+        Determine if the step can run based on available variables.
+
+        Args:
+            available_variables: Dictionary of available variables
+
+        Returns:
+            True if the step can run, False otherwise
+        """
+        return self.check_against_available(available_variables)
+
+    def get_missing_variables(self) -> List[str]:
+        """Get the list of missing variables"""
+        return self.missing_variables
+
+
+class StepHandler(ABC):
     """Base class for all step handlers"""
 
     def __init__(self, registry: Registry,
