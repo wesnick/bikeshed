@@ -6,13 +6,14 @@ These can be templated, using a key for template name
 
 ### Template Structure
 
-| key         | type   | description                                                                                  |
-|-------------|--------|----------------------------------------------------------------------------------------------|
-| description | string | What does this do?                                                                           |
-| model       | string | default model to use (must be enabled)                                                       |
-| tools       | list   | list of tools to make available for each step, by default they will be included in LLM calls |
-| resources   | list   | list of resources to make available, this are available for templating                       |
-
+| key             | type   | required | description                                                                                  |
+|-----------------|--------|----------|----------------------------------------------------------------------------------------------|
+| description     | string | false    | What does this do?                                                                           |
+| model           | string | true     | default model to use (must be enabled)                                                       |
+| tools           | list   | false    | list of tools to make available for each step, by default they will be included in LLM calls |
+| resources       | list   | false    | list of resources to make available, this are available for templating                       |
+| steps           | list   | true     | Ordered list of execution steps, each step is an object with a name and type                 |
+| response_schema | list   | false    | If set, the finalize step will produce an artifact from the schema                           |
 
 
 ```yaml
@@ -26,8 +27,9 @@ dialog_templates:
     resources:
       - root:file://path/to/my/root
       - blob:uuid-of-blob
+    steps: [] # List of steps to execute, documented below
+    response_schema: my.schema  # optional, registered schema.  Finalize step will try to assemble this
 ```
-
 
 ### Step Structure
 
@@ -63,30 +65,30 @@ steps:
 step_types:
   - message: # Print message with specified role
       fields:
-        - role: string          # One of: "system", "user", "assistant"
-        - content: string       # Text content of the message
-        - template: string      # Registered template to use
+        - role: string            # One of: "system", "user", "assistant"
+        - content: string         # Text content of the message
+        - template: string        # Registered template to use
+        - template_defaults: dict # Arguments to pass to the template, default, overridden by context
 
   - prompt: # Generate completion from LLM
       fields:
-        - content: string       # Direct content to use as prompt
-        - template: string      # Registered template name to use
-        - template_default_vars: object # Arguments to pass to the template, default, overridden by context
+        - content: string         # Direct content to use as prompt
+        - template: string        # Registered template name to use
+        - template_defaults: dict # Arguments to pass to the template, default, overridden by context
         - response_schema: string # Schema to validate LLM response
-        - config: object        # Step-specific configuration overrides
+        - config: object          # Step-specific configuration overrides
 
   - user_input: # Wait for manual input from user
       fields:
-        - prompt: string        # Text to display to user when requesting input
-        - template: string      # Template to format user input, must have {{ user_input }} variable
-        - response_schema: string # Schema to validate LLM response
-        - config: object        # Step-specific configuration
+        - prompt: string            # Text to display to user when requesting input
+        - template: string          # Template to format user input, must have {{ user_input }} variable
+        - response_schema: string   # Schema to validate LLM response
+        - config: object            # Step-specific configuration
 
   - invoke: # Call code function
       fields:
-        - callable: string      # Function identifier to call
-        - args_schema: object   # Arguments to pass to function
-        - response_schema: string # Schema to validate function result
+        - callable: string          # Function identifier to call
+        - response_schema: string   # Schema to validate function result
 
 ```
 
@@ -104,9 +106,7 @@ Common step params:
     temperature: float              # Override default temperature
     max_tokens: integer             # Override default max tokens
     tools: list[string|object]      # Override or extend available tools
-    tool_merge_strategy: string     # One of: "replace", "append", "prepend"
     resources: list[string|object]  # Override or extend available resources
-    resource_merge_strategy: string # One of: "replace", "append", "prepend"
 
 ```
 

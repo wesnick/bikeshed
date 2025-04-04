@@ -25,8 +25,8 @@ class PromptStepHandler(StepHandler):
 
         # Add required variables from prompt arguments
         for arg in prompt.arguments:
-            # Check if this argument is overridden in template_args
-            is_overridden = step.template_args and arg.name in step.template_args
+            # Check if this argument is overridden in template_defaults
+            is_overridden = step.template_defaults and arg.name in step.template_defaults
 
             requirements.add_required_variable(
                 arg.name,

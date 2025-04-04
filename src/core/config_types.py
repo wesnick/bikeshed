@@ -5,26 +5,6 @@ from pydantic import BaseModel, Field, model_validator
 
 ## Dialog Template Configuration classes
 
-class Metadata(BaseModel):
-    """Metadata for dialog execution."""
-    tags: Optional[List[str]] = Field(
-        default=None,
-        description="List of categorization tags for the dialog"
-    )
-    owner: Optional[str] = Field(
-        default=None,
-        description="Owner or creator of the dialog"
-    )
-    version: Optional[Union[str, float]] = Field(
-        default=None,
-        description="Version of this specific dialog definition"
-    )
-    # Allow additional fields
-    model_config = {
-        "extra": "allow",
-    }
-
-
 class ErrorHandling(BaseModel):
     """Error handling configuration."""
     strategy: Literal["fail", "retry", "continue", "fallback"] = Field(
@@ -59,17 +39,9 @@ class StepConfig(BaseModel):
         default=None,
         description="Override or extend available tools for this step"
     )
-    tool_merge_strategy: Optional[Literal["replace", "append", "prepend"]] = Field(
-        default=None,
-        description="Strategy for merging tools with the default set"
-    )
     resources: Optional[List[Union[str, Dict[str, Any]]]] = Field(
         default=None,
         description="Override or extend available resources for this step"
-    )
-    resource_merge_strategy: Optional[Literal["replace", "append", "prepend"]] = Field(
-        default=None,
-        description="Strategy for merging resources with the default set"
     )
 
 
@@ -78,10 +50,6 @@ class BaseStep(BaseModel):
     name: str = Field(
         description="Concise descriptive name for the step"
     )
-    description: Optional[str] = Field(
-        default=None,
-        description="Detailed purpose of the step"
-    )
     type: str = Field(
         description="Type of step to execute"
     )
@@ -89,16 +57,12 @@ class BaseStep(BaseModel):
         default=True,
         description="Whether the step is active"
     )
-    metadata: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Additional information for tracking/debugging"
-    )
     error_handling: Optional[ErrorHandling] = Field(
-        default=None,
+        default_factory=lambda: ErrorHandling(),
         description="Error handling configuration for this step"
     )
-    config_extra: Optional[Dict[str, Any]] = Field(
-        default=None,
+    config: Optional[StepConfig] = Field(
+        default_factory=lambda: StepConfig(),
         description="Additional model configuration for this step"
     )
 
@@ -120,7 +84,7 @@ class MessageStep(BaseStep):
         default=None,
         description="Registered template name to use"
     )
-    template_args: Optional[Dict[str, Any]] = Field(
+    template_defaults: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Arguments to pass to the template"
     )
@@ -132,8 +96,8 @@ class MessageStep(BaseStep):
             raise ValueError("Only one of 'content' or 'template' can be provided")
         if self.content is None and self.template is None:
             raise ValueError("Either 'content' or 'template' must be provided")
-        if self.template_args is not None and self.template is None:
-            raise ValueError("'template_args' can only be provided when 'template' is specified")
+        if self.template_defaults is not None and self.template is None:
+            raise ValueError("'template_defaults' can only be provided when 'template' is specified")
         return self
 
 
@@ -151,18 +115,15 @@ class PromptStep(BaseStep):
         default=None,
         description="Registered template name to use"
     )
-    template_args: Optional[Dict[str, Any]] = Field(
+    template_defaults: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Arguments to pass to the template"
     )
-    output_schema: Optional[str] = Field(
+    response_schema: Optional[str] = Field(
         default=None,
         description="Schema to validate LLM response"
     )
-    config_extra: Optional[Dict[str, Any]] = Field(
-        default={},
-        description="Step-specific model configuration overrides"
-    )
+
 
     @model_validator(mode='after')
     def validate_content_or_template(self) -> 'PromptStep':
@@ -171,8 +132,8 @@ class PromptStep(BaseStep):
             raise ValueError("Only one of 'content' or 'template' can be provided")
         if self.content is None and self.template is None:
             raise ValueError("Either 'content' or 'template' must be provided")
-        if self.template_args is not None and self.template is None:
-            raise ValueError("'template_args' can only be provided when 'template' is specified")
+        if self.template_defaults is not None and self.template is None:
+            raise ValueError("'template_defaults' can only be provided when 'template' is specified")
         return self
 
 class UserInputStep(BaseStep):
@@ -180,10 +141,6 @@ class UserInputStep(BaseStep):
     type: Literal["user_input"] = Field(
         default="user_input",
         description="Step type for waiting for manual user input"
-    )
-    instructions: Optional[str] = Field(
-        default=None,
-        description="Instructions for the user"
     )
     prompt: Optional[str] = Field(
         default=None,
@@ -193,24 +150,21 @@ class UserInputStep(BaseStep):
         default=None,
         description="Template to format user input"
     )
-    template_args: Optional[Dict[str, Any]] = Field(
+    template_defaults: Optional[Dict[str, Any]] = Field(
         default={},
         description="Arguments to pass to the template, as defaults, they will be overridden by context"
     )
-    output_schema: Optional[str] = Field(
+    response_schema: Optional[str] = Field(
         default=None,
         description="Schema to validate processed input"
     )
-    config_extra: Optional[Dict[str, Any]] = Field(
-        default={},
-        description="Step-specific model configuration"
-    )
+
 
     @model_validator(mode='after')
-    def validate_template_args(self) -> 'UserInputStep':
-        """Validate that template_args is only provided with template."""
-        if len(self.template_args) > 0 and self.template is None:
-            raise ValueError("'template_args' can only be provided when 'template' is specified")
+    def validate_template_defaults(self) -> 'UserInputStep':
+        """Validate that template_defaults is only provided with template."""
+        if len(self.template_defaults) > 0 and self.template is None:
+            raise ValueError("'template_defaults' can only be provided when 'template' is specified")
         return self
 
 class InvokeStep(BaseStep):
@@ -222,7 +176,7 @@ class InvokeStep(BaseStep):
     callable: str = Field(
         description="Function identifier to call, use '@' for tool lookup"
     )
-    output_schema: Optional[str] = Field(
+    response_schema: Optional[str] = Field(
         default=None,
         description="Schema to validate function result"
     )
@@ -254,18 +208,6 @@ class DialogTemplate(BaseModel):
         default=None,
         description="Brief description of the dialog"
     )
-    goal: Optional[str] = Field(
-        default=None,
-        description="Desired outcome of the dialog"
-    )
-    metadata: Optional[Metadata] = Field(
-        default=None,
-        description="Additional metadata for the dialog"
-    )
-    config_extra: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Dictionary of model configuration options"
-    )
     tools: Optional[List[str]] = Field(
         default=None,
         description="List of tool identifiers"
@@ -274,11 +216,7 @@ class DialogTemplate(BaseModel):
         default=None,
         description="List of resource identifiers"
     )
-    roots: Optional[List[str]] = Field(
-        default=None,
-        description="List of root identifiers"
-    )
-    output_schema: Optional[str] = Field(
+    response_schema: Optional[str] = Field(
         default=None,
         description="Registered schema name for dialog output"
     )
@@ -371,6 +309,3 @@ class Model(BaseModel):
             # If no ID is provided, create one from provider and name
             self.id = f"{self.provider}/{self.name}"
         return self
-
-
-DialogTemplate.model_json_schema()

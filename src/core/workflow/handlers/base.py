@@ -195,21 +195,21 @@ class StepHandler(ABC):
         Get all variables for the step, applying precedence rules.
 
         Precedence (lowest to highest):
-        1. Step template_args (if available)
+        1. Step template_defaults (if available)
         2. Dialog workflow variables
 
         Args:
             dialog: The dialog containing the variables
-            step: The step that may contain template_args
+            step: The step that may contain template_defaults
 
         Returns:
             A dictionary of all variables
         """
         args = {}
 
-        # Add template_args if available (overriding any existing variables)
-        if hasattr(step, 'template_args') and step.template_args:
-            args.update(step.template_args)
+        # Add template_defaults if available (overriding any existing variables)
+        if hasattr(step, 'template_defaults') and step.template_defaults:
+            args.update(step.template_defaults)
 
         # Start with dialog workflow variables
         args = dialog.workflow_data.variables.copy()

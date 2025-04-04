@@ -250,9 +250,9 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
                         collected_vars = {}
                         for var_name in missing_vars:
                             # Basic type prompting - could be enhanced by schema inspection
-                            if "number" in var_name.lower() or (current_step and current_step.output_schema == "number"):
+                            if "number" in var_name.lower() or (current_step and current_step.response_schema == "number"):
                                 collected_vars[var_name] = FloatPrompt.ask(f"[bold yellow]Input required for '{var_name}'[/] (number)")
-                            elif "int" in var_name.lower() or (current_step and current_step.output_schema == "integer"):
+                            elif "int" in var_name.lower() or (current_step and current_step.response_schema == "integer"):
                                  collected_vars[var_name] = IntPrompt.ask(f"[bold yellow]Input required for '{var_name}'[/] (integer)")
                             else:
                                 collected_vars[var_name] = Prompt.ask(f"[bold yellow]Input required for '{var_name}'[/]")

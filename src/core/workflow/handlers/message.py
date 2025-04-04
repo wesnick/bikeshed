@@ -14,8 +14,8 @@ class MessageStepHandler(StepHandler):
             return requirements
 
         # Check for template args
-        if hasattr(step, 'template_args') and step.template_args:
-            for arg_name in step.template_args:
+        if hasattr(step, 'template_defaults') and step.template_defaults:
+            for arg_name in step.template_defaults:
                 requirements.add_required_variable(
                     arg_name,
                     f"Input for message template argument: {arg_name}",
