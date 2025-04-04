@@ -7,27 +7,18 @@ from src.core.config_types import Step, DialogTemplate
 from src.core.workflow.visualization import BikeShedState
 from src.core.models import Dialog, DialogStatus
 from src.service.logging import logger
+from src.core.workflow.step_result import StepResult
 
 
 class StepHandler(Protocol):
     """Protocol defining the interface for step handlers"""
     async def can_handle(self, dialog: Dialog, step: Step) -> bool: ...
-    async def handle(self, dialog: Dialog, step: Step) -> Dict[str, Any]: ...
+    async def handle(self, dialog: Dialog, step: Step) -> StepResult: ...
 
 class PersistenceProvider(Protocol):
     """Protocol defining the interface for persistence providers"""
     async def save_dialog(self, dialog: Dialog) -> None: ...
     async def load_dialog(self, dialog_id: uuid.UUID) -> Optional[Dialog]: ...
-
-@dataclass
-class WorkflowTransitionResult:
-    """Result of a workflow transition"""
-    success: bool
-    state: str
-    message: Optional[str] = None
-    data: Optional[Dict[str, Any]] = None
-    waiting_for_input: bool = False
-    required_variables: Optional[List[str]] = None
 
 class WorkflowEngine:
     """Engine for executing workflow state machines"""
@@ -151,10 +142,9 @@ class WorkflowEngine:
             logger.debug(f"[workflow] Step {current_workflow_step.step.name} executed successfully: {result}")
 
             # Update workflow data
-            # @TODO: transition with a method, update dialog state
             dialog.workflow_data.step_results[current_workflow_step.step.name] = {
-                'completed': True,
-                **result
+                'completed': result.success,
+                **result.data
             }
 
         except Exception as e:
@@ -167,13 +157,12 @@ class WorkflowEngine:
         dialog = event.model
         dialog.status = 'completed'
 
-    async def execute_next_step(self, dialog: Dialog) -> WorkflowTransitionResult:
+    async def execute_next_step(self, dialog: Dialog) -> StepResult:
         """Execute the next step in the workflow"""
         current_workflow_step = dialog.get_current_workflow_step()
         if not current_workflow_step:
             # No more steps to execute
-            result = WorkflowTransitionResult(
-                success=False,
+            result = StepResult.failure_result(
                 state=dialog.current_state,
                 message="No more steps to execute"
             )
@@ -195,19 +184,13 @@ class WorkflowEngine:
                 if dialog.status == 'waiting_for_input':
                     missing_vars = dialog.workflow_data.missing_variables
                     await self.persistence.save_dialog(dialog)
-                    return WorkflowTransitionResult(
-                        success=False,
+                    return StepResult.waiting_result(
                         state=dialog.current_state,
-                        waiting_for_input=True,
-                        required_variables=missing_vars,
-                        message=f"Waiting for input: {missing_vars}"
+                        required_variables=missing_vars
                     )
 
-
-                return WorkflowTransitionResult(
-                    success=True,
-                    state=dialog.current_state,
-                    message="Step executed successfully"
+                return StepResult.success_result(
+                    state=dialog.current_state
                 )
 
             except Exception as e:
@@ -217,15 +200,13 @@ class WorkflowEngine:
                 dialog.status = DialogStatus.FAILED
                 # Ensure dialog is saved when an exception occurs
                 await self.persistence.save_dialog(dialog)
-                return WorkflowTransitionResult(
-                    success=False,
+                return StepResult.failure_result(
                     state=dialog.current_state,
                     message=f"Error executing step: {str(e)}"
                 )
 
         # Trigger not found
-        result = WorkflowTransitionResult(
-            success=False,
+        result = StepResult.failure_result(
             state=dialog.current_state,
             message=f"Trigger {trigger_name} not found"
         )

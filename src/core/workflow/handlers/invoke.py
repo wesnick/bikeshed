@@ -3,6 +3,7 @@ import importlib
 import inspect
 
 from src.core.workflow.engine import StepHandler
+from src.core.workflow.step_result import StepResult
 from src.core.config_types import InvokeStep, Step
 from src.core.models import Dialog
 
@@ -14,7 +15,7 @@ class InvokeStepHandler(StepHandler):
         """Check if the step can be handled"""
         return isinstance(step, InvokeStep)
 
-    async def handle(self, dialog: Dialog, step: Step) -> Dict[str, Any]:
+    async def handle(self, dialog: Dialog, step: Step) -> StepResult:
         """Handle an invoke step"""
         if not isinstance(step, InvokeStep):
             raise TypeError(f"Expected InvokeStep but got {type(step)}")
@@ -42,19 +43,21 @@ class InvokeStepHandler(StepHandler):
                 result = func(*args, **kwargs)
 
             # Return step result
-            return {
-                'result': result,
-                'completed': True
-            }
+            return StepResult.success_result(
+                state=dialog.current_state,
+                data={
+                    'result': result
+                }
+            )
         except Exception as e:
             # Handle error
             error_message = f"Error invoking {step.callable}: {str(e)}"
             dialog.workflow_data.errors.append(error_message)
 
-            return {
-                'error': error_message,
-                'completed': False
-            }
+            return StepResult.failure_result(
+                state=dialog.current_state,
+                message=error_message
+            )
 
     async def _get_callable(self, callable_path: str) -> Callable[..., Any]:
         """Get a callable function from its import path"""

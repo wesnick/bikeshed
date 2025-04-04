@@ -2,6 +2,7 @@ from typing import Any, Dict
 import uuid
 
 from src.core.workflow.engine import StepHandler
+from src.core.workflow.step_result import StepResult
 from src.core.config_types import UserInputStep, Step
 from src.core.models import Dialog, Message, DialogStatus, MessageStatus, WorkflowData
 from src.service.llm import CompletionService
@@ -30,20 +31,23 @@ class UserInputStepHandler(StepHandler):
         return True
 
 
-    async def handle(self, dialog: Dialog, step: Step) -> Dict[str, Any]:
+    async def handle(self, dialog: Dialog, step: Step) -> StepResult:
         """Handle a user_input step"""
         if not isinstance(step, UserInputStep):
             raise TypeError(f"Expected UserInputStep but got {type(step)}")
 
         # Get the user input from workflow data
         workflow_data: WorkflowData = dialog.workflow_data
-        user_input = workflow_data.variables['user_input']
+        user_input = workflow_data.variables.get('user_input')
 
         if not user_input:
             # If no user input is available, set status to waiting and exit
             logger.warning(f"No user input found")
             dialog.status = DialogStatus.WAITING_FOR_INPUT
-            return {'completed': False, 'waiting_for_input': True}
+            return StepResult.waiting_result(
+                state=dialog.current_state,
+                required_variables=['user_input']
+            )
 
         # Create a message for the user input
         message = Message(
@@ -83,6 +87,6 @@ class UserInputStepHandler(StepHandler):
         dialog.status = DialogStatus.RUNNING
 
         # Return step result
-        return {
-            'completed': True
-        }
+        return StepResult.success_result(
+            state=dialog.current_state
+        )

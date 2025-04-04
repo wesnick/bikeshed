@@ -3,6 +3,7 @@ import uuid
 
 from src.core.registry import Registry
 from src.core.workflow.engine import StepHandler
+from src.core.workflow.step_result import StepResult
 from src.core.config_types import MessageStep, Step
 from src.core.models import Dialog, Message, MessageStatus, DialogStatus
 
@@ -23,7 +24,7 @@ class MessageStepHandler(StepHandler):
         """Check if the step can be handled"""
         return isinstance(step, MessageStep)
 
-    async def handle(self, dialog: Dialog, step: Step) -> Dict[str, Any]:
+    async def handle(self, dialog: Dialog, step: Step) -> StepResult:
         """Handle a message step"""
         if not isinstance(step, MessageStep):
             raise TypeError(f"Expected MessageStep but got {type(step)}")
@@ -46,10 +47,13 @@ class MessageStepHandler(StepHandler):
         dialog.messages.append(message)
 
         # Return step result
-        return {
-            'message_id': str(message.id),
-            'content': message_content
-        }
+        return StepResult.success_result(
+            state=dialog.current_state,
+            data={
+                'message_id': str(message.id),
+                'content': message_content
+            }
+        )
 
     async def _get_message_content(self, dialog: Dialog, step: MessageStep) -> str:
         """Get the content for a message step"""

@@ -8,6 +8,7 @@ from src.core.registry import Registry, TemplatePrompt
 from src.core.models import Message
 from src.core.models import Dialog, DialogStatus, MessageStatus
 from src.core.workflow.engine import StepHandler
+from src.core.workflow.step_result import StepResult
 from src.service.llm import CompletionService
 
 
@@ -61,7 +62,7 @@ class PromptStepHandler(StepHandler):
 
         return True
 
-    async def handle(self, dialog: Dialog, step: Step) -> Dict[str, Any]:
+    async def handle(self, dialog: Dialog, step: Step) -> StepResult:
         """Handle a prompt step"""
         if not isinstance(step, PromptStep):
             raise TypeError(f"Expected PromptStep but got {type(step)}")
@@ -121,10 +122,13 @@ class PromptStepHandler(StepHandler):
         )
 
         # Return step result
-        return {
-            'prompt': step_messages,
-            'response': result_message
-        }
+        return StepResult.success_result(
+            state=dialog.current_state,
+            data={
+                'prompt': step_messages,
+                'response': result_message
+            }
+        )
 
 
     async def _get_prompt_content(self, dialog: Dialog, step: PromptStep) -> str | list[MCPMessage]:

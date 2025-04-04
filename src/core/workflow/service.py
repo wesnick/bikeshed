@@ -6,7 +6,8 @@ from psycopg import AsyncConnection
 from src.core.config_types import DialogTemplate, Step
 from src.core.registry import Registry
 from src.core.models import Dialog, DialogStatus
-from src.core.workflow.engine import WorkflowEngine, WorkflowTransitionResult
+from src.core.workflow.engine import WorkflowEngine
+from src.core.workflow.step_result import StepResult
 from src.core.workflow.persistence import DatabasePersistenceProvider
 from src.core.workflow.handlers.message import MessageStepHandler
 from src.core.workflow.handlers.prompt import PromptStepHandler
@@ -103,12 +104,11 @@ class WorkflowService:
             self,
             dialog: Dialog,
             input_variables: dict[str, Any]
-    ) -> WorkflowTransitionResult:
+    ) -> StepResult:
         """Provide user input for a waiting step"""
 
         if dialog.status != DialogStatus.WAITING_FOR_INPUT:
-            return WorkflowTransitionResult(
-                success=False,
+            return StepResult.failure_result(
                 state=dialog.current_state,
                 message="Dialog is not waiting for input"
             )
@@ -127,14 +127,12 @@ class WorkflowService:
         await self.persistence.save_dialog(dialog)
 
         if dialog.status == DialogStatus.WAITING_FOR_INPUT:
-            return WorkflowTransitionResult(
-                success=False,
+            return StepResult.waiting_result(
                 state=dialog.current_state,
-                message="Dialog is waiting for input"
+                required_variables=dialog.workflow_data.missing_variables
             )
 
-        return WorkflowTransitionResult(
-            success=True,
+        return StepResult.success_result(
             state=dialog.status,
             message=f"Saved data to dialog"
         )
@@ -144,7 +142,7 @@ class WorkflowService:
             self,
             dialog: Dialog,
             user_input: str
-    ) -> WorkflowTransitionResult:
+    ) -> StepResult:
         """Provide user input for a waiting step"""
         return await self.provide_missing_variables(dialog, {'user_input': user_input})
 
