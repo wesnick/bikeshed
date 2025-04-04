@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from src.core.config_types import Step, DialogTemplate
 
 from src.core.workflow.visualization import BikeShedState
-from src.core.models import Dialog, DialogStatus
+from src.core.models import Dialog, DialogStatus, WorkflowData
 from src.service.logging import logger
 
 
@@ -69,9 +69,11 @@ class StepResult:
         )
 
 
+from src.core.workflow.requirements import StepRequirements
+
 class StepHandler(Protocol):
     """Protocol defining the interface for step handlers"""
-    async def can_handle(self, dialog: Dialog, step: Step) -> bool: ...
+    async def get_step_requirements(self, dialog: Dialog, step: Step) -> StepRequirements: ...
     async def handle(self, dialog: Dialog, step: Step) -> StepResult: ...
 
 class PersistenceProvider(Protocol):
@@ -179,7 +181,18 @@ class WorkflowEngine:
 
         logger.debug(f"[workflow] Checking if step {current_workflow_step.step.name} can be executed")
 
-        return await handler.can_handle(dialog, current_workflow_step.step)
+        # Get step requirements
+        requirements = await handler.get_step_requirements(dialog, current_workflow_step.step)
+        
+        # Check if step can run with current variables
+        can_run = requirements.can_run(dialog.workflow_data.variables)
+        
+        if not can_run:
+            # Update missing variables in workflow data
+            dialog.workflow_data.missing_variables = requirements.get_missing_variables()
+            dialog.status = DialogStatus.WAITING_FOR_INPUT
+            
+        return can_run
 
     async def _execute_step(self, event):
         """Execute the current step"""

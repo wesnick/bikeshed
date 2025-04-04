@@ -178,99 +178,47 @@ class WorkflowService:
         required_inputs = {}
         provided_outputs = {}
         missing_inputs = {}
+        
+        # Create a mock dialog for requirements analysis
+        mock_dialog = Dialog(
+            id=uuid.uuid4(),
+            description="Mock dialog for analysis",
+            template=template,
+            status=DialogStatus.PENDING,
+            workflow_data={}
+        )
 
         # Analyze each step for inputs and outputs
         for i, step in enumerate(template.steps):
             step_id = step.name
-
-            # Analyze step for required inputs
-            step_inputs = self._extract_step_inputs(step)
-            if step_inputs:
-                required_inputs[step_id] = step_inputs
-
+            
+            # Get the handler for this step type
+            handler = self.handlers.get(step.type)
+            if not handler:
+                continue
+                
+            # Get requirements for this step
+            requirements = await handler.get_step_requirements(mock_dialog, step)
+            
+            # Add required inputs
+            if requirements.required_variables:
+                required_inputs[step_id] = requirements.required_variables
+                
                 # Check if these inputs are satisfied by previous steps
                 unsatisfied_inputs = {}
-                for input_name, input_info in step_inputs.items():
+                for input_name, input_info in requirements.required_variables.items():
                     if not any(input_name in outputs for outputs in list(provided_outputs.values())):
                         unsatisfied_inputs[input_name] = input_info
-
+                        
                 if unsatisfied_inputs:
                     missing_inputs[step_id] = unsatisfied_inputs
-
-            # Analyze step for provided outputs
-            step_outputs = self._extract_step_outputs(step)
-            if step_outputs:
-                provided_outputs[step_id] = step_outputs
+                    
+            # Add provided outputs
+            if requirements.provided_outputs:
+                provided_outputs[step_id] = requirements.provided_outputs
 
         return {
             "required_inputs": required_inputs,
             "provided_outputs": provided_outputs,
             "missing_inputs": missing_inputs
         }
-
-    def _extract_step_inputs(self, step: Step) -> Dict[str, Dict[str, Any]]:
-        """Extract input requirements from a step"""
-        inputs = {}
-
-        # Extract based on step type
-        if step.type == "prompt":
-            if step.template:
-                prompt = self.registry.get_prompt(step.template)
-                if prompt and hasattr(prompt, 'arguments'):
-                    for arg in prompt.arguments:
-                        inputs[arg.name] = {
-                            "description": arg.description,
-                            "required": arg.required
-                        }
-            if step.template_args:
-                for arg_name in step.template_args:
-                    if arg_name in inputs:
-                        inputs[arg_name]["description"] = inputs[arg_name]["description"] + ' (superseded by `template_args`)'
-                        inputs[arg_name]["required"] = False
-
-        elif step.type == "invoke":
-            if step.args:
-                for arg_name in step.args:
-                    inputs[arg_name] = {
-                        "description": f"Input for function argument: {arg_name}",
-                        "required": True
-                    }
-
-        elif step.type == "user_input":
-            # User input steps themselves don't require inputs, they provide them
-            pass
-
-        elif step.type == "message":
-            if step.template_args:
-                for arg_name in step.template_args:
-                    inputs[arg_name] = {
-                        "description": f"Input for message template argument: {arg_name}",
-                        "required": True
-                    }
-
-        return inputs
-
-    def _extract_step_outputs(self, step: Step) -> Dict[str, Dict[str, Any]]:
-        """Extract outputs provided by a step"""
-        outputs = {}
-
-        # Extract based on step type
-        if step.type == "prompt":
-            outputs["result"] = {
-                "description": f"Output from prompt step: {step.name}",
-                "source_step": step.name
-            }
-
-        elif step.type == "invoke":
-            outputs["result"] = {
-                "description": f"Output from function call: {step.name}",
-                "source_step": step.name
-            }
-
-        elif step.type == "user_input":
-            outputs["user_input"] = {
-                "description": f"User provided input from step: {step.name}",
-                "source_step": step.name
-            }
-
-        return outputs

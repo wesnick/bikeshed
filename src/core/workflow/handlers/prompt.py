@@ -7,36 +7,48 @@ from src.core.workflow.engine import StepResult
 class PromptStepHandler(BaseStepHandler):
     """Handler for prompt steps"""
 
-    async def can_handle(self, dialog: Dialog, step: Step) -> bool:
-        """Check if the step can be handled"""
+    async def get_step_requirements(self, dialog: Dialog, step: Step) -> StepRequirements:
+        """Get the requirements for a prompt step"""
+        requirements = StepRequirements()
+        
         if not isinstance(step, PromptStep):
-            return False
-
+            return requirements
+            
         # If no template, no variables needed
         if not step.template:
-            return True
-
-        # Check all required variables
-        existing_vars = await self.prepare_arguments(dialog, step)
-
+            # Add standard output
+            requirements.add_provided_output(
+                "result", 
+                f"Output from prompt step: {step.name}", 
+                step.name
+            )
+            return requirements
+            
         # Get prompt from registry
         prompt = self.registry.get_prompt(step.template)
-
+        
         if not prompt:
             raise ValueError(f"Prompt template '{step.template}' not found")
-
-        required_vars = [arg.name for arg in prompt.arguments]
-
-        # Check if all variables exist
-        missing_vars = [var for var in required_vars if var not in existing_vars.keys()]
-
-        if missing_vars:
-            # Mark dialog as waiting for input
-            dialog.status = DialogStatus.WAITING_FOR_INPUT
-            dialog.workflow_data.missing_variables.extend(missing_vars)
-            return False
-
-        return True
+            
+        # Add required variables from prompt arguments
+        for arg in prompt.arguments:
+            # Check if this argument is overridden in template_args
+            is_overridden = step.template_args and arg.name in step.template_args
+            
+            requirements.add_required_variable(
+                arg.name,
+                arg.description,
+                required=arg.required and not is_overridden
+            )
+            
+        # Add standard output
+        requirements.add_provided_output(
+            "result", 
+            f"Output from prompt step: {step.name}", 
+            step.name
+        )
+            
+        return requirements
 
     async def handle(self, dialog: Dialog, step: Step) -> StepResult:
         """Handle a prompt step"""

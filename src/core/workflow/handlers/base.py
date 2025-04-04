@@ -9,6 +9,7 @@ from src.core.models import Dialog, Message, MessageStatus
 from src.core.workflow.engine import StepHandler, StepResult
 from src.core.registry import Registry, TemplatePrompt
 from src.service.llm import CompletionService
+from src.core.workflow.requirements import StepRequirements
 
 
 class BaseStepHandler(ABC, StepHandler):
@@ -27,16 +28,16 @@ class BaseStepHandler(ABC, StepHandler):
         self.completion_service = completion_service
 
     @abstractmethod
-    async def can_handle(self, dialog: Dialog, step: Step) -> bool:
+    async def get_step_requirements(self, dialog: Dialog, step: Step) -> StepRequirements:
         """
-        Check if the step can be handled by this handler.
+        Get the requirements for a step.
 
         Args:
             dialog: The dialog containing the step
             step: The step to check
 
         Returns:
-            True if the step can be handled, False otherwise
+            StepRequirements object containing required variables and provided outputs
         """
         pass
 

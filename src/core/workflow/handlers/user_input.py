@@ -8,16 +8,30 @@ from src.service.logging import logger
 class UserInputStepHandler(BaseStepHandler):
     """Handler for user_input steps"""
 
-    async def can_handle(self, dialog: Dialog, step: Step) -> bool:
-        """Check if the step can be handled"""
+    async def get_step_requirements(self, dialog: Dialog, step: Step) -> StepRequirements:
+        """Get the requirements for a user input step"""
+        requirements = StepRequirements()
+        
         if not isinstance(step, UserInputStep):
-            return False
-
+            return requirements
+            
+        # Check if we need user input
         if dialog.workflow_data.needs_user_input():
-            logger.debug(f"User input for step {step.name} was is needed")
-            return False
-
-        return True
+            # Add the user_input as a required variable
+            requirements.add_required_variable(
+                "user_input",
+                "User input required for this step",
+                True
+            )
+        
+        # User input steps provide the user_input variable
+        requirements.add_provided_output(
+            "user_input",
+            f"User provided input from step: {step.name}",
+            step.name
+        )
+            
+        return requirements
 
 
     async def handle(self, dialog: Dialog, step: Step) -> StepResult:

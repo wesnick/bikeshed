@@ -11,9 +11,30 @@ from src.core.models import Dialog, DialogStatus
 class InvokeStepHandler(BaseStepHandler):
     """Handler for invoke steps"""
 
-    async def can_handle(self, dialog: Dialog, step: Step) -> bool:
-        """Check if the step can be handled"""
-        return isinstance(step, InvokeStep)
+    async def get_step_requirements(self, dialog: Dialog, step: Step) -> StepRequirements:
+        """Get the requirements for an invoke step"""
+        requirements = StepRequirements()
+        
+        if not isinstance(step, InvokeStep):
+            return requirements
+            
+        # Add required arguments
+        if step.args:
+            for arg_name in step.args:
+                requirements.add_required_variable(
+                    arg_name,
+                    f"Input for function argument: {arg_name}",
+                    True
+                )
+                
+        # Add standard output
+        requirements.add_provided_output(
+            "result",
+            f"Output from function call: {step.callable}",
+            step.name
+        )
+            
+        return requirements
 
     async def handle(self, dialog: Dialog, step: Step) -> StepResult:
         """Handle an invoke step"""
