@@ -1,6 +1,6 @@
 from typing import Dict
 
-from src.core.workflow.engine import StepHandler
+from src.core.workflow.handlers.base import BaseStepHandler
 from src.core.workflow.handlers.message import MessageStepHandler
 from src.core.workflow.handlers.prompt import PromptStepHandler
 from src.core.workflow.handlers.user_input import UserInputStepHandler
@@ -16,7 +16,7 @@ class HandlerFactory:
         self.completion_service = completion_service
         self._handlers = None
 
-    async def get_handlers(self) -> Dict[str, StepHandler]:
+    async def get_handlers(self) -> Dict[str, BaseStepHandler]:
         """Get all handlers"""
 
         if self._handlers is None:
@@ -28,7 +28,7 @@ class HandlerFactory:
             }
         return self._handlers
 
-    async def get_handler_for_step(self, step: Step) -> StepHandler:
+    async def get_handler_for_step(self, step: Step) -> BaseStepHandler:
         """Get the appropriate handler for a step"""
         handlers = await self.get_handlers()
 
