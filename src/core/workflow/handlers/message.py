@@ -35,16 +35,13 @@ class MessageStepHandler(StepHandler):
         # Determine the message content based on the step configuration
         message_content = await self._get_message_content(dialog, step)
 
-        # Create a message in the database
-        message = Message(
-            id=uuid.uuid4(),
-            dialog_id=dialog.id,
+        # Create a message using the helper method
+        message = self.create_message(
+            dialog=dialog,
             role=step.role,
             text=message_content,
             status=MessageStatus.CREATED
         )
-
-        dialog.messages.append(message)
 
         # Return step result
         return StepResult.success_result(
@@ -61,12 +58,8 @@ class MessageStepHandler(StepHandler):
             return step.content
 
         if step.template is not None:
-            # Get variables and template args
-            variables = dialog.workflow_data.variables
-            template_args = step.template_args or {}
-
-            # Combine variables and template args
-            args = {**variables, **template_args}
+            # Get variables using helper method
+            args = self.get_variables(dialog, step)
 
             # Get prompt from registry
             prompt = self.registry.get_prompt(step.template)

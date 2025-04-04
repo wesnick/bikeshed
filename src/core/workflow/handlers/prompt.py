@@ -74,46 +74,36 @@ class PromptStepHandler(StepHandler):
         step_messages = []
 
         if isinstance(prompt_content, str):
-            # Create a message in the database
-            user_message = Message(
-                id=uuid.uuid4(),
-                dialog_id=dialog.id,
+            # Create a message using the helper method
+            user_message = self.create_message(
+                dialog=dialog,
                 role='user',
                 text=prompt_content,
                 status=MessageStatus.PENDING
             )
-
-            # Add the user message to the dialog
-            dialog.messages.append(user_message)
+        
             step_messages.append(user_message)
 
         elif isinstance(prompt_content, list):
             for prompt in prompt_content:
-                message = Message(
-                    id=uuid.uuid4(),
-                    dialog_id=dialog.id,
+                message = self.create_message(
+                    dialog=dialog,
                     role=prompt.role,
-                    model=model if prompt.role == 'assistant' else None,
                     text=prompt.content.text,
+                    model=model if prompt.role == 'assistant' else None,
                     status=MessageStatus.PENDING
                 )
-
-                # Add the user message to the dialog
-                dialog.messages.append(message)
+                
                 step_messages.append(message)
 
         # Create a placeholder for the assistant response
-        assistant_message = Message(
-            id=uuid.uuid4(),
-            model=model,
-            dialog_id=dialog.id,
+        assistant_message = self.create_message(
+            dialog=dialog,
             role="assistant",
             text="",
+            model=model,
             status=MessageStatus.CREATED
         )
-
-        # Add the assistant message to the dialog
-        dialog.messages.append(assistant_message)
 
         # Process with LLM service
         result_message = await self.completion_service.complete(
@@ -137,13 +127,9 @@ class PromptStepHandler(StepHandler):
             return step.content
 
         if step.template is not None:
-            # Get variables and template args
-            variables = dialog.workflow_data.variables
-            template_args = step.template_args or {}
-
-            # Combine variables and template args
-            args = {**variables, **template_args}
-
+            # Get variables using helper method
+            args = self.get_variables(dialog, step)
+            
             # Get prompt from registry
             prompt = self.registry.get_prompt(step.template)
 

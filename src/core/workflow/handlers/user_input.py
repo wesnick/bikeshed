@@ -49,33 +49,26 @@ class UserInputStepHandler(StepHandler):
                 required_variables=['user_input']
             )
 
-        # Create a message for the user input
-        message = Message(
-            id=uuid.uuid4(),
-            dialog_id=dialog.id,
+        # Create a message for the user input using helper method
+        message = self.create_message(
+            dialog=dialog,
             role="user",
             text=user_input,
             status=MessageStatus.CREATED
         )
 
-        dialog.messages.append(message)
-
         # Clear the user_input after processing
         del workflow_data.variables['user_input']
 
         model = step.config_extra.get('model') or dialog.template.model
-        # Create a placeholder for the assistant response
-        assistant_message = Message(
-            id=uuid.uuid4(),
-            model=model,
-            dialog_id=dialog.id,
+        # Create a placeholder for the assistant response using helper method
+        assistant_message = self.create_message(
+            dialog=dialog,
             role="assistant",
             text="",
+            model=model,
             status=MessageStatus.CREATED
         )
-
-        # Add the assistant message to the dialog
-        dialog.messages.append(assistant_message)
 
         # Process with LLM service
         result_message = await self.completion_service.complete(
