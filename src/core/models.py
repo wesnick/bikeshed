@@ -261,17 +261,17 @@ class Quickie(BaseModel, DBModelMixin):
     __non_persisted_fields__: ClassVar[Set[str]] = {'created_at'} # Handled by DB default
     __unique_fields__ = {'id'}
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    template_name: str  # References YAML template by name
-    prompt_text: str  # Actual prompt text used after substitution
-    prompt_hash: str  # MD5 hash of the template before substitution
-    input_params: Dict[str, Any]  # Input parameters passed to the template
-    output: Optional[Any] = None  # Generated output (JSONB)
-    status: QuickieStatus = Field(default=QuickieStatus.PENDING)
-    error: Optional[str] = None  # Error message if failed
-    model: Optional[str] = None  # Model used for generation
-    created_at: Optional[datetime] = None # Set by DB default
-    metadata: Optional[Dict[str, Any]] = None  # Additional runtime metadata
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique identifier for the quickie task.")
+    template_name: str = Field(..., description="References YAML template by name.")
+    prompt_text: str = Field(..., description="Actual prompt text used after template substitution.")
+    prompt_hash: str = Field(..., description="MD5 hash of the template content before substitution.")
+    input_params: Dict[str, Any] = Field(..., description="Input parameters passed to the template for substitution.")
+    output: Optional[Any] = Field(default=None, description="Generated output from the LLM (stored as JSONB).")
+    status: QuickieStatus = Field(default=QuickieStatus.PENDING, description="Current status of the quickie task.")
+    error: Optional[str] = Field(default=None, description="Error message if the task failed.")
+    model: Optional[str] = Field(default=None, description="Identifier of the LLM model used for generation.")
+    created_at: Optional[datetime] = Field(default=None, description="Timestamp when the quickie task was created (set by DB default).")
+    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Additional runtime metadata associated with the task.")
 
 
 class Root(BaseModel, DBModelMixin):
