@@ -266,6 +266,7 @@ class Quickie(BaseModel, DBModelMixin):
     prompt_text: str = Field(..., description="Actual prompt text used after template substitution.")
     prompt_hash: str = Field(..., description="MD5 hash of the template content before substitution.")
     input_params: Dict[str, Any] = Field(..., description="Input parameters passed to the template for substitution.")
+    tools: List[str] = Field(default_factory=list, description="List of tools available for the task.")
     output: Optional[Any] = Field(default=None, description="Generated output from the LLM (stored as JSONB).")
     status: QuickieStatus = Field(default=QuickieStatus.PENDING, description="Current status of the quickie task.")
     error: Optional[str] = Field(default=None, description="Error message if the task failed.")

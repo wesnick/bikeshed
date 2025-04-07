@@ -13,7 +13,7 @@ These can be templated, using a key for template name
 | tools           | list   | false    | list of tools to make available for each step, by default they will be included in LLM calls |
 | resources       | list   | false    | list of resources to make available, this are available for templating                       |
 | steps           | list   | true     | Ordered list of execution steps, each step is an object with a name and type                 |
-| response_schema | list   | false    | If set, the finalize step will produce an artifact from the schema                           |
+| response_schema | object | false    | If set, the finalize step will produce an artifact from the schema                           |
 
 
 ```yaml

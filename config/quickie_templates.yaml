@@ -1,0 +1,18 @@
+
+quickie_templates:
+  bs.git_commit_message:
+    description: "Generates concise git commit messages from diff output"
+    model: "default:small"
+    prompt: '@system/git_commit_message_generator.md'
+    tools: [ ]
+    resources: [ ]
+    input_schema:
+      diff:
+        type: "string"
+        description: "Git diff output to analyze"
+        required: true
+
+    output_schema:
+      commit_message:
+        type: "string"
+        description: "Generated commit message"

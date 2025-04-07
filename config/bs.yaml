@@ -2,6 +2,11 @@
 schema_modules:
   - src.custom_types
 
+# use these for model values in template in the format of "default:small", "default:large", or "default:any_key"
+model_defaults:
+  small: "ollama_chat/gemma3:latest"
+  large: "gemini-2.5-pro"
+
 template_paths:
   '@system': templates/prompts
 

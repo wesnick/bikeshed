@@ -6,6 +6,7 @@ The application uses:
 
 Postgres (17)
  - pgvector
+ - ltree 
 Redis
 Python (3.12):
  - Packages are managed with `uv` (NOT `pip`!)
