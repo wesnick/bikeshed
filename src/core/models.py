@@ -26,6 +26,13 @@ class DialogStatus(str, Enum):
     FAILED = "failed"
     WAITING_FOR_INPUT = "waiting_for_input"
 
+
+class QuickieStatus(str, Enum):
+    PENDING = "pending"
+    COMPLETE = "complete"
+    ERROR = "error"
+
+
 @dataclass
 class WorkflowStep:
     state: str
@@ -244,6 +251,27 @@ class Dialog(BaseModel, DBModelMixin):
             model=model,
             status=MessageStatus.CREATED
         )
+
+
+class Quickie(BaseModel, DBModelMixin):
+    """
+    Represents a record of a quick, one-off LLM generation task based on a template.
+    """
+    __db_table__ = "quickies"
+    __non_persisted_fields__: ClassVar[Set[str]] = {'created_at'} # Handled by DB default
+    __unique_fields__ = {'id'}
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    template_name: str  # References YAML template by name
+    prompt_text: str  # Actual prompt text used after substitution
+    prompt_hash: str  # MD5 hash of the template before substitution
+    input_params: Dict[str, Any]  # Input parameters passed to the template
+    output: Optional[Any] = None  # Generated output (JSONB)
+    status: QuickieStatus = Field(default=QuickieStatus.PENDING)
+    error: Optional[str] = None  # Error message if failed
+    model: Optional[str] = None  # Model used for generation
+    created_at: Optional[datetime] = None # Set by DB default
+    metadata: Optional[Dict[str, Any]] = None  # Additional runtime metadata
 
 
 class Root(BaseModel, DBModelMixin):
