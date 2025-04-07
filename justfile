@@ -58,6 +58,10 @@ search-mcp query="":
 test:
     pytest tests/ -v
 
+# Run tests for a specific component
+test-component component:
+    pytest tests/components/{{component}}/ -v
+
 # Set up test database
 setup-test-db:
     PGPASSWORD=$POSTGRES_PASSWORD createdb -h 127.0.0.1 -U $POSTGRES_USER app_test || echo "Test database already exists"
