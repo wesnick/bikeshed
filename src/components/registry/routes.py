@@ -21,6 +21,7 @@ async def registry_component(request: Request) -> dict:
     registry = request.app.state.registry
 
     return {
+        "quickie_templates": registry.quickie_templates,
         "prompts": registry.prompts,
         "tools": registry.tools,
         "resources": registry.resources,
@@ -29,6 +30,13 @@ async def registry_component(request: Request) -> dict:
         "mcp_servers": registry.mcp_servers,
         "models": registry.models,
     }
+
+@router.get("/quickies")
+@jinja.hx('quickies_list.html.j2')
+async def registry_prompts(request: Request) -> dict:
+    """This route serves the prompts listing page."""
+    registry = request.app.state.registry
+    return {"quickie_templates": registry.quickie_templates}
 
 @router.get("/prompts")
 @jinja.hx('prompts_list.html.j2')
