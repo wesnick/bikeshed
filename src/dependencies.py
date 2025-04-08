@@ -3,6 +3,7 @@ from typing import AsyncGenerator
 import asyncio
 import json
 
+import jinja2
 from arq.connections import ArqRedis, create_pool, RedisSettings
 from fastapi import Depends
 from fastapi.templating import Jinja2Templates
@@ -62,6 +63,9 @@ def get_jinja(directory: str = "templates") -> Jinja:
     from src.jinja_extensions import markdown2html, quote_plus, format_file_size, get_file_icon, format_text_length, format_cost_per_million
 
     jinja_templates = Jinja2Templates(directory=directory)
+
+    jinja_templates.env.undefined = jinja2.StrictUndefined
+
     jinja_templates.env.filters['markdown2html'] = markdown2html
     jinja_templates.env.filters['format_file_size'] = format_file_size
     jinja_templates.env.filters['file_icon'] = get_file_icon

@@ -10,7 +10,7 @@
             {# Find the root object corresponding to the selected URI #}
             {% set selected_root_obj = roots | selectattr('uri', 'equalto', selected_uri) | first %}
             <span class="icon"><i class="fas fa-folder-open"></i></span>
-            <span>{{ selected_root_obj.name or selected_uri if selected_root_obj else selected_uri }}</span>
+            <span>{{ selected_uri }}</span>
           {% else %}
             <span class="icon"><i class="fas fa-folder-open"></i></span>
             <span>{{ selected_roots|length }} Roots Selected</span>
@@ -44,7 +44,7 @@
                 {% else %}
                   <span class="icon mr-2" style="visibility: hidden;"><i class="fas fa-check"></i></span> {# Placeholder for alignment #}
                 {% endif %}
-                <span>{{ root.name or root.uri }}</span>
+                <span>{{ root.uri }}</span>
               </a>
             </div>
             {# Action Icons Area #}

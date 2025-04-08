@@ -79,7 +79,7 @@ create table root_files
     root_uri  text         not null references roots (uri),
     path      text         not null,
     name      varchar(255) not null,
-    extension varchar(50),
+    extension varchar(50)  default null,
     mime_type varchar(100),
     size      integer,
     atime     timestamp,

@@ -313,7 +313,7 @@ def add_root(directory_path: str):
 
     async def _add_root(directory_path: str):
         await db_pool.open()
-        async with get_db() as conn:
+        async for conn in get_db():
             scanner = FileScanner(conn)
             try:
                 await scanner.create_root_and_scan(directory_path)
