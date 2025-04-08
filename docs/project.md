@@ -21,6 +21,15 @@ Frontend:
 
 Whenever you make a fundamental change to architectural approach or establish a new pattern that should be followed through the whole application, be sure to update this document.
 
+### File Type Detection
+
+The application uses a custom file type detection system:
+
+- File types are detected using a combination of extension mapping and magic library
+- A single source of truth (`FILE_TYPE_MAP` in `src/utils/file_types.py`) maps extensions to MIME types and icons
+- Extension-based detection is prioritized for text files to ensure consistency
+- The system provides better accuracy for text files like markdown, yaml, and documentation formats
+
 ### Workflow System
 
 The application uses the Transitions library to implement a state machine for dialog workflows:

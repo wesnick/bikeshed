@@ -8,6 +8,7 @@ import aiofiles.os
 import magic
 
 from src.core.models import Root, RootFile
+from src.utils.file_types import get_mime_type
 from src.components.repositories import root_repository, root_file_repository
 from src.service.logging import logger
 
@@ -32,8 +33,8 @@ class FileScanner:
                 extension = None
                 size = 0
             else:
-                # Use magic to determine MIME type for files
-                mime_type = magic.from_file(str(entry_path), mime=True)
+                # Use our improved MIME type detection
+                mime_type = get_mime_type(str(entry_path))
                 extension = entry_path.suffix
                 size = stat.st_size
 
