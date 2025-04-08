@@ -53,7 +53,7 @@ create table quickies
     prompt_text   text         not null,
     prompt_hash   varchar(32)  not null,
     input_params  jsonb        not null,
-    resources     text[]       not null,
+    tools         jsonb        not null,
     output        jsonb,
     status        varchar(50)  not null default 'pending',
     error         text,

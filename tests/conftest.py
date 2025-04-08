@@ -46,7 +46,8 @@ async def db_conn_clean(db_conn: AsyncConnection) -> AsyncGenerator[AsyncConnect
     Ensures test isolation by truncating tables within a transaction.
     """
     # List of tables managed by the repositories being tested
-    tables_to_truncate = ["messages", "dialogs", "blobs", "tags", "stashes", "roots", "root_files", "entity_tags", "entity_stashes"] # Add other tables as needed
+    # @TODO: need a way to collect these
+    tables_to_truncate = ["messages", "dialogs", "blobs", "tags", "stashes", "roots", "root_files", "entity_tags", "entity_stashes", "quickies"]
 
     async with db_conn.transaction():
         async with db_conn.cursor() as cur:

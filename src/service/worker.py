@@ -113,7 +113,7 @@ async def process_message_job(ctx: Dict[str, Any], dialog_id: uuid.UUID) -> Dict
         return {"success": False, "error": str(e), "dialog_id": str(dialog_id)}
 
 async def process_root(ctx: Dict[str, Any], directory_path: str):
-    from src.core.roots.scanner import FileScanner
+    from src.components.root.scanner import FileScanner
 
     async with db_pool.connection() as conn:
         scanner = FileScanner(conn)

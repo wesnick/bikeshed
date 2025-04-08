@@ -5,7 +5,6 @@ quickie_templates:
     model: "default:small"
     prompt: '@system/git_commit_message_generator.md'
     tools: [ ]
-    resources: [ ]
     input_schema:
       diff:
         type: "string"

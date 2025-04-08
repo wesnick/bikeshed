@@ -8,7 +8,7 @@ import aiofiles.os
 import magic
 
 from src.core.models import Root, RootFile
-from src.repository import root_repository, root_file_repository
+from src.components.repositories import root_repository, root_file_repository
 from src.service.logging import logger
 
 class FileScanner:

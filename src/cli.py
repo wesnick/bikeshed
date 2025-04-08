@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, Dict, Any
+from typing import Optional
 
 import click
 import os
@@ -9,7 +9,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt, FloatPrompt, IntPrompt, Confirm
 from rich.syntax import Syntax
 
-from src.core.models import DialogStatus, Dialog
+from src.core.models import DialogStatus
 from src.service.pulse_mcp_api import MCPServer
 from src.service.logging import logger # Import logger
 
@@ -165,8 +165,6 @@ def run_workflow(template_name: str, description: Optional[str] = None, goal: Op
     import asyncio
     from src.dependencies import get_workflow_service, db_pool
     from src.core.workflow.service import WorkflowService
-    from src.core.workflow.handlers.user_input import UserInputStep
-
 
     async def _run_workflow():
         await db_pool.open() # Ensure pool is open
@@ -311,7 +309,7 @@ def add_root(directory_path: str):
     """Add a directory as a root and scan its contents."""
     import asyncio
     from src.dependencies import get_db, db_pool
-    from src.core.roots.scanner import FileScanner
+    from src.components.root.scanner import FileScanner
 
     async def _add_root(directory_path: str):
         await db_pool.open()

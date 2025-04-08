@@ -58,10 +58,6 @@ search-mcp query="":
 test:
     pytest tests/ -v
 
-# Run tests for a specific component
-test-component component:
-    pytest tests/components/{{component}}/ -v
-
 # Set up test database
 setup-test-db:
     PGPASSWORD=$POSTGRES_PASSWORD createdb -h 127.0.0.1 -U $POSTGRES_USER app_test || echo "Test database already exists"
@@ -69,11 +65,6 @@ setup-test-db:
 # Fix formatting on html templates
 lint-html:
     uvx djlint . --reformat --extension=html.j2
-
-# View a specific root in the browser
-view-root uri:
-    echo "Opening root view for: {{uri}}"
-    python -c "import urllib.parse; print(f'http://localhost:8000/root?root_uri={urllib.parse.quote(\"{{uri}}\")}')" | xargs xdg-open
 
 # Python lint and fix
 lint-python:
