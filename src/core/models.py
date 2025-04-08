@@ -78,6 +78,12 @@ class DBModelMixin:
     def model_dump_db(self, **kwargs) -> Dict[str, Any]:
         """Dump model data excluding non-persisted fields."""
         return {k: v for k, v in self.model_dump().items() if v is not None and (self.__non_persisted_fields__ is None or k not in self.__non_persisted_fields__)}
+    
+    @classmethod
+    def get_persisted_fields(cls) -> Set[str]:
+        """Get all field names that should be persisted to the database."""
+        model_fields = set(cls.model_fields.keys() if hasattr(cls, 'model_fields') else cls.__annotations__.keys())
+        return model_fields - cls.__non_persisted_fields__
 
 
 class Message(BaseModel, DBModelMixin):

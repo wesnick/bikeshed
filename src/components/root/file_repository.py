@@ -83,16 +83,19 @@ class RootFileRepository(BaseRepository[RootFile]):
         if not file_data_list:
             return []
 
-        first_file_data = file_data_list[0]
-        columns = list(first_file_data.keys())
+        # Get all persisted fields from the model class instead of just the first item
+        columns = list(RootFile.get_persisted_fields())
         columns_sql = SQL(", ").join(map(Identifier, columns))
 
         # Create placeholders for each file's values
         values_placeholders = SQL(", ").join([SQL("%s")] * len(columns))
         all_values_sql = SQL(", ").join([SQL("({})").format(values_placeholders)] * len(file_data_list))
 
-        # Flatten the list of values
-        flat_values = [file_data[col] for file_data in file_data_list for col in columns]
+        # Flatten the list of values, using None for missing keys
+        flat_values = []
+        for file_data in file_data_list:
+            for col in columns:
+                flat_values.append(file_data.get(col))
 
         query = SQL("""
             INSERT INTO {} ({})
