@@ -36,8 +36,7 @@ class Registry:
         self.models: dict[str, Model] = {}
         self.event_registry = event_registry
         self.dialog_templates: dict[str, DialogTemplate] = {}
-        # Add storage for quickie templates
-        self.quickie_templates: dict[str, "QuickieTemplate"] = {} # Forward reference
+        self.quickie_templates: dict[str, QuickieTemplate] = {}
         self.mcp_servers: dict[str, StdioServerParameters] = {}
         self.warn_on_duplicate_schemas = warn_on_duplicate
         self.active_root_watchers: dict[str, asyncio.Task] = {}
@@ -169,7 +168,7 @@ class Registry:
         return self.dialog_templates.get(name)
 
     # Add methods for Quickie Templates
-    def add_quickie_template(self, name: str, template: "QuickieTemplate"):
+    def add_quickie_template(self, name: str, template: QuickieTemplate):
         """Add a quickie template to the registry."""
         existing = self.quickie_templates.get(name)
         if existing:
@@ -181,11 +180,11 @@ class Registry:
         logger.debug(f"Added quickie template: {name}")
         return template
 
-    def get_quickie_template(self, name: str) -> Optional["QuickieTemplate"]:
+    def get_quickie_template(self, name: str) -> Optional[QuickieTemplate]:
         """Get a quickie template by name."""
         return self.quickie_templates.get(name)
 
-    def list_quickie_templates(self) -> List["QuickieTemplate"]:
+    def list_quickie_templates(self) -> List[QuickieTemplate]:
         """List all registered quickie templates."""
         return list(self.quickie_templates.values())
 

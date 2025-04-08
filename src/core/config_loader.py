@@ -12,7 +12,7 @@ from pydantic import BaseModel
 import importlib
 
 from src.core.registry import Registry, Schema, TemplatePrompt
-from src.core.config_types import DialogTemplate, QuickieTemplate # Add QuickieTemplate
+from src.core.config_types import DialogTemplate, QuickieTemplate
 from src.service.logging import logger
 
 

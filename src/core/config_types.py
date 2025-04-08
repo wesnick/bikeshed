@@ -292,16 +292,6 @@ class QuickieTemplate(BaseModel):
         description="Schema defining the expected output data structure"
     )
 
-    @model_validator(mode='before')
-    @classmethod
-    def add_name_from_key(cls, data: Any) -> Any:
-        # This validator helps if we load directly into the model,
-        # but we'll handle name assignment during the loading process instead.
-        # Keeping it here as a potential pattern.
-        # if isinstance(data, dict) and 'name' not in data and '_key_name' in data:
-        #     data['name'] = data.pop('_key_name')
-        return data
-
 
 ## Model Configuration class
 
