@@ -16,6 +16,9 @@ mcp_servers:
     args: [npx, -y, repomix, --mcp]
     env:
       NODE_VERSION: v22.13.1
+
+# Path to the file containing quickie templates
+quickie_templates_path: config/quickie_templates.yaml
   filesystem:
     command: /home/wes/.nvm/nvm-exec
     args: [npx, -y, '@modelcontextprotocol/server-filesystem', "/home/wes/Downloads"]

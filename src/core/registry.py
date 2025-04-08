@@ -1,9 +1,9 @@
 import asyncio
-from typing import Set
+from typing import Set, Optional, List # Added Optional, List
 
 from mcp import StdioServerParameters
 from pydantic import BaseModel, Field
-from src.core.config_types import Model, DialogTemplate
+from src.core.config_types import Model, DialogTemplate, QuickieTemplate # Added QuickieTemplate
 from mcp.server.fastmcp.prompts import Prompt
 from mcp.server.fastmcp.tools import Tool
 from mcp.server.fastmcp.resources import Resource, ResourceTemplate
@@ -36,6 +36,8 @@ class Registry:
         self.models: dict[str, Model] = {}
         self.event_registry = event_registry
         self.dialog_templates: dict[str, DialogTemplate] = {}
+        # Add storage for quickie templates
+        self.quickie_templates: dict[str, "QuickieTemplate"] = {} # Forward reference
         self.mcp_servers: dict[str, StdioServerParameters] = {}
         self.warn_on_duplicate_schemas = warn_on_duplicate
         self.active_root_watchers: dict[str, asyncio.Task] = {}
@@ -165,6 +167,28 @@ class Registry:
     def get_dialog_template(self, name: str):
         """Get a dialog template by name."""
         return self.dialog_templates.get(name)
+
+    # Add methods for Quickie Templates
+    def add_quickie_template(self, name: str, template: "QuickieTemplate"):
+        """Add a quickie template to the registry."""
+        existing = self.quickie_templates.get(name)
+        if existing:
+            if self.warn_on_duplicate_schemas: # Reuse existing warning flag
+                logger.warning(f"Quickie template already exists: {name}")
+            return existing
+
+        self.quickie_templates[name] = template
+        logger.debug(f"Added quickie template: {name}")
+        return template
+
+    def get_quickie_template(self, name: str) -> Optional["QuickieTemplate"]:
+        """Get a quickie template by name."""
+        return self.quickie_templates.get(name)
+
+    def list_quickie_templates(self) -> List["QuickieTemplate"]:
+        """List all registered quickie templates."""
+        return list(self.quickie_templates.values())
+
 
     async def watch_directory(self, directory_path: str):
         """Watch a directory for changes."""

@@ -251,6 +251,60 @@ class DialogTemplate(BaseModel):
         return self
 
 
+## Quickie Template Configuration classes
+
+class QuickieInputSchemaField(BaseModel):
+    """Describes a field within the input schema of a QuickieTemplate."""
+    type: str = Field(description="Data type of the input field (e.g., 'string', 'integer')")
+    description: Optional[str] = Field(default=None, description="Description of the input field")
+    required: bool = Field(default=False, description="Whether this input field is required")
+
+class QuickieOutputSchemaField(BaseModel):
+    """Describes a field within the output schema of a QuickieTemplate."""
+    type: str = Field(description="Data type of the output field (e.g., 'string', 'object')")
+    description: Optional[str] = Field(default=None, description="Description of the output field")
+
+class QuickieTemplate(BaseModel):
+    """Configuration for a single-shot LLM interaction (Quickie)."""
+    name: str = Field( # This will be populated from the key in the YAML file during loading
+        description="Unique identifier for the quickie template"
+    )
+    description: Optional[str] = Field(
+        default=None,
+        description="Brief description of the quickie's purpose"
+    )
+    model: str = Field(
+        description="LLM model identifier to use (can include provider prefix)"
+    )
+    prompt: str = Field(
+        description="Identifier of the registered prompt/template to use"
+    )
+    tools: Optional[List[str]] = Field(
+        default_factory=list,
+        description="List of tool identifiers available to the LLM for this quickie"
+    )
+    input_schema: Optional[Dict[str, QuickieInputSchemaField]] = Field(
+        default_factory=dict,
+        description="Schema defining the expected input data structure"
+    )
+    output_schema: Optional[Dict[str, QuickieOutputSchemaField]] = Field(
+        default_factory=dict,
+        description="Schema defining the expected output data structure"
+    )
+
+    @model_validator(mode='before')
+    @classmethod
+    def add_name_from_key(cls, data: Any) -> Any:
+        # This validator helps if we load directly into the model,
+        # but we'll handle name assignment during the loading process instead.
+        # Keeping it here as a potential pattern.
+        # if isinstance(data, dict) and 'name' not in data and '_key_name' in data:
+        #     data['name'] = data.pop('_key_name')
+        return data
+
+
+## Model Configuration class
+
 class Model(BaseModel):
     """Represents an LLM model."""
     id: str = Field(description="Unique identifier for the model")

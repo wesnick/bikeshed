@@ -1,10 +1,15 @@
 import yaml
 from typing import Dict, List, Any
 
+from pathlib import Path # Added Path
+import yaml
+from typing import Dict, List, Any
+
 from mcp import StdioServerParameters
 
 from src.core.registry import Registry
-from src.core.config_loader import SchemaLoader, TemplateLoader, DialogTemplateLoader
+# Add QuickieTemplateLoader to imports
+from src.core.config_loader import SchemaLoader, TemplateLoader, DialogTemplateLoader, QuickieTemplateLoader
 from src.core.config_types import Model
 from src.service.logging import logger
 
@@ -124,6 +129,48 @@ class RegistryBuilder:
             logger.info(f"Loaded {len(templates)} dialog templates")
         except Exception as e:
             logger.error(f"Failed to load dialog templates from {templates_dir}: {str(e)}")
+
+    def _load_quickie_templates(self, templates_path: str = "config/quickie_templates.yaml") -> None:
+        """
+        Load quickie templates from the specified file or directory.
+
+        Args:
+            templates_path: Path to the YAML file or directory containing quickie templates
+        """
+        logger.info(f"Attempting to load quickie templates from: {templates_path}")
+        path = Path(templates_path)
+        loader = QuickieTemplateLoader(self.registry)
+        templates = {}
+
+        try:
+            if path.is_file():
+                templates = loader.load_from_file(path)
+            elif path.is_dir():
+                # If you want to support loading from a directory of quickie files:
+                # templates = loader.load_from_directory(path)
+                logger.warning(f"Loading quickie templates from a directory ({templates_path}) is not yet fully supported by default config. Loading specific file.")
+                # Fallback or specific handling if needed. For now, we primarily expect a file.
+                # Let's stick to loading the default file if the path is a directory for simplicity,
+                # assuming the config points to the specific file.
+                # If the config *intended* a directory, this might need adjustment.
+                if (default_file := path / "quickie_templates.yaml").exists():
+                     templates = loader.load_from_file(default_file)
+                else:
+                     logger.error(f"Quickie template path '{templates_path}' is a directory, but default file 'quickie_templates.yaml' not found inside.")
+
+            else:
+                logger.error(f"Quickie template path not found: {templates_path}")
+                return # Exit if path doesn't exist
+
+            # Add loaded templates to the registry
+            for name, template in templates.items():
+                self.registry.add_quickie_template(name, template)
+
+            logger.info(f"Finished loading {len(templates)} quickie templates.")
+
+        except Exception as e:
+            logger.error(f"Failed during quickie template loading process from {templates_path}: {str(e)}")
+
 
     def _load_models(self) -> None:
         """
@@ -286,11 +333,16 @@ class RegistryBuilder:
         await self.connect_mcp_servers()
 
         # Load dialog templates
-        templates_dir = self.config.get('dialog_templates_dir', 'config')
-        self._load_dialog_templates(templates_dir)
+        dialog_templates_dir = self.config.get('dialog_templates_dir', 'config')
+        self._load_dialog_templates(dialog_templates_dir)
+
+        # Load quickie templates
+        # Get path from config, default to 'config/quickie_templates.yaml'
+        quickie_templates_path = self.config.get('quickie_templates_path', 'config/quickie_templates.yaml')
+        self._load_quickie_templates(quickie_templates_path) # Load after prompts/tools
 
         # Load available LLM models
-        self._load_models()
+        self._load_models() # Load after quickies/dialogs to potentially validate models used
 
         logger.info("Registry building completed")
         return self.registry

@@ -12,7 +12,7 @@ from pydantic import BaseModel
 import importlib
 
 from src.core.registry import Registry, Schema, TemplatePrompt
-from src.core.config_types import DialogTemplate
+from src.core.config_types import DialogTemplate, QuickieTemplate # Add QuickieTemplate
 from src.service.logging import logger
 
 
@@ -417,5 +417,136 @@ class DialogTemplateLoader:
             registered_names.append(name)
 
         return registered_names
+
+
+class QuickieTemplateLoader:
+    """
+    Loads quickie templates from YAML files and hydrates QuickieTemplate Pydantic models.
+    """
+
+    def __init__(self, registry: Registry):
+        """
+        Initialize the quickie template loader with a registry.
+
+        Args:
+            registry: The registry (used for potential future validation against prompts/tools)
+        """
+        self.registry = registry # Keep registry for potential future validation
+
+    def validate_template(self, template_name: str, template_data: Dict[str, Any]) -> tuple[bool, Optional[QuickieTemplate], List[str]]:
+        """
+        Validate a quickie template against the schema.
+
+        Args:
+            template_name: Name of the template (key from YAML)
+            template_data: Dictionary of template data
+
+        Returns:
+            Tuple of (is_valid, template_object, error_messages)
+        """
+        errors = []
+        template_obj = None
+
+        try:
+            # Add the name derived from the YAML key before validation
+            template_data['name'] = template_name
+            template_obj = QuickieTemplate(**template_data)
+            # Future validation: Check if template_obj.prompt exists in registry.prompts
+            # Future validation: Check if template_obj.tools exist in registry.tools
+            # Future validation: Check if template_obj.model exists in registry.models
+            return True, template_obj, []
+        except Exception as e:
+            # If validation fails, collect all errors
+            if hasattr(e, 'errors'):
+                for error in e.errors():
+                    location = ".".join(str(loc) for loc in error["loc"])
+                    message = error["msg"]
+                    errors.append(f"{location}: {message}")
+            else:
+                errors.append(str(e))
+
+            return False, None, errors
+
+    def load_from_file(self, file_path: Union[str, Path]) -> Dict[str, QuickieTemplate]:
+        """
+        Load quickie templates from a YAML file.
+
+        Args:
+            file_path: Path to the YAML file containing quickie templates
+
+        Returns:
+            Dictionary of template name to QuickieTemplate objects
+        """
+        file_path = Path(file_path)
+        if not file_path.exists():
+            logger.error(f"Quickie template file not found: {file_path}")
+            return {}
+
+        logger.info(f"Loading quickie templates from file: {file_path}")
+
+        try:
+            with open(file_path, 'r') as f:
+                yaml_content = yaml.safe_load(f)
+
+            if not yaml_content or 'quickie_templates' not in yaml_content:
+                logger.warning(f"No 'quickie_templates' key found in {file_path}")
+                return {}
+
+            templates_dict = yaml_content['quickie_templates']
+            loaded_templates = {}
+            validation_errors = {}
+
+            for template_name, template_data in templates_dict.items():
+                if not isinstance(template_data, dict):
+                    logger.error(f"Invalid format for quickie template '{template_name}' in {file_path}. Expected a dictionary.")
+                    validation_errors[template_name] = ["Invalid format: Expected a dictionary."]
+                    continue
+
+                is_valid, template_obj, errors = self.validate_template(template_name, template_data)
+
+                if is_valid:
+                    loaded_templates[template_name] = template_obj
+                    logger.info(f"Loaded quickie template: {template_name}")
+                else:
+                    validation_errors[template_name] = errors
+                    error_list = "\n  - ".join([""] + errors)
+                    logger.error(f"Failed to validate quickie template '{template_name}':{error_list}")
+
+            if validation_errors:
+                logger.error(f"Validation failed for {len(validation_errors)} quickie templates in {file_path}")
+
+            logger.info(f"Loaded {len(loaded_templates)} quickie templates from {file_path}")
+            return loaded_templates
+        except Exception as e:
+            logger.error(f"Failed to load quickie templates from {file_path}: {str(e)}")
+            return {}
+
+    def load_from_directory(self, directory: Union[str, Path]) -> Dict[str, QuickieTemplate]:
+        """
+        Load all quickie templates from YAML files in a directory.
+
+        Args:
+            directory: Directory path containing YAML files
+
+        Returns:
+            Dictionary of template name to QuickieTemplate objects
+        """
+        directory = Path(directory)
+        if not directory.is_dir():
+            logger.error(f"Quickie template directory not found: {directory}")
+            return {}
+
+        logger.info(f"Loading quickie templates from directory: {directory}")
+
+        all_templates = {}
+        yaml_extensions = ['.yaml', '.yml']
+
+        for file_path in directory.iterdir():
+            if file_path.is_file() and file_path.suffix.lower() in yaml_extensions:
+                templates = self.load_from_file(file_path)
+                all_templates.update(templates)
+
+        logger.info(f"Loaded a total of {len(all_templates)} quickie templates from directory {directory}")
+        return all_templates
 
 
