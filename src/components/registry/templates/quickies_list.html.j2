@@ -1,0 +1,30 @@
+<div class="box">
+  <h2 class="title is-4">Quickies</h2>
+  {% if quickie_templates %}
+    <table class="table is-fullwidth is-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for name, quickie in quickie_templates.items() %}
+          <tr>
+            <td>{{ name }}</td>
+            <td>{{ quickie.description }}</td>
+            <td>
+              <a href="/quickie/{{ name }}" class="button is-small is-primary">
+                <span class="icon"><i class="fas fa-edit"></i></span>
+                <span>Use</span>
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="notification is-warning">No quickies registered in the system.</div>
+  {% endif %}
+</div>

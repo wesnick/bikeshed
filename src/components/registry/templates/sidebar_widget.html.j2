@@ -1,6 +1,11 @@
 <p class="menu-label mt-6">Registry Items</p>
 <ul class="menu-list">
   <li>
+    <a hx-get="/registry/quickies" hx-target=".dashboard" hx-push-url="true">
+      Quickies <span class="tag is-info">{{ quickie_templates|length }}</span>
+    </a>
+  </li>
+  <li>
     <a hx-get="/registry/prompts" hx-target=".dashboard" hx-push-url="true">
       Prompts <span class="tag is-info">{{ prompts|length }}</span>
     </a>
