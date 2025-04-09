@@ -10,11 +10,11 @@ from fasthx import Jinja
 from psycopg_pool import AsyncConnectionPool
 from psycopg import AsyncConnection
 
-from src.service.cache import RedisService
+from src.core.cache import RedisService
 # Add this import
-from src.service.user_state import UserStateService
+from src.core.user_state import UserStateService
 from src.core.inference import FakerCompletionService, LiteLLMCompletionService, ChainedCompletionService
-from src.service.mcp_client import MCPClient
+from src.core.mcp_client import MCPClient
 from src.core.broadcast.broadcast import BroadcastService
 from src.config import get_config
 from src.core.registry import Registry

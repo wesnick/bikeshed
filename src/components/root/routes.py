@@ -6,7 +6,7 @@ from pydantic import BaseModel, model_validator
 from src.dependencies import get_db, get_jinja, get_user_state_service, enqueue_job
 from src.components.repositories import root_repository
 from src.core.models import Root
-from src.service.user_state import UserStateService
+from src.core.user_state import UserStateService
 from src.logging import logger
 from src.utils.file_tree import build_file_tree
 

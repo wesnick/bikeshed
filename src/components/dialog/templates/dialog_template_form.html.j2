@@ -1,11 +1,6 @@
 <div>
   <h2 class="title is-4">Launch Dialog from Template: {{ template.name }}</h2>
   {% if template.description %}<p class="subtitle">{{ template.description }}</p>{% endif %}
-  {% if template.goal %}
-    <div class="block">
-      <strong>Goal:</strong> {{ template.goal }}
-    </div>
-  {% endif %}
   {% with dialog_template=template %}
     {% include 'workflow.html.j2' %}
   {% endwith %}

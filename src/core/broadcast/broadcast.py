@@ -176,7 +176,7 @@ class BroadcastService:
     def register_strategy(self, model_class: Type[BaseModel], strategy: BroadcastStrategy) -> None:
         """Register a broadcast strategy for a model class"""
         self._strategies[model_class] = strategy
-        logger.info(f"Registered broadcast strategy for {model_class.__name__}")
+        logger.debug(f"Registered broadcast strategy for {model_class.__name__}")
 
     async def model_update(self, model: BaseModel) -> None:
         """Broadcast updates for a model if it has an id field and a registered strategy"""

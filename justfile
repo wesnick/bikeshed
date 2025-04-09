@@ -18,7 +18,7 @@ frontend-dev:
 
 # Start the ARQ worker
 arq-dev:
-    .venv/bin/arq src.service.worker.WorkerSettings --watch src/
+    .venv/bin/arq src.core.worker.WorkerSettings --watch src/
 
 # Build the frontend assets for production
 build:

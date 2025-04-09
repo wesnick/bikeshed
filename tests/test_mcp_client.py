@@ -1,8 +1,8 @@
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
-from src.service.mcp_client import MCPClient
-from src.service.cache import RedisService
+from src.core.mcp_client import MCPClient
+from src.core.cache import RedisService
 
 
 @pytest.mark.asyncio

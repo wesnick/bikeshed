@@ -2,7 +2,7 @@ import yaml
 from pathlib import Path
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
-from src.service.mcp_client import MCPClient
+from src.core.mcp_client import MCPClient
 from src.logging import logger
 from src.dependencies import get_jinja, get_mcp_client
 

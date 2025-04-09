@@ -10,7 +10,7 @@ from rich.prompt import Prompt, FloatPrompt, IntPrompt, Confirm
 from rich.syntax import Syntax
 
 from src.core.models import DialogStatus
-from src.service.pulse_mcp_api import MCPServer
+from src.core.pulse_mcp_api import MCPServer
 from src.logging import logger # Import logger
 
 console = Console()
@@ -48,7 +48,7 @@ def search_mcp(query: Optional[str], limit: int):
     asyncio.run(_search_mcp(query, limit))
 
 async def _search_mcp(query: Optional[str], limit: int):
-    from service.pulse_mcp_api import PulseMCPAPI
+    from src.core.pulse_mcp_api import PulseMCPAPI
 
     api = PulseMCPAPI()
 

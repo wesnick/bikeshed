@@ -10,7 +10,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from src.core.broadcast.broadcast import BroadcastService
 from src.logging import logger, setup_logging
-from src.service.shutdown_helper import shutdown_manager
+from src.core.shutdown_helper import shutdown_manager
 from src.core.fastapi.middleware import HTMXRedirectMiddleware
 from src.dependencies import get_jinja, get_registry, get_broadcast_service
 from src.components.routes import api_router

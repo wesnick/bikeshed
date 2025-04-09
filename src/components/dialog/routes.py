@@ -224,6 +224,7 @@ async def dialog_template_form(template_name: str,
     await workflow_service.engine.initialize_dialog(dialog)
 
     return {
+        "active_step": "start",
         "template": template,
         "template_name": template_name,
         "workflow_analysis": workflow_analysis,
