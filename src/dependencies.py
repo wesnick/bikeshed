@@ -1,7 +1,6 @@
 from functools import lru_cache
 from typing import AsyncGenerator
 import asyncio
-import json
 
 import jinja2
 from arq.connections import ArqRedis, create_pool, RedisSettings
@@ -10,15 +9,13 @@ from fastapi.templating import Jinja2Templates
 from fasthx import Jinja
 from psycopg_pool import AsyncConnectionPool
 from psycopg import AsyncConnection
-from psycopg.types.json import set_json_dumps # Re-add
-from pydantic import BaseModel
 
 from src.service.cache import RedisService
 # Add this import
 from src.service.user_state import UserStateService
-from src.service.llm import FakerCompletionService, LiteLLMCompletionService, ChainedCompletionService
+from src.core.inference import FakerCompletionService, LiteLLMCompletionService, ChainedCompletionService
 from src.service.mcp_client import MCPClient
-from src.service.broadcast import BroadcastService
+from src.core.broadcast.broadcast import BroadcastService
 from src.config import get_config
 from src.core.registry import Registry
 from src.core.registry_loader import RegistryBuilder
@@ -60,7 +57,7 @@ async def get_arq_redis() -> AsyncGenerator[ArqRedis, None]:
 
 @lru_cache
 def get_jinja(directory: str = "templates") -> Jinja:
-    from src.jinja_extensions import markdown2html, quote_plus, format_file_size, get_file_icon, format_text_length, format_cost_per_million
+    from src.core.templating.jinja_extensions import markdown2html, quote_plus, format_file_size, get_file_icon, format_text_length, format_cost_per_million
 
     jinja_templates = Jinja2Templates(directory=directory)
 

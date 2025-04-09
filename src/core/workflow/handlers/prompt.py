@@ -1,5 +1,5 @@
 from src.core.config_types import PromptStep, Step
-from src.core.models import Dialog, DialogStatus, MessageStatus
+from src.core.models import Dialog, MessageStatus
 from src.core.workflow.handlers.base import StepHandler, StepResult, StepRequirements
 
 
@@ -47,7 +47,7 @@ class PromptStepHandler(StepHandler):
 
         if isinstance(prompt_content, str):
             # Create a message using the helper method
-            user_message = dialog.create_user_message(prompt_content)
+            dialog.create_user_message(prompt_content)
 
         elif isinstance(prompt_content, list):
             for prompt in prompt_content:

@@ -2,7 +2,7 @@ from typing import Optional, Dict
 from contextlib import AsyncExitStack
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
-from src.service.logging import logger
+from src.logging import logger
 
 
 class SessionData:

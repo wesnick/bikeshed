@@ -129,8 +129,8 @@ class RootFileRepository(BaseRepository[RootFile]):
             return cur.rowcount > 0
 
     async def get_by_id(self, conn: AsyncConnection, id: UUID | str) -> Optional[T]:
-        raise NotImplemented
+        raise NotImplementedError
 
     @db_operation
     async def update(self, conn: AsyncConnection, root_uri: str, path: str, data: Dict[str, Any]) -> Optional[RootFile]:
-        raise NotImplemented
+        raise NotImplementedError

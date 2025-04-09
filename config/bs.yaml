@@ -22,3 +22,8 @@ mcp_servers:
     args: [npx, -y, '@modelcontextprotocol/server-filesystem', "/home/wes/Downloads"]
     env:
       NODE_VERSION: v22.13.1
+
+#  python_sandbox:
+#    command: /home/wes/.deno/bin/deno
+#    args: ['run', '-N', '-R=node_modules', '-W=node_modules', '--node-modules-dir=auto', 'jsr:@pydantic/mcp-run-python', 'stdio']
+

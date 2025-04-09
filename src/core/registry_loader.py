@@ -1,6 +1,3 @@
-import yaml
-from typing import Dict, List, Any
-
 from pathlib import Path # Added Path
 import yaml
 from typing import Dict, List, Any
@@ -11,7 +8,7 @@ from src.core.registry import Registry
 # Add QuickieTemplateLoader to imports
 from src.core.config_loader import SchemaLoader, TemplateLoader, DialogTemplateLoader, QuickieTemplateLoader
 from src.core.config_types import Model
-from src.service.logging import logger
+from src.logging import logger
 
 
 

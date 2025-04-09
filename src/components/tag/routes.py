@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from src.dependencies import get_db, get_jinja
 from src.core.models import Tag
 from src.components.repositories import tag_repository, entity_tag_repository
-from src.service.logging import logger
+from src.logging import logger
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 jinja = get_jinja("src/components/tag/templates")

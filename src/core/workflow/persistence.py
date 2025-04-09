@@ -7,7 +7,7 @@ from psycopg import AsyncConnection
 from src.core.workflow.engine import PersistenceProvider
 from src.core.models import Dialog, WorkflowData
 from src.components.repositories import dialog_repository, message_repository
-from src.service.logging import logger
+from src.logging import logger
 
 
 class DatabasePersistenceProvider(PersistenceProvider):

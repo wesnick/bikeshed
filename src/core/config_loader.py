@@ -13,7 +13,7 @@ import importlib
 
 from src.core.registry import Registry, Schema, TemplatePrompt
 from src.core.config_types import DialogTemplate, QuickieTemplate
-from src.service.logging import logger
+from src.logging import logger
 
 
 def register_schema(alias: str = ""):

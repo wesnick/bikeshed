@@ -11,7 +11,7 @@ from rich.syntax import Syntax
 
 from src.core.models import DialogStatus
 from src.service.pulse_mcp_api import MCPServer
-from src.service.logging import logger # Import logger
+from src.logging import logger # Import logger
 
 console = Console()
 

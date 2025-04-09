@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from src.service.mcp_client import MCPClient
-from src.service.logging import logger
+from src.logging import logger
 from src.dependencies import get_jinja, get_mcp_client
 
 router = APIRouter(prefix="/registry", tags=["registry"])
@@ -33,7 +33,7 @@ async def registry_component(request: Request) -> dict:
 
 @router.get("/quickies")
 @jinja.hx('quickies_list.html.j2')
-async def registry_prompts(request: Request) -> dict:
+async def registry_quickies(request: Request) -> dict:
     """This route serves the prompts listing page."""
     registry = request.app.state.registry
     return {"quickie_templates": registry.quickie_templates}

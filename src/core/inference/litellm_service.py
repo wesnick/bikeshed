@@ -40,7 +40,7 @@ class LiteLLMCompletionService(CompletionService):
             assistant_msg = dialog.messages[-1]
             model = assistant_msg.model
 
-            from src.service.logging import logger
+            from src.logging import logger
             logger.warning(f"LiteLLM model: {json.dumps(messages, indent=4)}")
 
 

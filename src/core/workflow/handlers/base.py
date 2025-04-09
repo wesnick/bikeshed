@@ -7,9 +7,9 @@ from pydantic import BaseModel
 from mcp.server.fastmcp.prompts.base import Message as MCPMessage
 
 from src.core.config_types import Step, PromptStep
-from src.core.models import Dialog, Message, MessageStatus
+from src.core.models import Dialog
 from src.core.registry import Registry, TemplatePrompt
-from src.service.llm import CompletionService
+from src.core.inference import CompletionService
 
 
 @dataclass

@@ -38,7 +38,7 @@ cd bikeshed
 
 2. **Install dependencies**:
 
-You need uv, rust, go, npm installed.  Sorry, this is a developer app so these are table stakes.
+You need uv, rust, go, npm, deno installed.  Sorry, this is a developer app so these are table stakes.
 
 OS dependencies, assuming Debian-flavored distro
 
@@ -66,6 +66,11 @@ go install github.com/stripe/pg-schema-diff/cmd/pg-schema-diff@latest
 Node
 ```bash
 npm install
+```
+
+Deno
+```bash
+curl -fsSL https://deno.land/install.sh | sh
 ```
 
 3. **Run the project**:

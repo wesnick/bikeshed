@@ -2,7 +2,7 @@ import json
 from typing import Any, Dict, Optional
 
 from .cache import RedisService
-from .logging import logger
+from src.logging import logger
 
 class UserStateService:
     """

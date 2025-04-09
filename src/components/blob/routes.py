@@ -108,7 +108,7 @@ async def upload_blobs(response: Response,
     """Upload a blob and return HTML for HTMX"""
 
     for file in files:
-        blob = await blob_service.create_blob_from_upload(
+        await blob_service.create_blob_from_upload(
             conn=db,
             upload_file=file
         )

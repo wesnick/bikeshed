@@ -1,9 +1,9 @@
-from typing import Dict, Any, Optional, Union, Callable, AsyncGenerator
+from typing import Dict, Any, Optional, Callable, AsyncGenerator
 import uuid
 
 from psycopg import AsyncConnection
 
-from src.core.config_types import DialogTemplate, Step
+from src.core.config_types import DialogTemplate
 from src.core.registry import Registry
 from src.core.models import Dialog, DialogStatus
 from src.core.workflow.engine import WorkflowEngine, StepResult
@@ -13,9 +13,9 @@ from src.core.workflow.handlers.prompt import PromptStepHandler
 from src.core.workflow.handlers.user_input import UserInputStepHandler
 from src.core.workflow.handlers.invoke import InvokeStepHandler
 from src.core.workflow.visualization import WorkflowVisualizer
-from src.service.broadcast import BroadcastService
-from src.service.llm import CompletionService
-from src.service.logging import logger
+from src.core.broadcast.broadcast import BroadcastService
+from src.core.inference import CompletionService
+from src.logging import logger
 
 class WorkflowService:
     """Service for managing workflow state machines"""
@@ -135,7 +135,7 @@ class WorkflowService:
 
         return StepResult.success_result(
             state=dialog.status,
-            message=f"Saved data to dialog"
+            message="Saved data to dialog"
         )
 
 

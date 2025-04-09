@@ -3,7 +3,7 @@ from typing import List
 import signal
 import sys
 import time
-from src.service.logging import logger
+from src.logging import logger
 
 
 class ShutdownManager:

@@ -1,6 +1,6 @@
 from src.core.workflow.handlers.base import StepHandler, StepResult, StepRequirements
 from src.core.config_types import MessageStep, Step
-from src.core.models import Dialog, Message, MessageStatus, DialogStatus
+from src.core.models import Dialog, MessageStatus
 
 
 class MessageStepHandler(StepHandler):

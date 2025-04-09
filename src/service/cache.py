@@ -1,7 +1,7 @@
 import json
 import redis
 from typing import Any, Optional
-from src.service.logging import logger
+from src.logging import logger
 
 
 class RedisService:

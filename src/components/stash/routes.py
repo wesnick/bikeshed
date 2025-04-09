@@ -6,6 +6,8 @@ from fastapi.responses import Response
 from psycopg import AsyncConnection
 from datetime import datetime
 
+from pydantic import BaseModel
+
 from src.core.models import Stash, StashItem
 from src.dependencies import get_db, get_jinja
 from src.components.repositories import stash_repository, entity_stash_repository
@@ -13,8 +15,6 @@ from src.components.repositories import stash_repository, entity_stash_repositor
 router = APIRouter(prefix="/stashes", tags=["stashes"])
 jinja = get_jinja("src/components/stash/templates")
 
-# Pydantic models for request/response
-from pydantic import BaseModel
 
 class StashCreate(BaseModel):
     name: str

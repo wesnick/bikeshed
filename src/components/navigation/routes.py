@@ -1,9 +1,6 @@
 from fastapi import APIRouter, Request, Depends
 from psycopg import AsyncConnection
 
-from src.service.user_state import UserStateService
-from src.dependencies import get_user_state_service
-
 from src.core.models import DialogStatus
 from src.core.registry import Registry
 from src.dependencies import get_db, get_jinja, get_registry
@@ -47,7 +44,7 @@ class PathBasedTemplateSelector:
         from urllib.parse import urlparse
         url_parts = urlparse(request.headers.get('hx-current-url')).path.strip('/').split('/')
 
-        from src.service.logging import logger
+        from src.logging import logger
         logger.warning(f"Url parts: {url_parts}")
 
         if len(url_parts) < 2:

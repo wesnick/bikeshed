@@ -7,7 +7,7 @@ from src.dependencies import get_db, get_jinja, get_user_state_service, enqueue_
 from src.components.repositories import root_repository
 from src.core.models import Root
 from src.service.user_state import UserStateService
-from src.service.logging import logger
+from src.logging import logger
 from src.utils.file_tree import build_file_tree
 
 router = APIRouter(prefix="/root", tags=["roots"])
@@ -102,7 +102,7 @@ async def get_root_management_page(
 @jinja.hx('root_view.html.j2')
 async def view_root(root_uri: str, db: AsyncConnection = Depends(get_db)):
     """This route serves the root view component for htmx requests."""
-    from src.service.logging import logger
+    from src.logging import logger
     logger.warning(f"Root URI: {root_uri}")
 
     root = await root_repository.get_with_files(db, root_uri)

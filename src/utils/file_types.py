@@ -1,7 +1,7 @@
 import os
 import mimetypes
 import magic
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple
 
 # Initialize mimetypes with standard types
 mimetypes.init()
@@ -156,7 +156,7 @@ def get_file_type_info(filepath: str, use_magic_fallback: bool = True) -> Tuple[
                 return (detected_mime, 'fa-solid fa-file-video')
             
             return (detected_mime, 'fa-solid fa-file')
-        except Exception as e:
+        except Exception:
             # If magic fails, fall back to default
             return DEFAULT_TYPE
     

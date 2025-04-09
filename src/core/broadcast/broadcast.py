@@ -4,12 +4,12 @@ import redis.asyncio as redis
 from typing import Dict, Any, Optional, Type
 from pydantic import BaseModel
 
-from src.service.broadcast_strategy import (
+from src.core.broadcast.broadcast_strategy import (
     BroadcastStrategy,
     MessageBroadcastStrategy,
     DialogBroadcastStrategy
 )
-from src.service.logging import logger
+from src.logging import logger
 from src.core.models import Message, Dialog
 
 

@@ -5,12 +5,11 @@ from typing import Dict, List, Optional
 from psycopg import AsyncConnection
 import aiofiles
 import aiofiles.os
-import magic
 
 from src.core.models import Root, RootFile
 from src.utils.file_types import get_mime_type
 from src.components.repositories import root_repository, root_file_repository
-from src.service.logging import logger
+from src.logging import logger
 
 class FileScanner:
 
@@ -219,9 +218,6 @@ class FileScanner:
         if not path_obj.is_dir():
             raise ValueError(f"'{directory_path}' is not a valid directory.")
 
-        root: Optional[Root] = None
-        is_new_root = False
-
         # Check/Create Root using repository
          # Wrap repository calls potentially needing transaction in one block
         async with self.conn.transaction():
@@ -231,8 +227,6 @@ class FileScanner:
                 new_root_model = Root(uri=path_str) # Let DB handle created_at/updated_at
                 root = await self.root_repo.create(self.conn, new_root_model)
                 logger.info(f"Root created: {root.uri}")
-                is_new_root = True
-                sync = True # Always sync fully for a new root
             else:
                 logger.info(f"Found existing root: {root.uri}")
 

@@ -1,25 +1,61 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 import uuid
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from psycopg import AsyncConnection
+from pydantic import BaseModel, Field
 from starlette.responses import Response
 
 from src.core.registry import Registry
 from src.core.workflow.service import WorkflowService
 from src.dependencies import get_db, get_jinja, get_workflow_service, get_registry, get_broadcast_service, \
     get_arq_redis
-from src.core.models import MessageStatus
 from src.components.repositories import dialog_repository, message_repository
-from src.core.models import Dialog, Message
-from src.service.broadcast import BroadcastService
-from src.custom_types import DialogTemplateCreationRequest, MessageCreate
-from src.service.logging import logger
+from src.core.models import Dialog
+from src.core.broadcast.broadcast import BroadcastService
+from src.logging import logger
 
 router = APIRouter(prefix="/dialog", tags=["dialog"])
 
 jinja = get_jinja("src/components/dialog/templates")
+
+
+class DialogTemplateCreationRequest(BaseModel):
+    description: Optional[str] = None
+    goal: Optional[str] = None
+    input: Optional[dict[str, Any]] = None
+
+    model_config = {
+        'allow_extra': 'allow'
+    }
+
+class MessageBase(BaseModel):
+    role: str = 'user'
+    model: Optional[str] = 'faker' # @TODO
+    text: str
+    mime_type: str = "text/plain"
+    extra: Optional[Dict[str, Any]] = None
+
+
+class MessageCreate(MessageBase):
+    dialog_id: UUID
+    parent_id: Optional[UUID] = None
+    # Button fields - these will be empty strings when present
+    send_button: Optional[str] = None
+    continue_button: Optional[str] = None
+
+    # This will hold which button was pressed
+    button_pressed: Optional[str] = Field(None, exclude=True)
+
+    def model_post_init(self, __context: Any) -> None:
+        """Determine which button was pressed after model initialization"""
+        if self.send_button is not None:
+            self.button_pressed = "send"
+        elif self.continue_button is not None:
+            self.button_pressed = "continue"
+
+
 
 @router.get("/")
 @jinja.hx('list.html.j2')
@@ -65,7 +101,7 @@ async def get_dialog(response: Response,
 
 @router.get("/{dialog_id}/overview")
 @jinja.hx('overview.html.j2', no_data=True)
-async def get_dialog(dialog_id: UUID,
+async def get_dialog_overview(dialog_id: UUID,
                       workflow_service: WorkflowService = Depends(get_workflow_service)):
     """Container for dialog mini-dash"""
     dialog = await workflow_service.get_dialog(dialog_id)

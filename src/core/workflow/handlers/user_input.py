@@ -1,8 +1,7 @@
 from src.core.workflow.handlers.base import StepHandler, StepResult, StepRequirements
 from src.core.config_types import UserInputStep, Step
-from src.core.models import Dialog, Message, DialogStatus, MessageStatus, WorkflowData
-from src.service.llm import CompletionService
-from src.service.logging import logger
+from src.core.models import Dialog, DialogStatus, WorkflowData
+from src.logging import logger
 
 class UserInputStepHandler(StepHandler):
     """Handler for user_input steps"""
@@ -48,7 +47,7 @@ class UserInputStepHandler(StepHandler):
 
         if not user_input:
             # If no user input is available, set status to waiting and exit
-            logger.warning(f"No user input found")
+            logger.warning("No user input found")
             dialog.status = DialogStatus.WAITING_FOR_INPUT
             return StepResult.waiting_result(
                 state=dialog.current_state,
@@ -66,7 +65,7 @@ class UserInputStepHandler(StepHandler):
         dialog.create_stub_assistant_message(model)
 
         # Process with LLM service
-        result_message = await self.completion_service.complete(
+        await self.completion_service.complete(
             dialog,
             broadcast=None
         )

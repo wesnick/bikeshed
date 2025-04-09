@@ -3,11 +3,11 @@ from arq.connections import RedisSettings
 import uuid
 
 from src.config import get_config
-from src.service.llm.base import CompletionService
-from src.service.broadcast import BroadcastService
+from src.core.inference.base import CompletionService
+from src.core.broadcast.broadcast import BroadcastService
 from src.components.repositories import message_repository
 from src.dependencies import get_completion_service, get_remote_broadcast_service, db_pool
-from src.service.logging import logger
+from src.logging import logger
 
 settings = get_config()
 
@@ -24,7 +24,7 @@ async def dialog_run_workflow_job(ctx: Dict[str, Any], dialog_id: uuid.UUID) -> 
     """
     from src.core.workflow.service import WorkflowService
     from src.dependencies import get_workflow_service
-    from src.service.logging import logger
+    from src.logging import logger
 
     # Get services
     workflow_service: WorkflowService = await anext(get_workflow_service())
@@ -101,7 +101,7 @@ async def process_message_job(ctx: Dict[str, Any], dialog_id: uuid.UUID) -> Dict
 
     except Exception as e:
         # Log the error and return failure
-        from src.service.logging import logger
+        from src.logging import logger
         logger.error(f"Error processing message for dialog {dialog_id}: {str(e)}")
 
         # Notify clients about the error

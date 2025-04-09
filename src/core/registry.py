@@ -10,7 +10,7 @@ from mcp.server.fastmcp.resources import Resource, ResourceTemplate
 from fastapi_events.registry.payload_schema import registry as event_registry
 from watchfiles import awatch
 
-from src.service.logging import logger
+from src.logging import logger
 
 class TemplatePrompt(Prompt):
     """A prompt that can be rendered with arguments."""
@@ -191,7 +191,7 @@ class Registry:
 
     async def watch_directory(self, directory_path: str):
         """Watch a directory for changes."""
-        from src.service.logging import logger
+        from src.logging import logger
         try:
             async for changes in awatch(directory_path):
                 for change_type, file_path in changes:
@@ -234,7 +234,7 @@ class Registry:
 
     async def stop_watching(self):
         """Stop watching all directories."""
-        from src.service.logging import logger
+        from src.logging import logger
 
         if self.watcher_task:
             self.watcher_task.cancel()

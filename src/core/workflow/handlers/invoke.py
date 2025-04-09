@@ -1,4 +1,4 @@
-from typing import Any, Dict, Callable
+from typing import Any, Callable
 import importlib
 import inspect
 
@@ -100,43 +100,3 @@ class InvokeStepHandler(StepHandler):
             return func
         except (ImportError, AttributeError) as e:
             raise ValueError(f"Could not import callable {callable_path}: {str(e)}")
-
-
-async def get_parameter_data_type(func, arg_name: str) -> Any:
-    """
-    Retrieves the data type of a specified parameter in a function.
-
-    Args:
-        func: The function to inspect.
-        arg_name: The name of the parameter.
-
-    Returns:
-        The data type of the parameter if specified, otherwise None.
-    """
-    sig = inspect.signature(func)
-    if arg_name not in sig.parameters:
-        raise ValueError(f"Parameter '{arg_name}' not found in function '{func.__name__}'")
-
-    param = sig.parameters[arg_name]
-    if param.annotation is inspect.Parameter.empty:
-        return None  # No type hint provided
-    else:
-        return param.annotation
-
-async def process_function_parameters(step, requirements):
-    """
-    Processes the parameters of a function, adding required variables to a requirements object.
-    """
-    func = await self._get_callable(step.callable)
-    sig = inspect.signature(func)
-    valid_params = sig.parameters
-
-    if valid_params:
-        for arg_name, param in valid_params.items():
-            data_type = await get_parameter_data_type(func, arg_name)
-            requirements.add_required_variable(
-                arg_name,
-                f"Input for function argument: {arg_name}",
-                True,
-                data_type=data_type,  # Pass the data type
-            )

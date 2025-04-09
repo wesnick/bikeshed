@@ -1,6 +1,6 @@
 from markdown2 import markdown
-import os
-from src.utils.file_types import format_file_size as file_size_formatter
+
+from src.utils.file_types import format_file_size as file_size_formatter, get_file_icon_by_name
 
 def markdown2html(text: str):
     """Convert markdown text to HTML"""
@@ -46,7 +46,6 @@ def format_file_size(byte_size):
     """Format byte size to human readable format"""
     return file_size_formatter(byte_size)
 
-from src.utils.file_types import get_file_icon_by_name
 
 def get_file_icon(filename):
     """

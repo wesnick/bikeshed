@@ -5,7 +5,7 @@ from transitions.extensions.asyncio import AsyncState
 
 from src.core.config_types import Step
 from src.core.models import Dialog
-from src.service.logging import logger
+from src.logging import logger
 
 
 class BikeShedState(AsyncState):
