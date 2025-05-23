@@ -1,6 +1,8 @@
-<div class="box"
+<div class="card"
      hx-get="/tags/components/tag-selector?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
      hx-trigger="load">
+  {# The content will be loaded here, potentially with its own card-body or padding.
+     If the loaded content needs a padded container, this could be class="card card-body" #}
   {#    <form hx-post="/stashes"#}
   {#          hx-ext="form-json"#}
   {#          hx-target=".dashboard">#}

@@ -1,14 +1,13 @@
 {
   "scripts": {
-    "build-bulma": "sass --load-path=node_modules frontend/css/app.scss build/css/app.css",
+    "build-css": "sass --load-path=node_modules frontend/css/app.scss build/css/app.css",
     "build-js": "vite build",
-    "dev": "concurrently --names \"sass,vite\" --timestamp-format \"HH:mm:ss\" --prefix \"[{time} {name}]\" \"sass --load-path=node_modules frontend/css/app.scss build/css/app.css --watch\" \"vite build --watch\"",
-    "build": "sass --load-path=node_modules frontend/css/app.scss build/css/app.css && vite build",
+    "dev": "concurrently --names \"sass,vite\" --timestamp-format \"HH:mm:ss\" --prefix \"[{time} {name}]\" \"npm run build-css -- --watch\" \"vite build --watch\"",
+    "build": "npm run build-css && vite build",
     "start": "npm run dev"
   },
   "devDependencies": {
-    "bulma": "^1.0.3",
-    "bulma-o-steps": "^1.1.0",
+    "bootstrap": "^5.3.3",
     "concurrently": "^9.1.2",
     "dropzone": "^6.0.0-beta.2",
     "highlight.js": "^11.11.1",
@@ -33,6 +32,7 @@
     "vite": "^6.2.0"
   },
   "dependencies": {
+    "@popperjs/core": "^2.11.8",
     "@rollup/plugin-inject": "^5.0.5"
   }
 }

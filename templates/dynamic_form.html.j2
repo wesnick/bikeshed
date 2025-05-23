@@ -3,17 +3,13 @@
       method="post"
       class="dynamic-form"
       hx-ext="form-json">
-  {% if form.title %}<h3 class="title is-4">{{ form.title }}</h3>{% endif %}
-  {% if form.description %}<p class="subtitle is-6">{{ form.description }}</p>{% endif %}
+  {% if form.title %}<h3 class="fs-4">{{ form.title }}</h3>{% endif %}
+  {% if form.description %}<p class="fs-6 text-muted">{{ form.description }}</p>{% endif %}
   {% for field in form.fields %}{{ render_field(field, values.get(field.name) if values else None) }}{% endfor %}
-  <div class="field is-grouped mt-5">
-    <div class="control">
-      <button type="submit" class="button is-primary">{{ form.submit_label }}</button>
-    </div>
+  <div class="mt-3 d-flex gap-2">
+    <button type="submit" class="btn btn-primary">{{ form.submit_label }}</button>
     {% if form.cancel_url %}
-      <div class="control">
-        <a href="{{ form.cancel_url }}" class="button is-light">Cancel</a>
-      </div>
+      <a href="{{ form.cancel_url }}" class="btn btn-secondary">Cancel</a>
     {% endif %}
   </div>
 </form>

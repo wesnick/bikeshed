@@ -1,35 +1,39 @@
-<div class="box">
-  <h2 class="title is-4">MCP Servers</h2>
-  {% if mcp_servers %}
-    <table class="table is-fullwidth is-striped">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Command</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for name, server in mcp_servers.items() %}
-          <tr>
-            <td>{{ name }}</td>
-            <td>
-              <code>{{ server.command }} {{ server.args | join(" ") }}</code>
-            </td>
-            <td>
-              <span class="tag {% if server_status and server_status.get(name) %} is-success{% else %}is-danger{% endif %}">
-                {% if server_status and server_status.get(name) %}
-                  Connected
-                {% else %}
-                  Disconnected
-                {% endif %}
-              </span>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <div class="notification is-warning">No MCP servers configured in the system.</div>
-  {% endif %}
+<div class="card">
+  <div class="card-body">
+    <h2 class="h4 card-title mb-3">MCP Servers</h2>
+    {% if mcp_servers %}
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Command</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for name, server in mcp_servers.items() %}
+              <tr>
+                <td>{{ name }}</td>
+                <td>
+                  <code>{{ server.command }} {{ server.args | join(" ") }}</code>
+                </td>
+                <td>
+                  <span class="badge {% if server_status and server_status.get(name) %}bg-success{% else %}bg-danger{% endif %}">
+                    {% if server_status and server_status.get(name) %}
+                      Connected
+                    {% else %}
+                      Disconnected
+                    {% endif %}
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-warning">No MCP servers configured in the system.</div>
+    {% endif %}
+  </div>
 </div>

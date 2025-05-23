@@ -1,109 +1,107 @@
-<div class="container is-fluid mt-4">
-  <h1 class="title">Root Management</h1>
-  <div class="box mb-5">
-    <h2 class="subtitle">Current Roots</h2>
-    {% if roots %}
-      <table class="table is-fullwidth is-hoverable">
-        <thead>
-          <tr>
-            <th>Status</th>
-            <th>Name</th>
-            <th>URI</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for root in roots %}
-            {% set is_selected = root.uri in selected_roots %}
+<div class="container-fluid mt-4">
+  <h1 class="mb-4">Root Management</h1>
+  <div class="card mb-5">
+    <div class="card-body">
+      <h2 class="card-title h4 mb-3">Current Roots</h2>
+      {% if roots %}
+        <table class="table table-hover">
+          <thead>
             <tr>
-              <td>
-                {% if is_selected %}
-                  <span class="icon has-text-primary" title="Selected">
-                    <i class="fas fa-check-circle"></i>
-                  </span>
-                {% else %}
-                  <span class="icon has-text-grey-light" title="Not Selected">
-                    <i class="far fa-circle"></i>
-                  </span>
-                {% endif %}
-              </td>
-              <td>Name not Supported yet</td>
-              <td>{{ root.uri }}</td>
-              <td>
-                {# Select/Deselect Buttons #}
-                {% if is_selected %}
-                  <button class="button is-small is-danger is-outlined"
-                          hx-post="/root/deselect"
-                          hx-vals='{"root_uri": "{{ root.uri }}"}'
-                          hx-ext="form-json"
-                          hx-target="#root-selector-dropdown"
-                          hx-swap="outerHTML"
-                          title="Deselect Root">
-                    <span class="icon"><i class="fas fa-times"></i></span>
-                  </button>
-                {% else %}
-                  <button class="button is-small is-primary is-outlined"
-                          hx-post="/root/select"
-                          hx-vals='{"root_uri": "{{ root.uri }}"}'
-                          hx-ext="form-json"
-                          hx-target="#root-selector-dropdown"
-                          hx-swap="outerHTML"
-                          title="Select Root">
-                    <span class="icon"><i class="fas fa-check"></i></span>
-                  </button>
-                {% endif %}
-                {# View Button #}
-                <button class="button is-small is-info is-outlined"
-                        hx-get="/root?root_uri={{ root.uri | quote_plus }}"
-                        hx-target=".dashboard"
-                        hx-push-url="true"
-                        title="View Root Details">
-                  <span class="icon"><i class="fas fa-eye"></i></span>
-                </button>
-                {# TODO: Add Delete Button #}
-              </td>
+              <th>Status</th>
+              <th>Name</th>
+              <th>URI</th>
+              <th>Actions</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      <p>No roots have been added yet.</p>
-    {% endif %}
+          </thead>
+          <tbody>
+            {% for root in roots %}
+              {% set is_selected = root.uri in selected_roots %}
+              <tr>
+                <td>
+                  {% if is_selected %}
+                    <span class="text-primary" title="Selected">
+                      <i class="fas fa-check-circle"></i>
+                    </span>
+                  {% else %}
+                    <span class="text-secondary" title="Not Selected">
+                      <i class="far fa-circle"></i>
+                    </span>
+                  {% endif %}
+                </td>
+                <td>Name not Supported yet</td>
+                <td>{{ root.uri }}</td>
+                <td>
+                  <div class="btn-group btn-group-sm" role="group">
+                    {# Select/Deselect Buttons #}
+                    {% if is_selected %}
+                      <button class="btn btn-outline-danger"
+                              hx-post="/root/deselect"
+                              hx-vals='{"root_uri": "{{ root.uri }}"}'
+                              hx-ext="form-json"
+                              hx-target="#root-selector-dropdown"
+                              hx-swap="outerHTML"
+                              title="Deselect Root">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    {% else %}
+                      <button class="btn btn-outline-primary"
+                              hx-post="/root/select"
+                              hx-vals='{"root_uri": "{{ root.uri }}"}'
+                              hx-ext="form-json"
+                              hx-target="#root-selector-dropdown"
+                              hx-swap="outerHTML"
+                              title="Select Root">
+                        <i class="fas fa-check"></i>
+                      </button>
+                    {% endif %}
+                    {# View Button #}
+                    <button class="btn btn-outline-info"
+                            hx-get="/root?root_uri={{ root.uri | quote_plus }}"
+                            hx-target=".dashboard"
+                            hx-push-url="true"
+                            title="View Root Details">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    {# TODO: Add Delete Button #}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="alert alert-info">No roots have been added yet.</div>
+      {% endif %}
+    </div>
   </div>
-  <div class="box">
-    <h2 class="subtitle">Add New Root</h2>
-    <form hx-post="/root/add"
-          hx-target=".dashboard"
-          hx-swap="innerHTML"
-          hx-ext="form-json">
-      <div class="field">
-        <label class="label" for="root-path-uri">Directory Path or Git URI</label>
-        <div class="control">
-          <input class="input"
+  <div class="card">
+    <div class="card-body">
+      <h2 class="card-title h4 mb-3">Add New Root</h2>
+      <form hx-post="/root/add"
+            hx-target=".dashboard"
+            hx-swap="innerHTML"
+            hx-ext="form-json">
+        <div class="mb-3">
+          <label class="form-label" for="root-path-uri">Directory Path or Git URI</label>
+          <input class="form-control"
                  type="text"
                  id="root-path-uri"
                  name="path_or_uri"
                  placeholder="/path/to/your/project or https://github.com/user/repo.git"
                  required>
+          <div class="form-text">Enter the absolute path to a local directory or a valid Git repository URI.</div>
         </div>
-        <p class="help">Enter the absolute path to a local directory or a valid Git repository URI.</p>
-      </div>
-      <div class="field">
-        <label class="label" for="root-name">Optional Name</label>
-        <div class="control">
-          <input class="input"
+        <div class="mb-3">
+          <label class="form-label" for="root-name">Optional Name</label>
+          <input class="form-control"
                  type="text"
                  id="root-name"
                  name="name"
                  placeholder="My Project">
+          <div class="form-text">Give this root a friendly name (optional).</div>
         </div>
-        <p class="help">Give this root a friendly name (optional).</p>
-      </div>
-      <div class="field">
-        <div class="control">
-          <button class="button is-link" type="submit">Add Root</button>
-        </div>
-      </div>
-    </form>
+        <button class="btn btn-primary" type="submit">Add Root</button>
+      </form>
+    </div>
   </div>
 </div>

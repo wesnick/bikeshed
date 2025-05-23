@@ -1,36 +1,28 @@
-<div class="box">
-  <h3 class="title is-5">Add Item to Stash</h3>
-  <form hx-post="/stashes/{{ stash.id }}/items"
-        hx-ext="form-json"
-        hx-target="#stash-items">
-    <div class="field">
-      <label class="label">Type</label>
-      <div class="control">
-        <div class="select">
-          <select name="type" required>
-            <option value="text">Text</option>
-            <option value="code">Code</option>
-            <option value="url">URL</option>
-            <option value="note">Note</option>
-          </select>
-        </div>
+<div class="card">
+  <div class="card-body">
+    <h3 class="h5 card-title mb-3">Add Item to Stash</h3>
+    <form hx-post="/stashes/{{ stash.id }}/items"
+          hx-ext="form-json"
+          hx-target="#stash-items">
+      <div class="mb-3">
+        <label class="form-label" for="stash-item-type-{{ stash.id }}">Type</label>
+        <select class="form-select" name="type" id="stash-item-type-{{ stash.id }}" required>
+          <option value="text">Text</option>
+          <option value="code">Code</option>
+          <option value="url">URL</option>
+          <option value="note">Note</option>
+        </select>
       </div>
-    </div>
-    <div class="field">
-      <label class="label">Content</label>
-      <div class="control">
-        <textarea class="textarea" name="content" required></textarea>
+      <div class="mb-3">
+        <label class="form-label" for="stash-item-content-{{ stash.id }}">Content</label>
+        <textarea class="form-control" name="content" id="stash-item-content-{{ stash.id }}" rows="3" required></textarea>
       </div>
-    </div>
-    <div class="field is-grouped">
-      <div class="control">
-        <button type="submit" class="button is-primary">Add Item</button>
-      </div>
-      <div class="control">
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary">Add Item</button>
         <button type="button"
-                class="button"
+                class="btn btn-secondary"
                 onclick="document.getElementById('stash-item-form').innerHTML = ''">Cancel</button>
       </div>
-    </div>
-  </form>
+    </form>
+  </div>
 </div>

@@ -1,69 +1,94 @@
-{# form_macros.html.j2 - Reusable Bulma form components #}
+{# form_macros.html.j2 - Reusable Bootstrap 5 form components #}
 {% macro render_field(field, value=None) %}
   {% set field_id = field.name|replace('_', '-') %}
   {% set field_value = value if value is not none else (field.default_value if field.default_value is not none else '') %}
   {% set is_required = field.required %}
-  <div class="field">
-    <label class="label" for="{{ field_id }}">
-      {{ field.label }}
-      {% if is_required %}<span class="has-text-danger">*</span>{% endif %}
-    </label>
-    <div class="control{% if field.field_type == 'email' %} has-icons-left{% endif %}">
-      {% if field.field_type == 'textarea' %}
-        <textarea id="{{ field_id }}"
-                  name="{{ field.name }}"
-                  class="textarea {{ field.css_class or '' }}"
-                  placeholder="{{ field.placeholder or '' }}"
-                  {% if is_required %}required{% endif %}>{{ field_value }}</textarea>
-      {% elif field.field_type == 'select' %}
-        <div class="select">
-          <select id="{{ field_id }}"
-                  name="{{ field.name }}"
-                  class="{{ field.css_class or '' }}"
-                  {% if is_required %}required{% endif %}>
-            <option value="">-- Select --</option>
-            {% for option in field.options or [] %}
-              <option value="{{ option.value }}"
-                      {% if field_value == option.value %}selected{% endif %}>{{ option.label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      {% elif field.field_type == 'checkbox' %}
-        <label class="checkbox">
-          <input type="checkbox"
+
+  {% if field.field_type == 'checkbox' %}
+    <div class="mb-3 form-check">
+      <input type="checkbox"
+             id="{{ field_id }}"
+             name="{{ field.name }}"
+             class="form-check-input {{ field.css_class or '' }}"
+             {% if field_value %}checked{% endif %}
+             {% if is_required %}required{% endif %}>
+      <label class="form-check-label" for="{{ field_id }}">
+        {{ field.label }}
+        {% if is_required %}<span class="text-danger">*</span>{% endif %}
+      </label>
+      {% if field.help_text %}<div class="form-text mt-0">{{ field.help_text }}</div>{% endif %}
+    </div>
+  {% elif field.field_type == 'radio' %}
+    <div class="mb-3">
+      <label class="form-label">
+        {{ field.label }}
+        {% if is_required %}<span class="text-danger">*</span>{% endif %}
+      </label>
+      {% for option in field.options or [] %}
+      <div class="form-check">
+        <input type="radio"
+               id="{{ field_id }}-{{ option.value }}"
+               name="{{ field.name }}"
+               value="{{ option.value }}"
+               class="form-check-input {{ field.css_class or '' }}"
+               {% if field_value == option.value %}checked{% endif %}
+               {% if is_required %}required{% endif %}>
+        <label class="form-check-label" for="{{ field_id }}-{{ option.value }}">
+          {{ option.label }}
+        </label>
+      </div>
+      {% endfor %}
+      {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+    </div>
+  {% else %}
+    <div class="mb-3">
+      <label class="form-label" for="{{ field_id }}">
+        {{ field.label }}
+        {% if is_required %}<span class="text-danger">*</span>{% endif %}
+      </label>
+      {% if field.field_type == 'email' and False %} {# TODO: Bootstrap input groups for icons if desired, currently disabled #}
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+          <input type="{{ field.field_type }}"
                  id="{{ field_id }}"
                  name="{{ field.name }}"
-                 {% if field_value %}checked{% endif %}>
-          {{ field.help_text or '' }}
-        </label>
-      {% elif field.field_type == 'radio' %}
-        {% for option in field.options or [] %}
-          <label class="radio">
-            <input type="radio"
-                   name="{{ field.name }}"
-                   value="{{ option.value }}"
-                   {% if field_value == option.value %}checked{% endif %}
-                   {% if is_required %}required{% endif %}>
-            {{ option.label }}
-          </label>
-        {% endfor %}
-      {% else %}
+                 value="{{ field_value }}"
+                 class="form-control {{ field.css_class or '' }}"
+                 placeholder="{{ field.placeholder or '' }}"
+                 {% if field.min_value is not none %}min="{{ field.min_value }}"{% endif %}
+                 {% if field.max_value is not none %}max="{{ field.max_value }}"{% endif %}
+                 {% if is_required %}required{% endif %}>
+        </div>
+      {% elif field.field_type == 'textarea' %}
+        <textarea id="{{ field_id }}"
+                  name="{{ field.name }}"
+                  class="form-control {{ field.css_class or '' }}"
+                  placeholder="{{ field.placeholder or '' }}"
+                  rows="{{ field.rows or 3 }}"
+                  {% if is_required %}required{% endif %}>{{ field_value }}</textarea>
+      {% elif field.field_type == 'select' %}
+        <select id="{{ field_id }}"
+                name="{{ field.name }}"
+                class="form-select {{ field.css_class or '' }}"
+                {% if is_required %}required{% endif %}>
+          <option value="">-- Select --</option>
+          {% for option in field.options or [] %}
+            <option value="{{ option.value }}"
+                    {% if field_value == option.value %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
+        </select>
+      {% else %} {# Default input type e.g. text, number, password etc. #}
         <input type="{{ field.field_type }}"
                id="{{ field_id }}"
                name="{{ field.name }}"
                value="{{ field_value }}"
-               class="input {{ field.css_class or '' }}"
+               class="form-control {{ field.css_class or '' }}"
                placeholder="{{ field.placeholder or '' }}"
                {% if field.min_value is not none %}min="{{ field.min_value }}"{% endif %}
                {% if field.max_value is not none %}max="{{ field.max_value }}"{% endif %}
                {% if is_required %}required{% endif %}>
-        {% if field.field_type == 'email' %}
-          <span class="icon is-small is-left">
-            <i class="fas fa-envelope"></i>
-          </span>
-        {% endif %}
       {% endif %}
+      {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
     </div>
-    {% if field.help_text and field.field_type != 'checkbox' %}<p class="help">{{ field.help_text }}</p>{% endif %}
-  </div>
+  {% endif %}
 {% endmacro %}

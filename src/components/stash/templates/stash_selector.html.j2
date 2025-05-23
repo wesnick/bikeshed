@@ -1,74 +1,58 @@
 <div class="stash-selector" id="stash-selector-{{ entity_id }}">
-  <div class="field">
-    <label class="label">Stashes</label>
-    <div class="control">
-      <div class="dropdown" id="stash-dropdown">
-        <div class="dropdown-trigger">
-          <button class="button"
-                  aria-haspopup="true"
-                  aria-controls="dropdown-menu"
-                  hx-get="/stashes/components/entity-stashes?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
-                  hx-target="#entity-stashes-container">
-            <span>Add Stashes</span>
-            <span class="icon is-small">
-              <i class="fas fa-angle-down" aria-hidden="true"></i>
-            </span>
-          </button>
-        </div>
-        <div class="dropdown-menu" id="dropdown-menu" role="menu">
-          <div class="dropdown-content">
-            {% for stash in stashes %}
-              <a class="dropdown-item"
-                 hx-post="/stashes/entity"
-                 hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "stash_id": "{{ stash.id }}"}'
-                 hx-target="#entity-stashes-container"
-                 hx-swap="innerHTML">{{ stash.name }}</a>
-            {% endfor %}
-            <hr class="dropdown-divider">
-            <div class="dropdown-item">
-              <button class="button is-small is-fullwidth"
-                      hx-get="/stashes/components/create-stash-form?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
-                      hx-target="#stash-form-container">Create New Stash</button>
-            </div>
+  <div class="mb-2"> {# Changed from field to mb-2 for tighter spacing if desired #}
+    <label class="form-label small">Stashes</label> {# Made label small #}
+    <div class="dropdown" id="stash-dropdown-{{ entity_id }}"> {# Unique ID for dropdown #}
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100" type="button" 
+              id="stashDropdownButton-{{ entity_id }}" 
+              data-bs-toggle="dropdown" aria-expanded="false"
+              hx-get="/stashes/components/entity-stashes?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
+              hx-target="#entity-stashes-container-{{ entity_id }}">
+        Add Stashes <i class="fas fa-angle-down ms-1"></i>
+      </button>
+      <ul class="dropdown-menu w-100" aria-labelledby="stashDropdownButton-{{ entity_id }}">
+        {% for stash in stashes %}
+          <li>
+            <a class="dropdown-item" href="#"
+               hx-post="/stashes/entity"
+               hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "stash_id": "{{ stash.id }}"}'
+               hx-target="#entity-stashes-container-{{ entity_id }}"
+               hx-swap="innerHTML">{{ stash.name }}</a>
+          </li>
+        {% endfor %}
+        {% if stashes %}<li><hr class="dropdown-divider"></li>{% endif %}
+        <li>
+          <div class="p-2">
+            <button class="btn btn-sm btn-primary w-100"
+                    hx-get="/stashes/components/create-stash-form?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
+                    hx-target="#stash-form-container-{{ entity_id }}">Create New Stash</button>
           </div>
-        </div>
-      </div>
+        </li>
+      </ul>
     </div>
   </div>
-  <div id="entity-stashes-container">
+  <div id="entity-stashes-container-{{ entity_id }}">
+    {# This content is loaded by HTMX from entity_stashes.html.j2, which was already converted. #}
+    {# If there's initial content here, it needs to match the converted entity_stashes.html.j2 format. #}
     {% if entity_stashes %}
       <div class="stashes">
         {% for stash in entity_stashes %}
-          <div class="box p-3 mb-2">
-            <div class="is-flex is-justify-content-space-between is-align-items-center">
-              <span class="has-text-weight-bold">{{ stash.name }}</span>
-              <button class="delete"
+          <div class="border rounded p-2 mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fw-bold small">{{ stash.name }}</span>
+              <button type="button" class="btn-close btn-sm"
+                      aria-label="Remove stash"
                       hx-delete="/stashes/entity"
                       hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "stash_id": "{{ stash.id }}"}'
-                      hx-target="#entity-stashes-container"></button>
+                      hx-target="#entity-stashes-container-{{ entity_id }}"></button>
             </div>
-            <p class="is-size-7">{{ stash.items|length }} items</p>
+            <p class="small text-muted mb-0">{{ stash.items|length }} items</p>
           </div>
         {% endfor %}
       </div>
     {% else %}
-      <p class="help">No stashes assigned</p>
+      <p class="text-muted small">No stashes assigned</p>
     {% endif %}
   </div>
-  <div id="stash-form-container"></div>
+  <div id="stash-form-container-{{ entity_id }}"></div>
 </div>
-<script>
-  // Toggle dropdown when button is clicked
-  document.querySelector('#stash-dropdown .dropdown-trigger button').addEventListener('click', function(e) {
-    e.preventDefault();
-    document.querySelector('#stash-dropdown').classList.toggle('is-active');
-  });
-  
-  // Close dropdown when clicking outside
-  document.addEventListener('click', function(e) {
-    const dropdown = document.querySelector('#stash-dropdown');
-    if (!dropdown.contains(e.target)) {
-      dropdown.classList.remove('is-active');
-    }
-  });
-</script>
+{# Removed Bulma-specific JavaScript for dropdown toggling #}

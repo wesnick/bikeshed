@@ -1,84 +1,80 @@
 <div class="dropdown" id="root-selector-dropdown">
-  <div class="dropdown-trigger">
-    <button class="button"
-            aria-haspopup="true"
-            aria-controls="root-dropdown-menu">
-      <span>
-        {% if selected_roots %}
-          {% if selected_roots|length == 1 %}
-            {% set selected_uri = selected_roots[0] %}
-            {# Find the root object corresponding to the selected URI #}
-            {% set selected_root_obj = roots | selectattr('uri', 'equalto', selected_uri) | first %}
-            <span class="icon"><i class="fas fa-folder-open"></i></span>
-            <span>{{ selected_uri }}</span>
-          {% else %}
-            <span class="icon"><i class="fas fa-folder-open"></i></span>
-            <span>{{ selected_roots|length }} Roots Selected</span>
-          {% endif %}
-        {% else %}
-          <span class="icon"><i class="fas fa-folder"></i></span>
-          <span>Select Root</span>
-        {% endif %}
-      </span>
-      <span class="icon ml-2"><i class="fas fa-chevron-down"></i></span>
-    </button>
-  </div>
-  <div class="dropdown-menu" id="root-dropdown-menu" role="menu">
-    <div class="dropdown-content">
-      {% if roots %}
-        {% for root in roots %}
-          {% set is_selected = root.uri in selected_roots %}
-          <div class="dropdown-item grid is-flex is-align-items-center">
-            {# Use flex for alignment #}
-            {# Selection/Deselection Area #}
-            <div class="is-flex-grow-1">
-              {# Allow text to take available space #}
-              <a hx-vals='{"root_uri": "{{ root.uri }}"}'
-                hx-post="/root/select"
-                hx-ext="form-json"
-                hx-target="closest .dropdown"
-                class="is-flex is-align-items-center" {# Ensure icon and text align #}
-                style="text-decoration: none; color: inherit;"> {# Basic styling for link #}
-                {% if is_selected %}
-                  <span class="icon has-text-primary mr-2"><i class="fas fa-check"></i></span>
-                {% else %}
-                  <span class="icon mr-2" style="visibility: hidden;"><i class="fas fa-check"></i></span> {# Placeholder for alignment #}
-                {% endif %}
-                <span>{{ root.uri }}</span>
-              </a>
-            </div>
-            {# Action Icons Area #}
-            <div class="is-flex is-align-items-center ml-2">
-              {# Group icons #}
+  <button class="btn btn-outline-secondary dropdown-toggle"
+          type="button"
+          id="rootSelectorDropdownButton"
+          data-bs-toggle="dropdown"
+          aria-expanded="false">
+    {% if selected_roots %}
+      {% if selected_roots|length == 1 %}
+        {% set selected_uri = selected_roots[0] %}
+        {# Find the root object corresponding to the selected URI #}
+        {% set selected_root_obj = roots | selectattr('uri', 'equalto', selected_uri) | first %}
+        <span class="icon"><i class="fas fa-folder-open"></i></span>
+        <span>{{ selected_uri }}</span>
+      {% else %}
+        <span class="icon"><i class="fas fa-folder-open"></i></span>
+        <span>{{ selected_roots|length }} Roots Selected</span>
+      {% endif %}
+    {% else %}
+      <span class="icon"><i class="fas fa-folder"></i></span>
+      <span>Select Root</span>
+    {% endif %}
+  </button>
+  <ul class="dropdown-menu" id="root-dropdown-menu" aria-labelledby="rootSelectorDropdownButton">
+    {% if roots %}
+      {% for root in roots %}
+        {% set is_selected = root.uri in selected_roots %}
+        <li>
+          <div class="dropdown-item d-flex align-items-center justify-content-between">
+            <a href="#"
+               hx-vals='{"root_uri": "{{ root.uri }}"}'
+               hx-post="/root/select"
+               hx-ext="form-json"
+               hx-target="#root-selector-dropdown" {# Target the dropdown itself to re-render #}
+               class="text-decoration-none text-dark flex-grow-1 d-flex align-items-center">
+              {% if is_selected %}
+                <span class="icon text-primary me-2"><i class="fas fa-check"></i></span>
+              {% else %}
+                <span class="icon me-2" style="visibility: hidden;"><i class="fas fa-check"></i></span> {# Placeholder for alignment #}
+              {% endif %}
+              <span>{{ root.uri }}</span>
+            </a>
+            <div class="d-flex align-items-center ms-2">
               <a hx-get="/root?root_uri={{ root.uri | quote_plus }}"
                  hx-target=".dashboard"
                  hx-push-url="true"
-                 class="icon-link mx-1"> {# Add spacing #}
-                <span class="icon has-text-info"><i class="fas fa-eye"></i></span>
+                 class="text-decoration-none mx-1"
+                 title="View Root">
+                <span class="icon text-info"><i class="fas fa-eye"></i></span>
               </a>
               {% if is_selected %}
-                <a hx-vals='{"root_uri": "{{ root.uri }}"}'
+                <a href="#"
+                   hx-vals='{"root_uri": "{{ root.uri }}"}'
                    hx-post="/root/deselect"
                    hx-ext="form-json"
-                   hx-target="closest .dropdown"
-                   class="icon-link mx-1"> {# Add spacing #}
-                  <span class="icon has-text-danger"><i class="fas fa-times"></i></span>
+                   hx-target="#root-selector-dropdown" {# Target the dropdown itself to re-render #}
+                   class="text-decoration-none mx-1"
+                   title="Deselect Root">
+                  <span class="icon text-danger"><i class="fas fa-times"></i></span>
                 </a>
               {% endif %}
             </div>
           </div>
-        {% endfor %}
-      {% else %}
-        <div class="dropdown-item">No roots available</div>
-      {% endif %}
-      <hr class="dropdown-divider" />
-      <a class="dropdown-item"
+        </li>
+      {% endfor %}
+    {% else %}
+      <li><span class="dropdown-item-text">No roots available</span></li>
+    {% endif %}
+    {% if roots %}<li><hr class="dropdown-divider"></li>{% endif %}
+    <li>
+      <a class="dropdown-item d-flex align-items-center"
+         href="#"
          hx-get="/root/manage"
          hx-target=".dashboard"
          hx-push-url="true">
-        <span class="icon has-text-success"><i class="fas fa-plus"></i></span>
+        <span class="icon text-success me-2"><i class="fas fa-plus"></i></span>
         <span>Manage Roots...</span>
       </a>
-    </div>
-  </div>
+    </li>
+  </ul>
 </div>

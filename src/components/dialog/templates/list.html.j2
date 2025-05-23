@@ -1,38 +1,40 @@
 <!-- Dialogs List -->
-<div class="container">
-  <h1 class="title">Dialogs</h1>
-  <div class="box">
-    <h2 class="subtitle">Existing Dialogs</h2>
-    {% if dialogs %}
-      <div class="table-container">
-        <table class="table is-fullwidth">
-          <thead>
-            <tr>
-              <th>Summary</th>
-              <th>Goal</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for dialog in dialogs %}
+<div class="container mt-3">
+  <h1 class="mb-3">Dialogs</h1>
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h5 card-title mb-3">Existing Dialogs</h2>
+      {% if dialogs %}
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
               <tr>
-                <td>{{ dialog.summary or "Untitled Dialog" }}</td>
-                <td>{{ dialog.goal or "" }}</td>
-                <td>{{ dialog.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
-                <td>
-                  <a class="button is-small is-info"
-                     hx-get="/dialog/{{ dialog.id }}"
-                     hx-target=".dashboard"
-                     hx-push-url="true">View</a>
-                </td>
+                <th>Summary</th>
+                <th>Goal</th>
+                <th>Created</th>
+                <th>Actions</th>
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <p>No dialogs found. Create one to get started!</p>
-    {% endif %}
+            </thead>
+            <tbody>
+              {% for dialog in dialogs %}
+                <tr>
+                  <td>{{ dialog.summary or "Untitled Dialog" }}</td>
+                  <td>{{ dialog.goal or "" }}</td>
+                  <td>{{ dialog.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                  <td>
+                    <a class="btn btn-sm btn-info"
+                       hx-get="/dialog/{{ dialog.id }}"
+                       hx-target=".dashboard"
+                       hx-push-url="true">View</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="alert alert-info">No dialogs found. Create one to get started!</div>
+      {% endif %}
+    </div>
   </div>
 </div>

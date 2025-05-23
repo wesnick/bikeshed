@@ -1,49 +1,57 @@
-<p class="menu-label mt-6">Registry Items</p>
-<ul class="menu-list">
+<h6 class="text-muted text-uppercase small mt-3 mb-2">Registry Items</h6>
+<ul class="list-unstyled ps-0">
   <li>
-    <a hx-get="/registry/quickies" hx-target=".dashboard" hx-push-url="true">
-      Quickies <span class="tag is-info">{{ quickie_templates|length }}</span>
+    <a href="#" class="d-flex justify-content-between align-items-center text-decoration-none py-1"
+       hx-get="/registry/quickies" hx-target=".dashboard" hx-push-url="true">
+      <span>Quickies</span> <span class="badge bg-info rounded-pill">{{ quickie_templates|length }}</span>
     </a>
   </li>
   <li>
-    <a hx-get="/registry/prompts" hx-target=".dashboard" hx-push-url="true">
-      Prompts <span class="tag is-info">{{ prompts|length }}</span>
+    <a href="#" class="d-flex justify-content-between align-items-center text-decoration-none py-1"
+       hx-get="/registry/prompts" hx-target=".dashboard" hx-push-url="true">
+      <span>Prompts</span> <span class="badge bg-info rounded-pill">{{ prompts|length }}</span>
     </a>
   </li>
   <li>
-    <a hx-get="/registry/tools" hx-target=".dashboard" hx-push-url="true">
-      Tools <span class="tag is-info">{{ tools|length }}</span>
+    <a href="#" class="d-flex justify-content-between align-items-center text-decoration-none py-1"
+       hx-get="/registry/tools" hx-target=".dashboard" hx-push-url="true">
+      <span>Tools</span> <span class="badge bg-info rounded-pill">{{ tools|length }}</span>
     </a>
   </li>
   <li>
-    <a hx-get="/registry/resources"
+    <a href="#" class="d-flex justify-content-between align-items-center text-decoration-none py-1"
+       hx-get="/registry/resources"
        hx-target=".dashboard"
        hx-push-url="true">
-      Resources <span class="tag is-info">{{ resources|length }}</span>
+      <span>Resources</span> <span class="badge bg-info rounded-pill">{{ resources|length }}</span>
     </a>
   </li>
   <li>
-    <a hx-get="/registry/resource-templates"
+    <a href="#" class="d-flex justify-content-between align-items-center text-decoration-none py-1"
+       hx-get="/registry/resource-templates"
        hx-target=".dashboard"
        hx-push-url="true">
-      Resource Templates <span class="tag is-info">{{ resource_templates|length }}</span>
+      <span>Resource Templates</span> <span class="badge bg-info rounded-pill">{{ resource_templates|length }}</span>
     </a>
   </li>
   <li>
-    <a hx-get="/registry/schemas" hx-target=".dashboard" hx-push-url="true">
-      Schemas <span class="tag is-info">{{ schemas|length }}</span>
+    <a href="#" class="d-flex justify-content-between align-items-center text-decoration-none py-1"
+       hx-get="/registry/schemas" hx-target=".dashboard" hx-push-url="true">
+      <span>Schemas</span> <span class="badge bg-info rounded-pill">{{ schemas|length }}</span>
     </a>
   </li>
   <li>
-    <a hx-get="/registry/models" hx-target=".dashboard" hx-push-url="true">
-      LLM Models <span class="tag is-info">{{ models|length }}</span>
+    <a href="#" class="d-flex justify-content-between align-items-center text-decoration-none py-1"
+       hx-get="/registry/models" hx-target=".dashboard" hx-push-url="true">
+      <span>LLM Models</span> <span class="badge bg-info rounded-pill">{{ models|length }}</span>
     </a>
   </li>
   <li>
-    <a hx-get="/registry/mcp-servers"
+    <a href="#" class="d-flex justify-content-between align-items-center text-decoration-none py-1"
+       hx-get="/registry/mcp-servers"
        hx-target=".dashboard"
        hx-push-url="true">
-      MCP Servers <span class="tag is-info">{{ mcp_servers|length }}</span>
+      <span>MCP Servers</span> <span class="badge bg-info rounded-pill">{{ mcp_servers|length }}</span>
     </a>
   </li>
 </ul>

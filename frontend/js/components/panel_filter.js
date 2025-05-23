@@ -8,66 +8,63 @@
  */
 export function initializePanelFilters(elements) {
   elements.forEach(panel => {
-    const tabs = panel.querySelectorAll('.panel-tabs a');
-    const blocks = panel.querySelectorAll('.panel-block[data-category]'); // Target only blocks with data-category
-    const searchInput = panel.querySelector('#model-search-input'); // Get the search input
+    // Updated selectors for Bootstrap structure (e.g. models_list.html.j2)
+    // Tabs are now .nav-link items within a .nav-pills container (often in a .btn-group)
+    const tabs = panel.querySelectorAll('.nav-pills .nav-link');
+    // Blocks are now .list-group-item items
+    const blocks = panel.querySelectorAll('.list-group-item[data-category]');
+    const searchInput = panel.querySelector('#model-search-input');
 
-    // Skip if no tabs or blocks found, or if search input is missing for this specific panel type
     if (!tabs.length || !blocks.length) return;
 
-    // Function to apply filters (both category and search)
     const applyFilters = () => {
       const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-      const activeTab = panel.querySelector('.panel-tabs a.is-active');
-      // Default to null (show all) if no active tab or if 'data-all' is present
+      // Active tab now has .active class in Bootstrap
+      const activeTab = panel.querySelector('.nav-pills .nav-link.active');
       const targetCategory = (!activeTab || activeTab.hasAttribute('data-all')) ? null : activeTab.getAttribute('data-target');
 
       blocks.forEach(block => {
         const categories = block.getAttribute('data-category')?.split(' ') || [];
-        const modelNameElement = block.querySelector('strong'); // Assuming model name is in <strong>
+        const modelNameElement = block.querySelector('strong'); // Still expecting <strong> for name
         const modelName = modelNameElement ? modelNameElement.textContent.toLowerCase() : '';
-        const modelIdElement = block.querySelector('.is-size-7'); // Assuming model ID is in .is-size-7
+        // Model ID is now in a .small.text-muted element
+        const modelIdElement = block.querySelector('.small.text-muted'); 
         const modelId = modelIdElement ? modelIdElement.textContent.toLowerCase() : '';
 
-
         const categoryMatch = !targetCategory || categories.includes(targetCategory);
-        // Match if search term is empty OR if model name OR model id includes the term
         const searchMatch = !searchTerm || modelName.includes(searchTerm) || modelId.includes(searchTerm);
 
         if (categoryMatch && searchMatch) {
-          block.classList.remove('is-hidden');
+          block.classList.remove('d-none'); // Use Bootstrap's 'd-none' for hidden
         } else {
-          block.classList.add('is-hidden');
+          block.classList.add('d-none'); // Use Bootstrap's 'd-none' for hidden
         }
       });
     };
 
-
-    // Set up click handlers for tabs
     tabs.forEach(tab => {
       tab.addEventListener('click', (e) => {
         e.preventDefault();
+        // Check if the clicked tab is already active to prevent unnecessary processing
+        if (tab.classList.contains('active')) {
+            return;
+        }
 
-        // Update active tab
-        tabs.forEach(t => t.classList.remove('is-active'));
-        tab.classList.add('is-active');
+        tabs.forEach(t => t.classList.remove('active')); // Use 'active' for Bootstrap
+        tab.classList.add('active');
 
-        // Apply filters based on the new active tab and current search term
         applyFilters();
       });
     });
 
-    // Add event listener for the search input
     if (searchInput) {
       searchInput.addEventListener('input', () => {
-        console.log('updating')
-        applyFilters(); // Re-apply filters when search input changes
+        // console.log('updating search') // Kept console.log for debugging if needed, but commented out
+        applyFilters();
       });
     }
 
-    // Initialize filters on load
     applyFilters();
-
   });
 }
 

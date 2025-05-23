@@ -1,18 +1,19 @@
 {% if stashes %}
   <div class="stashes">
     {% for stash in stashes %}
-      <div class="box p-3 mb-2">
-        <div class="is-flex is-justify-content-space-between is-align-items-center">
-          <span class="has-text-weight-bold">{{ stash.name }}</span>
-          <button class="delete"
+      <div class="border rounded p-2 mb-2">
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="fw-bold small">{{ stash.name }}</span> {# Made text small to fit better with a small close button #}
+          <button type="button" class="btn-close btn-sm" 
+                  aria-label="Remove stash"
                   hx-delete="/stashes/entity"
                   hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "stash_id": "{{ stash.id }}"}'
                   hx-target="#entity-stashes-container"></button>
         </div>
-        <p class="is-size-7">{{ stash.items|length }} items</p>
+        <p class="small text-muted mb-0">{{ stash.items|length }} items</p> {# Added mb-0 and text-muted #}
       </div>
     {% endfor %}
   </div>
 {% else %}
-  <p class="help">No stashes assigned</p>
+  <p class="text-muted small">No stashes assigned</p> {# Made it small as well #}
 {% endif %}

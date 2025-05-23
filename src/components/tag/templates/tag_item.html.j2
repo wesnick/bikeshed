@@ -1,32 +1,33 @@
 {# Represents a single tag item in the tree #}
 <li>
-  <div class="tag-item is-flex is-align-items-center"
+  <div class="tag-item d-flex align-items-center py-1"
        id="tag-{{ tag.path | replace('.', '-') }}">
     {# Expand/Collapse Icon - Show only if it might have children (heuristic or DB check needed) #}
     {# For simplicity, always show toggle initially, load children on click #}
-    <span class="icon is-small tag-toggle mr-1"
-          style="cursor: pointer"
+    <span class="tag-toggle me-1 text-muted" {# Removed icon and is-small, rely on FA sizing #}
+          style="cursor: pointer; width: 1em;" {# Ensure consistent width for alignment #}
           hx-get="/tags/tree?parent_path={{ tag.path }}"
           hx-target="#children-{{ tag.path | replace('.', '-') }}"
           hx-swap="outerHTML"
           data-path="{{ tag.path }}">
-      <i class="fas fa-chevron-right"></i> {# Changes to fa-chevron-down via JS/CSS potentially #}
+      <i class="fas fa-chevron-right fa-xs"></i> {# Changes to fa-chevron-down via JS/CSS potentially, fa-xs for small icon #}
     </span>
     {# Tag Name - Click to view/edit details #}
-    <a hx-get="/tags/{{ tag.id }}/edit" {# Assuming edit route exists later #}
+    <a href="#" class="text-decoration-none" 
+      hx-get="/tags/{{ tag.id }}/edit" {# Assuming edit route exists later #}
       hx-target="#tag-details"
-    title="{{ tag.description or 'No description' }}">{{ tag.name }} ({{ tag.id }})</a>
+      title="{{ tag.description or 'No description' }}">{{ tag.name }} <small class="text-muted">({{ tag.id }})</small></a>
     {# Action to add a child tag #}
-    <button class="button is-small is-ghost ml-2"
+    <button class="btn btn-link btn-sm p-0 ms-2" {# Changed to btn-link for less visual clutter, p-0 for tight fit #}
             hx-get="/tags/create?parent_path={{ tag.path }}"
             hx-target="#tag-details"
             hx-swap="innerHTML"
             title="Add sub-tag">
-      <span class="icon is-small"><i class="fas fa-plus"></i></span>
+      <i class="fas fa-plus"></i>
     </button>
   </div>
   {# Container for children, initially empty or loaded via hx-get #}
-  <div id="children-{{ tag.path | replace('.', '-') }}" class="ml-4">
+  <div id="children-{{ tag.path | replace('.', '-') }}" class="ps-4"> {# Changed ml-4 to ps-4 for Bootstrap padding #}
     {# Children will be loaded here by the toggle span #}
   </div>
 </li>

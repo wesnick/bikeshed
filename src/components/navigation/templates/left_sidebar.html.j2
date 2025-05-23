@@ -1,95 +1,88 @@
 <!-- Left Sidebar -->
-<div>
-  <aside class="menu">
-    <h3 class="menu-label">Navigation</h3>
-    {% if dialogs %}
-      <details>
-        <summary class="is-size-5">
-          Dialogs
-          [<a hx-get="/dialog" hx-target=".dashboard" hx-push-url="true">view all</a>]
-        </summary>
-        <ul class="menu-list">
-          {% for dialog in dialogs %}
-            <li>
-              <a hx-get="/dialog/{{ dialog.id }}"
-                 hx-target=".dashboard"
-                 hx-push-url="true">{{ dialog.description }}</a>
-            </li>
-          {% endfor %}
-        </ul>
-      </details>
-    {% endif %}
-    {% if dialog_templates %}
-      <details>
-        <summary class="is-size-5">Templates</summary>
-        <ul class="menu-list">
-          {% for template_name, template in dialog_templates.items() %}
-            <li>
-              <a hx-get="/dialog/template-creator/{{ template_name }}"
-                 hx-target=".dashboard"
-                 hx-push-url="true">{{ template.name }}</a>
-            </li>
-          {% endfor %}
-        </ul>
-      </details>
-    {% endif %}
-    <!-- Blobs Section -->
-    <details>
-      <summary class="is-size-5">
-        Files
-        [<a hx-get="/blobs" hx-target=".dashboard" hx-push-url="true">view all</a>]
+<div class="p-3">
+  <h6 class="text-muted text-uppercase small mb-2">Navigation</h6>
+  {% if dialogs %}
+    <details class="mb-2" open>
+      <summary class="fs-6 fw-semibold" style="cursor: pointer;">
+        Dialogs
+        <small>[<a href="#" class="text-decoration-none" hx-get="/dialog" hx-target=".dashboard" hx-push-url="true">view all</a>]</small>
       </summary>
-      <ul class="menu-list">
-        <li>
-          <a hx-get="/blobs" hx-target=".dashboard" hx-push-url="true">
-            <span class="icon"><i class="fas fa-file"></i></span>
-            Manage Files
-          </a>
-        </li>
-        <li>
-          <a hx-get="/blobs/upload" hx-target=".dashboard" hx-push-url="true">
-            <span class="icon"><i class="fas fa-upload"></i></span>
-            Upload Files
-          </a>
-        </li>
+      <ul class="list-unstyled ps-3">
+        {% for dialog in dialogs %}
+          <li>
+            <a href="#" class="text-decoration-none d-block py-1" hx-get="/dialog/{{ dialog.id }}"
+               hx-target=".dashboard"
+               hx-push-url="true">{{ dialog.description }}</a>
+          </li>
+        {% endfor %}
       </ul>
     </details>
-    <!-- Stashes Section -->
-    <details>
-      <summary class="is-size-5">
-        Stashes
-        [<a hx-get="/stashes" hx-target=".dashboard" hx-push-url="true">manage</a>]
-      </summary>
-      <ul class="menu-list">
-        <li>
-          <a hx-get="/stashes" hx-target=".dashboard" hx-push-url="true">
-            <span class="icon"><i class="fas fa-bookmark"></i></span>
-            Manage Stashes
-          </a>
-        </li>
-        <li>
-          <a hx-get="/stashes/create" hx-target=".dashboard" hx-push-url="true">
-            <span class="icon"><i class="fas fa-plus"></i></span>
-            Create Stash
-          </a>
-        </li>
+  {% endif %}
+  {% if dialog_templates %}
+    <details class="mb-2" open>
+      <summary class="fs-6 fw-semibold" style="cursor: pointer;">Templates</summary>
+      <ul class="list-unstyled ps-3">
+        {% for template_name, template in dialog_templates.items() %}
+          <li>
+            <a href="#" class="text-decoration-none d-block py-1" hx-get="/dialog/template-creator/{{ template_name }}"
+               hx-target=".dashboard"
+               hx-push-url="true">{{ template.name }}</a>
+          </li>
+        {% endfor %}
       </ul>
     </details>
-    <!-- Tags Section -->
-    <details>
-      <summary class="is-size-5">
-        Tags
-        [<a hx-get="/tags" hx-target=".dashboard" hx-push-url="true">manage</a>]
-      </summary>
-      <ul class="menu-list">
-        <li>
-          <a hx-get="/tags" hx-target=".dashboard" hx-push-url="true">
-            <span class="icon"><i class="fas fa-tags"></i></span>
-            Manage Tags
-          </a>
-        </li>
-        {# Add more tag-related links here if needed #}
-      </ul>
-    </details>
-  </aside>
+  {% endif %}
+  <!-- Blobs Section -->
+  <details class="mb-2" open>
+    <summary class="fs-6 fw-semibold" style="cursor: pointer;">
+      Files
+      <small>[<a href="#" class="text-decoration-none" hx-get="/blobs" hx-target=".dashboard" hx-push-url="true">view all</a>]</small>
+    </summary>
+    <ul class="list-unstyled ps-3">
+      <li>
+        <a href="#" class="text-decoration-none d-block py-1" hx-get="/blobs" hx-target=".dashboard" hx-push-url="true">
+          <i class="fas fa-file me-2"></i>Manage Files
+        </a>
+      </li>
+      <li>
+        <a href="#" class="text-decoration-none d-block py-1" hx-get="/blobs/upload" hx-target=".dashboard" hx-push-url="true">
+          <i class="fas fa-upload me-2"></i>Upload Files
+        </a>
+      </li>
+    </ul>
+  </details>
+  <!-- Stashes Section -->
+  <details class="mb-2" open>
+    <summary class="fs-6 fw-semibold" style="cursor: pointer;">
+      Stashes
+      <small>[<a href="#" class="text-decoration-none" hx-get="/stashes" hx-target=".dashboard" hx-push-url="true">manage</a>]</small>
+    </summary>
+    <ul class="list-unstyled ps-3">
+      <li>
+        <a href="#" class="text-decoration-none d-block py-1" hx-get="/stashes" hx-target=".dashboard" hx-push-url="true">
+          <i class="fas fa-bookmark me-2"></i>Manage Stashes
+        </a>
+      </li>
+      <li>
+        <a href="#" class="text-decoration-none d-block py-1" hx-get="/stashes/create" hx-target=".dashboard" hx-push-url="true">
+          <i class="fas fa-plus me-2"></i>Create Stash
+        </a>
+      </li>
+    </ul>
+  </details>
+  <!-- Tags Section -->
+  <details class="mb-2" open>
+    <summary class="fs-6 fw-semibold" style="cursor: pointer;">
+      Tags
+      <small>[<a href="#" class="text-decoration-none" hx-get="/tags" hx-target=".dashboard" hx-push-url="true">manage</a>]</small>
+    </summary>
+    <ul class="list-unstyled ps-3">
+      <li>
+        <a href="#" class="text-decoration-none d-block py-1" hx-get="/tags" hx-target=".dashboard" hx-push-url="true">
+          <i class="fas fa-tags me-2"></i>Manage Tags
+        </a>
+      </li>
+      {# Add more tag-related links here if needed #}
+    </ul>
+  </details>
 </div>

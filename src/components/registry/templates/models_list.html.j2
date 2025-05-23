@@ -1,86 +1,83 @@
-<div class="box">
-  <h2 class="title is-4">LLM Models</h2>
-  {% if models %}
-    <form id="models-form" hx-post="/registry/models/save" hx-ext="form-json">
-      <nav class="panel">
-        <p class="panel-heading">Models</p>
-        <div class="panel-block">
-          <p class="control has-icons-left">
-            <input class="input"
-                   id="model-search-input"
-                   type="text"
-                   placeholder="Search models">
-            <span class="icon is-left">
-              <i class="fas fa-search" aria-hidden="true"></i>
-            </span>
-          </p>
-        </div>
-        <p class="panel-tabs">
-          <a class="is-active" data-all>All</a>
-          <a data-target="selected">Selected</a>
-          <a data-target="chat">Chat</a>
-          <a data-target="vision">Vision</a>
-          <a data-target="tools">Tools</a>
-          <a data-target="embedding">Embedding</a>
-        </p>
-        {% for id, model in models.items() %}
-          <div class="panel-block {% if not model.upstream_present %} has-background-danger-light{% elif model.overrides %}has-background-warning-light{% endif %}"
-               data-category="{% if model.selected %} selected{% endif %}{% if model.capabilities %} {{ model.model_filterable_capabilities | join(" ") }}{% endif %}">
-            <div class="columns is-mobile is-gapless is-multiline is-fullwidth">
-              <div class="column is-1">
-                <label class="checkbox">
-                  <input type="checkbox"
-                         name="selected_models[{{ model.id }}]"
-                         {% if model.selected %}checked{% endif %}>
-                </label>
-              </div>
-              <div class="column is-3">
-                <strong>{{ model.name }}</strong>
-                <div class="is-size-7">{{ model.id }}</div>
-              </div>
-              <div class="column is-2">
-                <span class="tag">{{ model.provider }}</span>
-              </div>
-              <div class="column is-2 {% if 'context_length' in model.overrides %}has-text-weight-bold{% endif %}">
-                {{ model.context_length | format_text_length if model.context_length is not none else 'N/A' }}
-              </div>
-              <div class="column is-2">
-                <div class="{% if 'input_cost' in model.overrides %} has-text-weight-bold{% endif %}">
-                  In: {{ model.input_cost | format_cost_per_million if model.input_cost is not none else 'N/A' }}
-                </div>
-                <div class="{% if 'output_cost' in model.overrides %} has-text-weight-bold{% endif %}">
-                  Out: {{ model.output_cost | format_cost_per_million if model.output_cost is not none else 'N/A' }}
-                </div>
-              </div>
-              <div class="column is-2 {% if 'capabilities' in model.overrides %}has-text-weight-bold{% endif %}">
-                {% if model.capabilities %}
-                  {% for cap in model.capabilities %}<span class="tag is-info is-light is-small">{{ cap }}</span>{% endfor %}
-                {% else %}
-                  N/A
-                {% endif %}
-              </div>
+<div class="card">
+  <div class="card-header">
+    <h2 class="h4 mb-0">LLM Models</h2>
+  </div>
+  <div class="card-body">
+    {% if models %}
+      <form id="models-form" hx-post="/registry/models/save" hx-ext="form-json">
+        <ul class="list-group">
+          <li class="list-group-item">
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-search" aria-hidden="true"></i></span>
+              <input class="form-control"
+                     id="model-search-input"
+                     type="text"
+                     placeholder="Search models">
             </div>
-          </div>
-        {% endfor %}
-      </nav>
-      <div class="field mt-4">
-        <div class="control">
-          <button type="submit" class="button is-primary">Save Selected Models</button>
+          </li>
+          <li class="list-group-item p-2">
+            <div class="nav nav-pills nav-fill btn-group btn-group-sm w-100" role="group">
+              <a class="nav-link btn btn-outline-secondary active" data-all href="#">All</a>
+              <a class="nav-link btn btn-outline-secondary" data-target="selected" href="#">Selected</a>
+              <a class="nav-link btn btn-outline-secondary" data-target="chat" href="#">Chat</a>
+              <a class="nav-link btn btn-outline-secondary" data-target="vision" href="#">Vision</a>
+              <a class="nav-link btn btn-outline-secondary" data-target="tools" href="#">Tools</a>
+              <a class="nav-link btn btn-outline-secondary" data-target="embedding" href="#">Embedding</a>
+            </div>
+          </li>
+          {% for id, model in models.items() %}
+            <li class="list-group-item list-group-item-action {% if not model.upstream_present %} list-group-item-danger{% elif model.overrides %}list-group-item-warning{% endif %}"
+                 data-category="{% if model.selected %} selected{% endif %}{% if model.capabilities %} {{ model.model_filterable_capabilities | join(" ") }}{% endif %}">
+              <div class="row g-0 align-items-center">
+                <div class="col-1 d-flex justify-content-center">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox"
+                           value="" {# Ensure value is present for form submission if needed, or handled by name only #}
+                           id="model-select-{{ model.id }}"
+                           name="selected_models[{{ model.id }}]"
+                           {% if model.selected %}checked{% endif %}>
+                  </div>
+                </div>
+                <div class="col-3">
+                  <strong>{{ model.name }}</strong>
+                  <div class="small text-muted">{{ model.id }}</div>
+                </div>
+                <div class="col-2">
+                  <span class="badge bg-secondary">{{ model.provider }}</span>
+                </div>
+                <div class="col-2 {% if 'context_length' in model.overrides %}fw-bold{% endif %}">
+                  <small>{{ model.context_length | format_text_length if model.context_length is not none else 'N/A' }}</small>
+                </div>
+                <div class="col-2 small">
+                  <div class="{% if 'input_cost' in model.overrides %}fw-bold{% endif %}">
+                    In: {{ model.input_cost | format_cost_per_million if model.input_cost is not none else 'N/A' }}
+                  </div>
+                  <div class="{% if 'output_cost' in model.overrides %}fw-bold{% endif %}">
+                    Out: {{ model.output_cost | format_cost_per_million if model.output_cost is not none else 'N/A' }}
+                  </div>
+                </div>
+                <div class="col-2 {% if 'capabilities' in model.overrides %}fw-bold{% endif %}">
+                  {% if model.capabilities %}
+                    {% for cap in model.capabilities %}<span class="badge bg-info-subtle text-info-emphasis small me-1">{{ cap }}</span>{% endfor %}
+                  {% else %}
+                    <small>N/A</small>
+                  {% endif %}
+                </div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="mt-4">
+          <button type="submit" class="btn btn-primary">Save Selected Models</button>
         </div>
-      </div>
-      <div class="mt-4">
-        <p>
-          <span class="tag is-danger">Red background</span> indicates models that are in your configuration but not available from upstream sources.
-        </p>
-        <p>
-          <span class="tag is-warning">Yellow background</span> indicates models with configuration values that override upstream defaults.
-        </p>
-        <p>
-          <span class="has-text-weight-bold">Bold fields</span> indicate specific values that have been overridden.
-        </p>
-      </div>
-    </form>
-  {% else %}
-    <div class="notification is-warning">No LLM models found in the registry.</div>
-  {% endif %}
+        <div class="mt-4 small">
+          <p><span class="badge bg-danger">Red background</span> indicates models that are in your configuration but not available from upstream sources.</p>
+          <p><span class="badge bg-warning text-dark">Yellow background</span> indicates models with configuration values that override upstream defaults.</p>
+          <p><span class="fw-bold">Bold fields</span> indicate specific values that have been overridden.</p>
+        </div>
+      </form>
+    {% else %}
+      <div class="alert alert-warning">No LLM models found in the registry.</div>
+    {% endif %}
+  </div>
 </div>
