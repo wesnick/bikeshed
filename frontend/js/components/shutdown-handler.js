@@ -32,9 +32,10 @@ export function shutdownHandler(event) {
       // connection was closed due to reception of message sse-close
       console.log('Server shutdown detected:');
 
-      const html_template = `<div class="notification is-primary">
-  The server is restarting. The page has to reload cuz SSE does not reconnect.
-</div>`
+      // Updated to use Bootstrap alert classes
+      const html_template = `<div class="alert alert-primary" role="alert">
+  The server is restarting. The page has to reload because SSE does not automatically reconnect.
+</div>`;
 
       const notificationArea = document.getElementById('notification-area');
       if (notificationArea) {

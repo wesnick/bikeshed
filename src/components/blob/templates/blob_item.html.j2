@@ -1,27 +1,27 @@
 <div class="card mb-3" id="blob-{{ blob.id }}">
-  <div class="card-content">
-    <div class="media">
-      <div class="media-left">
+  <div class="card-body">
+    <div class="d-flex align-items-start">
+      <div class="flex-shrink-0 me-3">
         <i class="{{ blob.name | file_icon }} fa-2x"></i>
       </div>
-      <div class="media-content">
-        <p class="title is-4">{{ blob.name }}</p>
-        <p class="subtitle is-6">{{ blob.content_type }}</p>
+      <div class="flex-grow-1">
+        <h5 class="card-title mb-1">{{ blob.name }}</h5>
+        <p class="card-subtitle text-muted fs-6">{{ blob.content_type }}</p>
       </div>
-      <div class="media-right">
-        <button class="button is-small is-danger"
+      <div class="flex-shrink-0 ms-2">
+        <button class="btn btn-sm btn-danger"
                 hx-delete="/blobs/{{ blob.id }}"
                 hx-target="#blob-{{ blob.id }}"
                 hx-swap="outerHTML">Delete</button>
       </div>
     </div>
-    <div class="content">
+    <div class="mt-2">
       <p>{{ blob.description }}</p>
       <p>
-        <small>{{ blob.byte_size|format_file_size }} • {{ blob.created_at.strftime("%Y-%m-%d %H:%M") }}</small>
+        <small class="text-muted">{{ blob.byte_size|format_file_size }} • {{ blob.created_at.strftime("%Y-%m-%d %H:%M") }}</small>
       </p>
       <a href="{{ blob.content_url }}"
-         class="button is-small is-primary"
+         class="btn btn-sm btn-primary mt-2"
          target="_blank">Download</a>
     </div>
   </div>

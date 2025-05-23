@@ -4,12 +4,12 @@
        hx-get="/dialog/{{ dialog_id }}/overview"
        hx-trigger="load, sse:dialog_update"></div>
 </div>
-<div class="box p-0 mb-3 flex-grow-1">
+<div class="card p-0 mb-3 flex-grow-1"> {# Changed box to card #}
   <div id="messages-container"
-       class="messages"
+       class="messages" {# Custom class, ensure it styles well with card or add card-body if needed #}
        hx-get="/dialog/{{ dialog_id }}/messages"
        hx-trigger="load, sse:dialog_update"></div>
 </div>
-<div class="dashboard-dock has-background-grey-lighter mt-auto"
+<div class="dashboard-dock bg-light mt-auto" {# Changed has-background-grey-lighter to bg-light #}
      hx-get="/dialog/{{ dialog_id }}/dialog-form"
      hx-trigger="load, sse:form_update from:body"></div>

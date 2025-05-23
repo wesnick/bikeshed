@@ -2,50 +2,50 @@
      id="notifications-dropdown"
      hx-get="/components/navbar-notifications"
      hx-trigger="refresh from:body">
-  <div class="dropdown-trigger">
-    <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
-      <span>Dialogs
-        {% if total_running > 0 %}<span class="tag is-rounded is-primary">{{ total_running }}</span>{% endif %}
-        {% if total_waiting > 0 %}<span class="tag is-rounded is-warning">{{ total_waiting }}</span>{% endif %}
-      </span>
-      <span class="icon ml-2"><i class="fas fa-bell"></i></span>
-    </button>
-  </div>
-  <div class="dropdown-menu" id="dropdown-menu" role="menu">
-    <div class="dropdown-content">
-      {% if total_running == 0 and total_waiting == 0 %}
-        <div class="dropdown-item">No active dialogs</div>
-      {% else %}
-        {% if total_running > 0 %}
-          <div class="dropdown-item">
-            <p class="has-text-weight-bold">Running</p>
-          </div>
-          {% for dialog in running_dialogs %}
+  <button class="nav-link dropdown-toggle"
+          type="button"
+          id="navbarNotificationsDropdownButton"
+          data-bs-toggle="dropdown"
+          aria-expanded="false">
+    <span>Dialogs
+      {% if total_running > 0 %}<span class="badge rounded-pill bg-primary ms-1">{{ total_running }}</span>{% endif %}
+      {% if total_waiting > 0 %}<span class="badge rounded-pill bg-warning ms-1">{{ total_waiting }}</span>{% endif %}
+    </span>
+    <span class="ms-1"><i class="fas fa-bell"></i></span>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end" id="dropdown-menu" aria-labelledby="navbarNotificationsDropdownButton">
+    {% if total_running == 0 and total_waiting == 0 %}
+      <li><span class="dropdown-item-text">No active dialogs</span></li>
+    {% else %}
+      {% if total_running > 0 %}
+        <li><h6 class="dropdown-header">Running</h6></li>
+        {% for dialog in running_dialogs %}
+          <li>
             <a hx-get="/dialog/{{ dialog.id }}"
                hx-target=".dashboard"
                hx-push-url="true"
-               class="dropdown-item">
-              {{ dialog.description or "Dialog " + dialog.id|string }}
-              <span class="tag is-primary is-light">{{ dialog.status }}</span>
+               class="dropdown-item d-flex justify-content-between align-items-center">
+              <span>{{ dialog.description or "Dialog " + dialog.id|string }}</span>
+              <span class="badge bg-primary-subtle text-primary-emphasis">{{ dialog.status }}</span>
             </a>
-          {% endfor %}
-        {% endif %}
-        {% if total_waiting > 0 %}
-          {% if total_running > 0 %}<hr class="dropdown-divider" />{% endif %}
-          <div class="dropdown-item">
-            <p class="has-text-weight-bold">Waiting for Input</p>
-          </div>
-          {% for dialog in waiting_dialogs %}
-            <a hx-get="/dialog/{{ dialog.id }}"
-               hx-target=".dashboard"
-               hx-push-url="true"
-               class="dropdown-item">
-              {{ dialog.description or "Dialog " + dialog.id|string }}
-              <span class="tag is-warning is-light">{{ dialog.status }}</span>
-            </a>
-          {% endfor %}
-        {% endif %}
+          </li>
+        {% endfor %}
       {% endif %}
-    </div>
-  </div>
+      {% if total_waiting > 0 %}
+        {% if total_running > 0 %}<li><hr class="dropdown-divider"></li>{% endif %}
+        <li><h6 class="dropdown-header">Waiting for Input</h6></li>
+        {% for dialog in waiting_dialogs %}
+          <li>
+            <a hx-get="/dialog/{{ dialog.id }}"
+               hx-target=".dashboard"
+               hx-push-url="true"
+               class="dropdown-item d-flex justify-content-between align-items-center">
+              <span>{{ dialog.description or "Dialog " + dialog.id|string }}</span>
+              <span class="badge bg-warning-subtle text-warning-emphasis">{{ dialog.status }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+  </ul>
 </div>

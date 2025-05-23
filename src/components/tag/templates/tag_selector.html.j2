@@ -1,75 +1,60 @@
 <div class="tag-selector" id="tag-selector-{{ entity_id }}">
-  <div class="field">
-    <label class="label">Tags</label>
-    <div class="control">
-      <div class="dropdown" id="tag-dropdown">
-        <div class="dropdown-trigger">
-          <button class="button"
-                  aria-haspopup="true"
-                  aria-controls="dropdown-menu"
-                  hx-get="/api/tags/components/entity-tags?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
-                  hx-target="#entity-tags-container">
-            <span>Add Tags</span>
-            <span class="icon is-small">
-              <i class="fas fa-angle-down" aria-hidden="true"></i>
-            </span>
-          </button>
-        </div>
-        <div class="dropdown-menu" id="dropdown-menu" role="menu">
-          <div class="dropdown-content">
-            <div class="dropdown-item">
-              <input class="input"
-                     type="text"
-                     placeholder="Search tags..."
-                     hx-get="/api/tags?search="
-                     hx-trigger="keyup changed delay:500ms"
-                     hx-target="#tag-search-results">
-            </div>
-            <hr class="dropdown-divider">
-            <div id="tag-search-results">
-              {% for tag in top_level_tags %}
-                <a class="dropdown-item"
-                   hx-post="/api/tags/entity"
-                   hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "tag_id": "{{ tag.id }}"}'
-                   hx-target="#entity-tags-container"
-                   hx-swap="innerHTML">{{ tag.name }}</a>
-              {% endfor %}
-            </div>
+  <div class="mb-2">
+    <label class="form-label small">Tags</label>
+    <div class="dropdown" id="tag-dropdown-{{ entity_id }}"> {# Unique ID for dropdown #}
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100" type="button" 
+              id="tagDropdownButton-{{ entity_id }}"
+              data-bs-toggle="dropdown" aria-expanded="false"
+              hx-get="/api/tags/components/entity-tags?entity_id={{ entity_id }}&entity_type={{ entity_type }}"
+              hx-target="#entity-tags-container-{{ entity_id }}">
+        Add Tags <i class="fas fa-angle-down ms-1"></i>
+      </button>
+      <ul class="dropdown-menu w-100" aria-labelledby="tagDropdownButton-{{ entity_id }}">
+        <li>
+          <div class="p-2">
+            <input class="form-control form-control-sm"
+                   type="text"
+                   placeholder="Search tags..."
+                   hx-get="/api/tags?search=" {# Assuming this endpoint returns items compatible with being inside a dropdown #}
+                   hx-trigger="keyup changed delay:500ms"
+                   hx-target="#tag-search-results-{{ entity_id }}">
           </div>
-        </div>
-      </div>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <div id="tag-search-results-{{ entity_id }}" class="overflow-auto" style="max-height: 200px;">
+            {# Initial content, if any, or loaded by HTMX. Ensure loaded items are <a> or <button> with .dropdown-item #}
+            {% for tag in top_level_tags %} 
+              <a class="dropdown-item" href="#"
+                 hx-post="/api/tags/entity"
+                 hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "tag_id": "{{ tag.id }}"}'
+                 hx-target="#entity-tags-container-{{ entity_id }}"
+                 hx-swap="innerHTML">{{ tag.name }}</a>
+            {% endfor %}
+          </div>
+        </li>
+      </ul>
     </div>
   </div>
-  <div id="entity-tags-container">
+  <div id="entity-tags-container-{{ entity_id }}">
     {% if entity_tags %}
-      <div class="tags">
+      <div class="mb-2"> {# Replaces .tags div #}
         {% for tag in entity_tags %}
-          <span class="tag is-primary">
+          <span class="badge text-bg-primary me-1 mb-1 d-inline-flex align-items-center">
             {{ tag.name }}
-            <button class="delete is-small"
+            <button class="btn-close btn-close-white ms-1"
+                    style="font-size: 0.6em; padding: 0.2rem 0.3rem;" {# Custom style for smaller close button #}
+                    type="button"
+                    aria-label="Remove tag"
                     hx-delete="/api/tags/entity"
                     hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "tag_id": "{{ tag.id }}"}'
-                    hx-target="#entity-tags-container"></button>
+                    hx-target="#entity-tags-container-{{ entity_id }}"></button>
           </span>
         {% endfor %}
       </div>
     {% else %}
-      <p class="help">No tags assigned</p>
+      <p class="text-muted small">No tags assigned</p>
     {% endif %}
   </div>
 </div>
-<script>
-  // Toggle dropdown when button is clicked
-  document.querySelector('#tag-dropdown .dropdown-trigger button').addEventListener('click', function(e) {
-    e.preventDefault();
-    document.querySelector('#tag-dropdown').classList.toggle('is-active');
-  });
-  
-  // Close dropdown when clicking outside
-  document.addEventListener('click', function(e) {
-    const dropdown = document.querySelector('#tag-dropdown');
-    if (!dropdown.contains(e.target)) {
-      dropdown.classList.remove('is-active');
-    }
-  });
-</script>
+{# Removed Bulma-specific JavaScript for dropdown toggling #}

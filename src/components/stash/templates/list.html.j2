@@ -1,68 +1,64 @@
-<div class="container">
-  <div class="is-flex is-justify-content-space-between mb-4">
-    <h1 class="title">Stashes</h1>
+<div class="container mt-3">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Stashes</h1>
     <div>
-      <button class="button is-primary"
+      <button class="btn btn-primary"
               hx-get="/stashes/create"
               hx-target=".dashboard">
-        <span class="icon"><i class="fas fa-plus"></i></span>
-        <span>Create Stash</span>
+        <i class="fas fa-plus me-1"></i>Create Stash
       </button>
     </div>
   </div>
   {% if stashes %}
-    <div class="columns is-multiline">
+    <div class="row">
       {% for stash in stashes %}
-        <div class="column is-one-third">
-          <div class="card">
-            <header class="card-header">
-              <p class="card-header-title">{{ stash.name }}</p>
-            </header>
-            <div class="card-content">
-              <div class="content">
-                {% if stash.description %}
-                  <p>{{ stash.description }}</p>
-                {% else %}
-                  <p class="has-text-grey-light">No description</p>
-                {% endif %}
-                <p class="is-size-7 mt-2">
-                  <span class="has-text-weight-bold">Items:</span> {{ stash.items|length }}
-                </p>
-                <p class="is-size-7">
-                  <span class="has-text-weight-bold">Created:</span> {{ stash.created_at.strftime("%Y-%m-%d %H:%M") }}
-                </p>
+        <div class="col-md-4 mb-3">
+          <div class="card h-100">
+            <div class="card-header">
+              <h5 class="card-title mb-0">{{ stash.name }}</h5>
+            </div>
+            <div class="card-body">
+              {% if stash.description %}
+                <p>{{ stash.description }}</p>
+              {% else %}
+                <p class="text-muted">No description</p>
+              {% endif %}
+              <p class="small mt-2 mb-0">
+                <span class="fw-bold">Items:</span> {{ stash.items|length }}
+              </p>
+              <p class="small mb-0">
+                <span class="fw-bold">Created:</span> {{ stash.created_at.strftime("%Y-%m-%d %H:%M") }}
+              </p>
+            </div>
+            <div class="card-footer bg-transparent border-top-0">
+              <div class="btn-group btn-group-sm" role="group">
+                <a class="btn btn-outline-secondary"
+                   hx-get="/stashes/{{ stash.id }}"
+                   hx-target=".dashboard"
+                   hx-push-url="true">
+                  <i class="fas fa-eye me-1"></i>View
+                </a>
+                <a class="btn btn-outline-secondary"
+                   hx-get="/stashes/{{ stash.id }}/edit"
+                   hx-target=".dashboard">
+                  <i class="fas fa-edit me-1"></i>Edit
+                </a>
+                <a class="btn btn-outline-danger"
+                   hx-delete="/stashes/{{ stash.id }}"
+                   hx-confirm="Are you sure you want to delete this stash?"
+                   hx-target="closest .col-md-4" {# Target the column for removal #}
+                   hx-swap="outerHTML">
+                  <i class="fas fa-trash me-1"></i>Delete
+                </a>
               </div>
             </div>
-            <footer class="card-footer">
-              <a class="card-footer-item"
-                 hx-get="/stashes/{{ stash.id }}"
-                 hx-target=".dashboard"
-                 hx-push-url="true">
-                <span class="icon"><i class="fas fa-eye"></i></span>
-                <span>View</span>
-              </a>
-              <a class="card-footer-item"
-                 hx-get="/stashes/{{ stash.id }}/edit"
-                 hx-target=".dashboard">
-                <span class="icon"><i class="fas fa-edit"></i></span>
-                <span>Edit</span>
-              </a>
-              <a class="card-footer-item has-text-danger"
-                 hx-delete="/stashes/{{ stash.id }}"
-                 hx-confirm="Are you sure you want to delete this stash?"
-                 hx-target="closest .column"
-                 hx-swap="outerHTML">
-                <span class="icon"><i class="fas fa-trash"></i></span>
-                <span>Delete</span>
-              </a>
-            </footer>
           </div>
         </div>
       {% endfor %}
     </div>
   {% else %}
-    <div class="notification is-info">
-      <p>No stashes found. Create your first stash to get started!</p>
+    <div class="alert alert-info">
+      <p class="mb-0">No stashes found. Create your first stash to get started!</p>
     </div>
   {% endif %}
 </div>

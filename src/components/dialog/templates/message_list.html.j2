@@ -1,13 +1,14 @@
 {% for message in messages %}
-  <div class="message-container m-5">
-    <div class="message-bubble p-3 {% if message.role == 'user' %} is-primary{% else %}is-light{% endif %} box">
+  <div class="message-container my-3 mx-auto" style="max-width: 80%;"> {# Adjusted margins and max-width for chat bubbles #}
+    <div class="message-bubble p-3 border rounded shadow-sm {% if message.role == 'user' %}bg-primary text-white float-end{% else %}bg-light text-dark float-start{% endif %}">
       <div class="message-header">
-        <strong>{{ message.role|title }}</strong>
+        <strong class="small">{{ message.role|title }}</strong> {# Made role slightly smaller for better hierarchy #}
       </div>
-      <div class="message-content mt-2"
+      <div class="message-content mt-1"
            {% if loop.last %}sse-swap="message-stream-{{ message.id }}"{% endif %}>
         {{ message.text | markdown2html | safe }}
       </div>
+      <div class="clearfix"></div> {# Clear float for subsequent messages #}
     </div>
   </div>
 {% endfor %}

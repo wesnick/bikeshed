@@ -1,95 +1,89 @@
-<section class="section">
+<div class="container py-4">
   <div class="container">
-    <h1 class="title">Kitchen Sink</h1>
-    <p class="subtitle">A collection of Bulma elements to test styling.</p>
+    <h1>Kitchen Sink</h1>
+    <p class="lead">A collection of Bootstrap elements to test styling.</p>
     <hr>
-    <h2 class="subtitle">Buttons</h2>
-    <div class="buttons">
-      <button class="button is-primary">Primary</button>
-      <button class="button is-link">Link</button>
-      <button class="button is-info">Info</button>
-      <button class="button is-success">Success</button>
-      <button class="button is-warning">Warning</button>
-      <button class="button is-danger">Danger</button>
-      <button class="button is-light">Light</button>
-      <button class="button is-dark">Dark</button>
-      <button class="button is-outlined">Outlined</button>
-      <button class="button is-primary is-loading">Loading</button>
+    <h2 class="mt-4">Buttons</h2>
+    <div class="d-flex flex-wrap gap-2">
+      <button class="btn btn-primary">Primary</button>
+      <button class="btn btn-link">Link</button>
+      <button class="btn btn-info">Info</button>
+      <button class="btn btn-success">Success</button>
+      <button class="btn btn-warning">Warning</button>
+      <button class="btn btn-danger">Danger</button>
+      <button class="btn btn-light">Light</button>
+      <button class="btn btn-dark">Dark</button>
+      <button class="btn btn-outline-primary">Outlined</button>
+      <button class="btn btn-primary disabled">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Loading...
+      </button>
     </div>
     <hr>
-    <h2 class="subtitle">Form Elements</h2>
-    <div class="field">
-      <label class="label">Label</label>
-      <div class="control">
-        <input class="input" type="text" placeholder="Text input">
-      </div>
+    <h2 class="mt-4">Form Elements</h2>
+    <div class="mb-3">
+      <label for="textInput" class="form-label">Label</label>
+      <input class="form-control" id="textInput" type="text" placeholder="Text input">
     </div>
-    <div class="field">
-      <label class="label">Select</label>
-      <div class="control">
-        <div class="select">
-          <select>
-            <option>Option 1</option>
-            <option>Option 2</option>
-          </select>
-        </div>
-      </div>
+    <div class="mb-3">
+      <label for="selectBox" class="form-label">Select</label>
+      <select class="form-select" id="selectBox">
+        <option>Option 1</option>
+        <option>Option 2</option>
+      </select>
     </div>
-    <div class="field">
-      <label class="label">Textarea</label>
-      <div class="control">
-        <textarea class="textarea" placeholder="Textarea"></textarea>
-      </div>
+    <div class="mb-3">
+      <label for="textareaInput" class="form-label">Textarea</label>
+      <textarea class="form-control" id="textareaInput" placeholder="Textarea" rows="3"></textarea>
     </div>
-    <div class="field">
-      <div class="control">
-        <label class="checkbox">
-          <input type="checkbox">
-          Checkbox
-        </label>
-      </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox" class="form-check-input" id="exampleCheck1">
+      <label class="form-check-label" for="exampleCheck1">Checkbox</label>
     </div>
-    <div class="field">
-      <div class="control">
-        <label class="radio">
-          <input type="radio" name="question">
+    <div class="mb-3">
+      <label class="form-label">Radio Buttons</label>
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="questionRadio" id="radio1">
+        <label class="form-check-label" for="radio1">
           Radio 1
         </label>
-        <label class="radio">
-          <input type="radio" name="question">
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="questionRadio" id="radio2">
+        <label class="form-check-label" for="radio2">
           Radio 2
         </label>
       </div>
     </div>
     <hr>
-    <h2 class="subtitle">Notifications</h2>
-    <div class="notification is-primary">
-      <button class="delete"></button>
-      This is a primary notification.
+    <h2 class="mt-4">Alerts</h2>
+    <div class="alert alert-primary alert-dismissible fade show" role="alert">
+      This is a primary alert.
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-    <div class="notification is-link">
-      <button class="delete"></button>
-      This is a link notification.
+    <div class="alert alert-secondary alert-dismissible fade show" role="alert">
+      This is a secondary alert (mapped from Bulma's 'link').
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-    <div class="notification is-info">
-      <button class="delete"></button>
-      This is an info notification.
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+      This is an info alert.
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-    <div class="notification is-success">
-      <button class="delete"></button>
-      This is a success notification.
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      This is a success alert.
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-    <div class="notification is-warning">
-      <button class="delete"></button>
-      This is a warning notification.
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+      This is a warning alert.
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-    <div class="notification is-danger">
-      <button class="delete"></button>
-      This is a danger notification.
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      This is a danger alert.
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     <hr>
-    <h2 class="subtitle">Table</h2>
-    <table class="table">
+    <h2 class="mt-4">Table</h2>
+    <table class="table table-bordered table-striped">
       <thead>
         <tr>
           <th>Header 1</th>
@@ -111,4 +105,4 @@
       </tbody>
     </table>
   </div>
-</section>
+</div>

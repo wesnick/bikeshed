@@ -1,26 +1,29 @@
-<div class="container is-fluid mt-4">
-  <h1 class="title">Tag Management</h1>
-  <div class="columns">
-    <div class="column is-half">
-      <div class="box">
-        <h2 class="subtitle">Tag Hierarchy</h2>
-        <div id="tag-tree-root"
-             hx-get="/tags/tree"
-             hx-trigger="load, sse:tag.created">
-          <p>Loading tags...</p>
+<div class="container-fluid mt-4">
+  <h1 class="h3 mb-4">Tag Management</h1>
+  <div class="row">
+    <div class="col-md-6 mb-3 mb-md-0">
+      <div class="card">
+        <div class="card-body">
+          <h2 class="h5 card-title mb-3">Tag Hierarchy</h2>
+          <div id="tag-tree-root"
+               hx-get="/tags/tree"
+               hx-trigger="load, sse:tag.created">
+            <p>Loading tags...</p>
+          </div>
         </div>
       </div>
     </div>
-    <div class="column is-half">
-      <div class="box" id="tag-details">
-        <h2 class="subtitle">Details / Actions</h2>
-        <p>Select a tag to see details or click "Add Top-Level Tag".</p>
-        <button class="button is-primary"
-                hx-get="/tags/create"
-                hx-target="#tag-details">
-          <span class="icon"><i class="fas fa-plus"></i></span>
-          <span>Add Top-Level Tag</span>
-        </button>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-body" id="tag-details">
+          <h2 class="h5 card-title mb-3">Details / Actions</h2>
+          <p>Select a tag to see details or click "Add Top-Level Tag".</p>
+          <button class="btn btn-primary"
+                  hx-get="/tags/create"
+                  hx-target="#tag-details">
+            <i class="fas fa-plus me-1"></i>Add Top-Level Tag
+          </button>
+        </div>
       </div>
     </div>
   </div>

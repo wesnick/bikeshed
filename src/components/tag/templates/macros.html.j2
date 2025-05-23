@@ -1,8 +1,10 @@
 {% macro render_tag(tag, entity_id, entity_type) %}
-  <span class="tag is-info is-medium mr-2 mb-2">
+  <span class="badge text-bg-info me-2 mb-2 d-inline-flex align-items-center">
     {{ tag.name }}
-    <button class="delete is-small"
+    <button class="btn-close btn-close-white ms-2"
+            style="font-size: 0.65em; padding: 0.25rem 0.35rem;" {# Custom style for smaller close button on badge #}
             type="button"
+            aria-label="Remove tag"
             hx-vals='{"entity_id": "{{ entity_id }}", "entity_type": "{{ entity_type }}", "tag_id": "{{ tag.id }}", "action": "remove"}'
             hx-post="/tags/entity"
             hx-target="#tag-entity-component-{{ entity_id }}"

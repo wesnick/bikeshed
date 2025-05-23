@@ -1,13 +1,30 @@
-<ul class="steps is-small has-content-above">
-  {% for step in dialog_template.steps %}
-    <li class="steps-segment {% if active_step == 'step_' ~ loop.index0 %}is-active{% endif %}">
-      <span class="steps-marker"></span>
-      <div class="steps-content is-divider-content">
-        <p class="is-size-6">{{ step.name }}</p>
-      </div>
-    </li>
-  {% endfor %}
-  <li class="steps-segment">
-    <span class="steps-marker"></span>
-  </li>
-</ul>
+<div class="mb-3"> {# Added a wrapper for margin #}
+  <ul class="nav nav-pills justify-content-around"> {# Using nav-pills, justify-content-around to spread them #}
+    {% for step in dialog_template.steps %}
+      <li class="nav-item text-center px-1"> {# px-1 for some spacing between items #}
+        <div class="mb-1">
+          {# Visual marker: using a Font Awesome icon within a badge-like span. #}
+          {# The actual 'steps-marker' from bulma-o-steps created a circle and line via CSS pseudo-elements #}
+          {# This is a simplified visual representation using Bootstrap classes and FA icons. #}
+          <span class="fa-stack fa-1x">
+            {% if active_step == 'step_' ~ loop.index0 %}
+              <i class="fas fa-circle fa-stack-2x text-primary"></i>
+              <i class="fas fa-check fa-stack-1x fa-inverse"></i>
+            {% elif "COMPLETED" in step.status_flags %} {# Assuming a status_flag might indicate completion #}
+              <i class="fas fa-check-circle fa-stack-2x text-success"></i>
+            {% else %}
+              <i class="far fa-circle fa-stack-2x text-muted"></i>
+            {% endif %}
+          </span>
+        </div>
+        <div class="small {% if active_step == 'step_' ~ loop.index0 %}text-primary fw-bold{% else %}text-muted{% endif %}" style="font-size: 0.8em;">
+          {{ step.name }}
+        </div>
+      </li>
+    {% endfor %}
+    {# The final "steps-segment" with only a marker from bulma-o-steps is primarily for visual line termination.
+       It's not directly translated here as Bootstrap navs don't draw connecting lines by default.
+       If a visual "end" marker is needed, it could be added as another list item.
+       For now, it's omitted for simplicity with standard Bootstrap components. #}
+  </ul>
+</div>

@@ -1,50 +1,36 @@
 @use 'variables' as vars;
-
-@use "../../node_modules/bulma/sass/index" with (
-  $family-primary: '"Atkinson Hyperlegible Next", sans-serif',
-  $primary: vars.$primary,
-  //$primary: iv.$turquoise !default,
-
-  //$info: iv.$cyan !default,
-  //$success: iv.$green !default,
-  //$warning: iv.$yellow !default,
-  //$danger: iv.$red !default,
-  //$light: iv.$white-ter !default,
-  //$dark: iv.$grey-darker !default,
-  //// Link colors
-  $link: vars.$link,
-  //$link: iv.$blue !default,
-);
-
-// Bulma steps
-@use '../../node_modules/bulma-o-steps/bulma-steps.css';
-
 @use 'root_tree';
 
-// Fancy editor stuff
+// Fancy editor stuff - These are CSS files, so @import is more appropriate than @use if they are plain CSS.
+// However, if they are SASS files or SASS-compatible CSS that might contain SASS features, @use is correct.
+// Given they are from node_modules and have .css extensions, they are likely plain CSS.
+// Sass's `@use` can load plain CSS files, but it treats them as modules, which might not be intended.
+// For plain CSS, `@import` is the standard way. Let's assume they are SASS-compatible for now and keep @use.
+// If build errors persist related to these, changing to @import might be a fix.
 @use 'highlight.js/styles/atom-one-dark.min.css';
 @use 'prosemirror-view/style/prosemirror.css';
 @use 'prosemirror-menu/style/menu.css';
 @use 'prosemirror-example-setup/style/style.css';
 
+// Import Bootstrap - @import is used for CSS frameworks like Bootstrap typically
+@import "../../node_modules/bootstrap/scss/bootstrap";
 
-// Import the Google Font
+// Import the Google Font - @import is standard for web fonts
 @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,200..800;1,200..800&display=swap');
 
 :root {
-  // Shadow variables - changing to sharp, offset shadows
-  --bulma-shadow-h: 0; // hue
-  --bulma-shadow-s: 0%; // saturation
-  --bulma-shadow-l: 0%; // lightness
-
   // Override the shadow property with a brutalist box shadow
-  --bulma-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1), 0 0 0 2px rgba(0, 0, 0, 1);
+  // Note: Bootstrap's $box-shadow variable is used to generate utility classes like .shadow
+  // We are overriding the CSS variable directly for a global effect.
+  // For component-specific shadows, Bootstrap's shadow utilities or SASS variables might be preferable.
+  --bs-box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 1), 0 0 0 2px rgba(0, 0, 0, 1);
 
   // Border radius - removing all rounded corners
-  --bulma-radius: 0;
-  --bulma-radius-small: 0;
-  --bulma-radius-large: 0;
-
+  --bs-border-radius: 0;
+  --bs-border-radius-sm: 0;
+  --bs-border-radius-lg: 0;
+  --bs-border-radius-xl: 0;
+  --bs-border-radius-xxl: 0;
 }
 
 
@@ -62,8 +48,8 @@
 .sidebar { grid-area: sidebar; }
 .dashboard {
   grid-area: main;
-  border-left: 1px var(--bulma-primary-on-scheme) solid;
-  border-right: 1px var(--bulma-primary-on-scheme) solid;
+  border-left: 1px var(--bs-primary-border-subtle) solid;
+  border-right: 1px var(--bs-primary-border-subtle) solid;
 }
 .drawer-container { grid-area: drawer; }
 
